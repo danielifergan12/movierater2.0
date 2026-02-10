@@ -57,8 +57,14 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
+    // Validate movie ID
+    const movieId = parseInt(id);
+    if (isNaN(movieId)) {
+      return res.status(400).json({ message: 'Invalid movie ID' });
+    }
+    
     // First check if movie exists in our database
-    let movie = await Movie.findOne({ tmdbId: parseInt(id) });
+    let movie = await Movie.findOne({ tmdbId: movieId });
     
     if (!movie) {
       // Fetch from TMDB and save to database
