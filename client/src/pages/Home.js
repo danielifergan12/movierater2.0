@@ -22,9 +22,6 @@ import { useMovies } from '../contexts/MovieContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
-import LandingHero from '../components/LandingHero';
-import MovieSearchRanking from '../components/MovieSearchRanking';
-import ConversionModal from '../components/ConversionModal';
 import api from '../config/axios';
 
 const Home = () => {
@@ -41,63 +38,9 @@ const Home = () => {
   const [totalRankings, setTotalRankings] = useState(0);
   const [genres, setGenres] = useState([]);
   const [genresLoading, setGenresLoading] = useState(false);
-  const [showCarousel, setShowCarousel] = useState(false);
-  const [showConversionModal, setShowConversionModal] = useState(false);
   const hasInitialLoad = useRef(false);
   const prevUserIdRef = useRef(null);
   const STORAGE_KEY = 'homeDisplayMovies';
-  const conversionModalShownRef = useRef(false);
-
-  // Check if user should see landing experience
-  const shouldShowLanding = !isAuthenticated && rawRatings.length < 5;
-  const shouldShowConversion = !isAuthenticated && rawRatings.length >= 5;
-
-  // Show conversion modal when user reaches 5 ratings
-  useEffect(() => {
-    if (shouldShowConversion && !conversionModalShownRef.current) {
-      // Check if we've shown it recently (don't spam)
-      const lastShown = localStorage.getItem('conversionModalLastShown');
-      const now = Date.now();
-      const oneHour = 60 * 60 * 1000;
-      
-      if (!lastShown || (now - parseInt(lastShown)) > oneHour) {
-        setShowConversionModal(true);
-        conversionModalShownRef.current = true;
-        localStorage.setItem('conversionModalLastShown', now.toString());
-      }
-    }
-  }, [shouldShowConversion]);
-
-  // Show conversion modal again after every 2-3 additional ratings
-  useEffect(() => {
-    if (!isAuthenticated && rawRatings.length >= 5) {
-      const ratingCount = rawRatings.length;
-      // Show every 2-3 ratings (at 5, 7, 10, 13, etc.)
-      if (ratingCount % 3 === 2 || ratingCount === 5) {
-        const lastShown = localStorage.getItem('conversionModalLastShown');
-        const now = Date.now();
-        const thirtyMinutes = 30 * 60 * 1000;
-        
-        if (!lastShown || (now - parseInt(lastShown)) > thirtyMinutes) {
-          setShowConversionModal(true);
-          localStorage.setItem('conversionModalLastShown', now.toString());
-        }
-      }
-    }
-  }, [rawRatings.length, isAuthenticated]);
-
-  // Handle carousel rating completion
-  const handleCarouselRatingComplete = () => {
-    // Check if we should show conversion modal
-    if (!isAuthenticated && rawRatings.length >= 4) {
-      // Will be triggered by the useEffect above
-    }
-  };
-
-  // Handle start ranking button
-  const handleStartRanking = () => {
-    setShowCarousel(true);
-  };
 
   // Ensure component responds to route changes for proper navigation
   const [, setRouteUpdate] = useState(0);
@@ -566,39 +509,6 @@ const Home = () => {
     </Card>
   );
 
-  // Show landing experience for guests with <5 ratings
-  if (shouldShowLanding) {
-    return (
-      <Box sx={{ 
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}>
-        <Container 
-          maxWidth="lg" 
-          sx={{ 
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            py: { xs: 4, sm: 6 },
-            px: { xs: 2, sm: 3 },
-          }}
-        >
-          {!showCarousel ? (
-            <LandingHero onStartRanking={handleStartRanking} />
-          ) : (
-            <MovieSearchRanking onRatingComplete={handleCarouselRatingComplete} />
-          )}
-        </Container>
-      </Box>
-    );
-  }
-
-  // Show authenticated experience or guest with 5+ ratings
   return (
     <Box sx={{ 
       height: !isAuthenticated ? '100vh' : 'auto',
@@ -922,13 +832,6 @@ const Home = () => {
           movie={ratingMovie}
           onClose={() => setRatingMovie(null)}
           onComplete={handleRatingComplete}
-        />
-      )}
-
-      {shouldShowConversion && (
-        <ConversionModal
-          open={showConversionModal}
-          onClose={() => setShowConversionModal(false)}
         />
       )}
     </Box>

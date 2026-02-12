@@ -10,63 +10,20 @@ import {
   Button,
   Typography,
   CircularProgress,
-  LinearProgress,
   InputAdornment,
 } from '@mui/material';
 import { Search as SearchIcon, Star as StarIcon } from '@mui/icons-material';
 import { useMovies } from '../contexts/MovieContext';
 import { useRatings } from '../hooks/useRatings';
-import { useAuth } from '../contexts/AuthContext';
 import RatingModal from './RatingModal';
-import ConversionModal from './ConversionModal';
 import api from '../config/axios';
 
 const MovieSearchRanking = ({ onRatingComplete }) => {
   const { searchMovies, searchResults, loading } = useMovies();
   const { rawRatings } = useRatings();
-  const { isAuthenticated } = useAuth();
   const [query, setQuery] = useState('');
   const [ratingMovie, setRatingMovie] = useState(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [showConversionModal, setShowConversionModal] = useState(false);
-  const [conversionModalShown, setConversionModalShown] = useState(false);
-
-  const ratingCount = rawRatings.length;
-  const targetCount = 5;
-  const progress = Math.min((ratingCount / targetCount) * 100, 100);
-
-  // Show conversion modal when user reaches 5 ratings
-  useEffect(() => {
-    if (!isAuthenticated && ratingCount >= targetCount && !conversionModalShown) {
-      // Check if we've shown it recently (don't spam)
-      const lastShown = localStorage.getItem('conversionModalLastShown');
-      const now = Date.now();
-      const oneHour = 60 * 60 * 1000;
-      
-      if (!lastShown || (now - parseInt(lastShown)) > oneHour) {
-        setShowConversionModal(true);
-        setConversionModalShown(true);
-        localStorage.setItem('conversionModalLastShown', now.toString());
-      }
-    }
-  }, [ratingCount, isAuthenticated, conversionModalShown]);
-
-  // Show conversion modal again after every 2-3 additional ratings
-  useEffect(() => {
-    if (!isAuthenticated && ratingCount >= targetCount) {
-      // Show every 2-3 ratings (at 5, 7, 10, 13, etc.)
-      if (ratingCount % 3 === 2 || ratingCount === targetCount) {
-        const lastShown = localStorage.getItem('conversionModalLastShown');
-        const now = Date.now();
-        const thirtyMinutes = 30 * 60 * 1000;
-        
-        if (!lastShown || (now - parseInt(lastShown)) > thirtyMinutes) {
-          setShowConversionModal(true);
-          localStorage.setItem('conversionModalLastShown', now.toString());
-        }
-      }
-    }
-  }, [ratingCount, isAuthenticated]);
 
   // Perform search with debounce
   useEffect(() => {
@@ -109,49 +66,6 @@ const MovieSearchRanking = ({ onRatingComplete }) => {
 
   return (
     <Box sx={{ width: '100%', maxWidth: '1200px', mx: 'auto', px: { xs: 2, sm: 3 } }}>
-      {/* Progress Section */}
-      <Box sx={{ mb: 4, textAlign: 'center' }}>
-        <Typography
-          variant="h6"
-          sx={{
-            color: 'rgba(255, 255, 255, 0.9)',
-            mb: 2,
-            fontSize: { xs: '1rem', sm: '1.25rem' },
-            fontWeight: 600,
-          }}
-        >
-          {ratingCount < targetCount
-            ? `You've ranked ${ratingCount} of ${targetCount} movies`
-            : `Great! You've ranked ${ratingCount} movies`}
-        </Typography>
-        <LinearProgress
-          variant="determinate"
-          value={progress}
-          sx={{
-            height: 8,
-            borderRadius: 4,
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            '& .MuiLinearProgress-bar': {
-              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-              borderRadius: 4,
-            },
-            mb: 2,
-          }}
-        />
-        {ratingCount >= targetCount && (
-          <Typography
-            variant="body2"
-            sx={{
-              color: '#00d4ff',
-              fontSize: { xs: '0.875rem', sm: '1rem' },
-              fontWeight: 500,
-            }}
-          >
-            Sign in to save your list and continue.
-          </Typography>
-        )}
-      </Box>
-
       {/* Search Bar */}
       <Box sx={{ mb: 4 }}>
         <TextField
@@ -352,17 +266,10 @@ const MovieSearchRanking = ({ onRatingComplete }) => {
           onComplete={handleRatingComplete}
         />
       )}
-
-      {/* Conversion Modal */}
-      {!isAuthenticated && (
-        <ConversionModal
-          open={showConversionModal}
-          onClose={() => setShowConversionModal(false)}
-        />
-      )}
     </Box>
   );
 };
 
 export default MovieSearchRanking;
+
 

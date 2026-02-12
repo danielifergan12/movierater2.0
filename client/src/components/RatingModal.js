@@ -84,11 +84,12 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
         return rIdStr !== movieIdStr;
       });
       // Store filtered ratings locally to ensure we always use them
+      // Don't update global state during reranking - only use local filteredRatings
       setFilteredRatings(updatedRatings);
-      setRatingsArray(updatedRatings);
       ratingsToUse = updatedRatings; // Use filtered array for calculations
     } else {
       // Not rerating, clear filtered ratings
+      setIsRerating(false);
       setFilteredRatings(null);
     }
 
@@ -102,19 +103,31 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       setFirstTime(false);
       setLow(0);
       setHigh(currentRatingsLength - 1);
-      setIsInitialized(true);
+      // Only initialize after filteredRatings is set when rerating
+      if (alreadyRated && allowRerate) {
+        // Wait for filteredRatings to be set - it will be available in next render
+        // The second useEffect will wait for filteredRatings before running
+        setIsInitialized(true);
+      } else {
+        setIsInitialized(true);
+      }
     }
-  }, [open, rawRatings, movie.id, onClose, allowRerate, setRatingsArray]);
+  }, [open, rawRatings, movie.id, onClose, allowRerate]);
 
   useEffect(() => {
     if (!open || !isInitialized || firstTime) return;
+    
+    // If rerating, wait for filteredRatings to be ready before proceeding
+    if (isRerating && !filteredRatings) {
+      return; // Don't calculate comparisons yet - wait for filteredRatings
+    }
     
     // Get current ratings - always filter out the movie being reranked to prevent self-comparison
     // Use robust ID comparison to handle string/number mismatches
     // When rerating, use the filtered ratings we stored; otherwise filter on the fly
     const movieIdStr = String(movie.id);
     const currentRatings = isRerating && filteredRatings 
-      ? filteredRatings  // Use pre-filtered ratings when rerating
+      ? filteredRatings  // Use pre-filtered ratings when rerating - never fall back to rawRatings
       : rawRatings.filter(r => {
           const rIdStr = String(r.id);
           return rIdStr !== movieIdStr;
@@ -234,17 +247,22 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       onComplete && onComplete(updated);
       onClose && onClose();
     }
-  }, [low, high, open, isInitialized, rawRatings, firstTime, movie, upsertAtIndex, onComplete, onClose, isRerating]);
+  }, [low, high, open, isInitialized, rawRatings, filteredRatings, firstTime, movie, upsertAtIndex, onComplete, onClose, isRerating]);
 
   const compareTarget = useMemo(() => {
     if (mid == null) return null;
+    
+    // If rerating but filteredRatings not ready yet, return null to prevent rendering
+    if (isRerating && !filteredRatings) {
+      return null;
+    }
     
     // Get current ratings (always filter out the movie being reranked to prevent self-comparison)
     // Use robust string comparison to handle ID type mismatches
     // When rerating, use the filtered ratings we stored; otherwise filter on the fly
     const movieIdStr = String(movie.id);
     const currentRatings = isRerating && filteredRatings 
-      ? filteredRatings  // Use pre-filtered ratings when rerating
+      ? filteredRatings  // Use pre-filtered ratings when rerating - never fall back to rawRatings
       : rawRatings.filter(r => {
           const rIdStr = String(r.id);
           return rIdStr !== movieIdStr;
@@ -282,13 +300,19 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       return;
     }
     
+    // If rerating but filteredRatings not ready, don't handle null compareTarget yet
+    // Wait for filteredRatings to be set first
+    if (isRerating && !filteredRatings) {
+      return; // Don't complete prematurely - wait for filteredRatings
+    }
+    
     // If compareTarget is null and we haven't already handled it, find a valid comparison or complete
     if (!compareTarget && !handlingNullTargetRef.current) {
       handlingNullTargetRef.current = true;
       
       const movieIdStr = String(movie.id);
       const currentRatings = isRerating && filteredRatings 
-        ? filteredRatings  // Use pre-filtered ratings when rerating
+        ? filteredRatings  // Use pre-filtered ratings when rerating - never fall back to rawRatings
         : rawRatings.filter(r => {
             const rIdStr = String(r.id);
             return rIdStr !== movieIdStr;
