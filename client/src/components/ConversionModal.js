@@ -61,7 +61,7 @@ const ConversionModal = ({ open, onClose }) => {
             fontWeight: 700,
           }}
         >
-          Save your list. Get your profile.
+          You've ranked 5 movies! Sign in to save your list.
         </Typography>
         <IconButton
           onClick={onClose}
@@ -87,7 +87,7 @@ const ConversionModal = ({ open, onClose }) => {
             fontSize: '1rem',
           }}
         >
-          Keep your rankings safe and discover what others think.
+          Save your 5 movies! Sign in now to keep your rankings safe and discover what others think.
         </Typography>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

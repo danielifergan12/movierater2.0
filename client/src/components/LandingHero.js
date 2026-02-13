@@ -26,7 +26,7 @@ const LandingHero = ({ onStartRanking }) => {
           lineHeight: 1.2,
         }}
       >
-        Rank movies, build your personal list, and compare taste with others.
+        Search and rank 5 movies. Build your personal list.
       </Typography>
 
       <Typography

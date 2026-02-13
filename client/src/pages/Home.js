@@ -23,7 +23,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
 import LandingHero from '../components/LandingHero';
-import MovieCarousel from '../components/MovieCarousel';
+import MovieSearchRanking from '../components/MovieSearchRanking';
 import ConversionModal from '../components/ConversionModal';
 import api from '../config/axios';
 
@@ -591,7 +591,7 @@ const Home = () => {
           {!showCarousel ? (
             <LandingHero onStartRanking={handleStartRanking} />
           ) : (
-            <MovieCarousel onRatingComplete={handleCarouselRatingComplete} />
+            <MovieSearchRanking onRatingComplete={handleCarouselRatingComplete} />
           )}
         </Container>
       </Box>
