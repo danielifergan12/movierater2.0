@@ -20,20 +20,55 @@ const MovieCarousel = ({ onRatingComplete }) => {
     const fetchMovies = async () => {
       setLoading(true);
       try {
+        // Try popular movies first
         const response = await api.get('/api/movies/popular?page=1');
-        if (response.data && response.data.results) {
+        
+        if (response.data && response.data.results && Array.isArray(response.data.results) && response.data.results.length > 0) {
           // Filter out already rated movies
           const ratedIds = new Set(rawRatings.map(r => String(r.id)));
-          const filtered = response.data.results
+          let filtered = response.data.results
             .filter(movie => movie && movie.id && !ratedIds.has(String(movie.id)))
             .slice(0, 5);
+          
+          // If all were filtered out, use first 5 anyway (for new users)
+          if (filtered.length === 0) {
+            filtered = response.data.results.slice(0, 5);
+          }
+          
           setMovies(filtered);
         } else {
-          setMovies([]);
+          // Fallback to trending movies
+          console.log('Popular movies empty, trying trending...');
+          const trendingResponse = await api.get('/api/movies/trending/week');
+          if (trendingResponse.data && trendingResponse.data.results && Array.isArray(trendingResponse.data.results)) {
+            const ratedIds = new Set(rawRatings.map(r => String(r.id)));
+            let filtered = trendingResponse.data.results
+              .filter(movie => movie && movie.id && !ratedIds.has(String(movie.id)))
+              .slice(0, 5);
+            
+            if (filtered.length === 0) {
+              filtered = trendingResponse.data.results.slice(0, 5);
+            }
+            
+            setMovies(filtered);
+          } else {
+            setMovies([]);
+          }
         }
       } catch (error) {
         console.error('Error fetching movies:', error);
-        setMovies([]);
+        // Try trending as fallback
+        try {
+          const trendingResponse = await api.get('/api/movies/trending/week');
+          if (trendingResponse.data && trendingResponse.data.results && Array.isArray(trendingResponse.data.results)) {
+            setMovies(trendingResponse.data.results.slice(0, 5));
+          } else {
+            setMovies([]);
+          }
+        } catch (fallbackError) {
+          console.error('Fallback also failed:', fallbackError);
+          setMovies([]);
+        }
       } finally {
         setLoading(false);
       }
