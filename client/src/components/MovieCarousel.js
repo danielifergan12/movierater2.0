@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Card, CardMedia, Typography } from '@mui/material';
-import { useMovies } from '../contexts/MovieContext';
+import { Box, Card, CardMedia, Typography, CircularProgress } from '@mui/material';
 import { useRatings } from '../hooks/useRatings';
 import api from '../config/axios';
 
 const MovieCarousel = ({ onRatingComplete }) => {
-  const { getPopularMovies } = useMovies();
   const { rawRatings, upsertAtIndex } = useRatings();
   const [movies, setMovies] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -13,40 +11,47 @@ const MovieCarousel = ({ onRatingComplete }) => {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState(null);
   const [zone, setZone] = useState(null); // 'top', 'middle', 'skip', null
+  const [loading, setLoading] = useState(true);
   const containerRef = useRef(null);
   const cardRef = useRef(null);
 
   // Fetch initial movies
   useEffect(() => {
     const fetchMovies = async () => {
+      setLoading(true);
       try {
-        const result = await getPopularMovies(1);
-        if (result.results) {
+        const response = await api.get('/api/movies/popular?page=1');
+        if (response.data && response.data.results) {
           // Filter out already rated movies
           const ratedIds = new Set(rawRatings.map(r => String(r.id)));
-          const filtered = result.results
-            .filter(movie => !ratedIds.has(String(movie.id)))
+          const filtered = response.data.results
+            .filter(movie => movie && movie.id && !ratedIds.has(String(movie.id)))
             .slice(0, 5);
           setMovies(filtered);
+        } else {
+          setMovies([]);
         }
       } catch (error) {
         console.error('Error fetching movies:', error);
+        setMovies([]);
+      } finally {
+        setLoading(false);
       }
     };
     fetchMovies();
-  }, [getPopularMovies]);
+  }, []); // Only run once on mount
 
   // Load more movies when running low
   useEffect(() => {
-    if (movies.length > 0 && movies.length - currentIndex < 2) {
+    if (movies.length > 0 && movies.length - currentIndex < 2 && !loading) {
       const fetchMore = async () => {
         try {
           const page = Math.floor(movies.length / 20) + 1;
-          const result = await getPopularMovies(page);
-          if (result.results) {
+          const response = await api.get(`/api/movies/popular?page=${page}`);
+          if (response.data && response.data.results) {
             const ratedIds = new Set(rawRatings.map(r => String(r.id)));
-            const filtered = result.results
-              .filter(movie => !ratedIds.has(String(movie.id)))
+            const filtered = response.data.results
+              .filter(movie => movie && movie.id && !ratedIds.has(String(movie.id)))
               .slice(0, 5);
             if (filtered.length > 0) {
               setMovies(prev => [...prev, ...filtered]);
@@ -58,7 +63,7 @@ const MovieCarousel = ({ onRatingComplete }) => {
       };
       fetchMore();
     }
-  }, [currentIndex, movies.length, getPopularMovies, rawRatings]);
+  }, [currentIndex, movies.length, rawRatings, loading]);
 
   const currentMovie = movies[currentIndex];
 
@@ -207,11 +212,25 @@ const MovieCarousel = ({ onRatingComplete }) => {
     }
   }, [isDragging, dragOffset]);
 
-  if (!currentMovie) {
+  if (loading) {
     return (
       <Box sx={{ textAlign: 'center', py: 8 }}>
+        <CircularProgress sx={{ color: '#00d4ff', mb: 2 }} />
         <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
           Loading movies...
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (!currentMovie || movies.length === 0) {
+    return (
+      <Box sx={{ textAlign: 'center', py: 8 }}>
+        <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
+          No movies available
+        </Typography>
+        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+          Try refreshing the page
         </Typography>
       </Box>
     );
