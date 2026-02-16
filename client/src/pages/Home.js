@@ -22,6 +22,9 @@ import { useMovies } from '../contexts/MovieContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
+import LandingHero from '../components/LandingHero';
+import MovieCarousel from '../components/MovieCarousel';
+import ConversionModal from '../components/ConversionModal';
 import api from '../config/axios';
 
 const Home = () => {
@@ -38,15 +41,67 @@ const Home = () => {
   const [totalRankings, setTotalRankings] = useState(0);
   const [genres, setGenres] = useState([]);
   const [genresLoading, setGenresLoading] = useState(false);
+  const [showCarousel, setShowCarousel] = useState(false);
+  const [showConversionModal, setShowConversionModal] = useState(false);
   const hasInitialLoad = useRef(false);
   const prevUserIdRef = useRef(null);
   const STORAGE_KEY = 'homeDisplayMovies';
+  const conversionModalShownRef = useRef(false);
+
+  // Check if user should see landing experience
+  const shouldShowLanding = !isAuthenticated && rawRatings.length < 5;
+  const shouldShowConversion = !isAuthenticated && rawRatings.length >= 5;
+
+  // Show conversion modal when user reaches 5 ratings
+  useEffect(() => {
+    if (shouldShowConversion && !conversionModalShownRef.current) {
+      // Check if we've shown it recently (don't spam)
+      const lastShown = localStorage.getItem('conversionModalLastShown');
+      const now = Date.now();
+      const oneHour = 60 * 60 * 1000;
+      
+      if (!lastShown || (now - parseInt(lastShown)) > oneHour) {
+        setShowConversionModal(true);
+        conversionModalShownRef.current = true;
+        localStorage.setItem('conversionModalLastShown', now.toString());
+      }
+    }
+  }, [shouldShowConversion]);
+
+  // Show conversion modal again after every 2-3 additional ratings
+  useEffect(() => {
+    if (!isAuthenticated && rawRatings.length >= 5) {
+      const ratingCount = rawRatings.length;
+      // Show every 2-3 ratings (at 5, 7, 10, 13, etc.)
+      if (ratingCount % 3 === 2 || ratingCount === 5) {
+        const lastShown = localStorage.getItem('conversionModalLastShown');
+        const now = Date.now();
+        const thirtyMinutes = 30 * 60 * 1000;
+        
+        if (!lastShown || (now - parseInt(lastShown)) > thirtyMinutes) {
+          setShowConversionModal(true);
+          localStorage.setItem('conversionModalLastShown', now.toString());
+        }
+      }
+    }
+  }, [rawRatings.length, isAuthenticated]);
+
+  // Handle carousel rating completion
+  const handleCarouselRatingComplete = () => {
+    // Check if we should show conversion modal
+    if (!isAuthenticated && rawRatings.length >= 4) {
+      // Will be triggered by the useEffect above
+    }
+  };
+
+  // Handle start ranking button
+  const handleStartRanking = () => {
+    setShowCarousel(true);
+  };
 
   // Ensure component responds to route changes for proper navigation
   const [, setRouteUpdate] = useState(0);
   useEffect(() => {
-    // Force a state update when location changes to ensure React Router detects navigation
-    // This is especially important when activeTab === 0 (Trending) where there are no other state updates
     setRouteUpdate(prev => prev + 1);
   }, [location.pathname]);
 
@@ -67,7 +122,6 @@ const Home = () => {
       const stored = localStorage.getItem('recentlyShownMovies');
       if (stored) {
         const data = JSON.parse(stored);
-        // Return array of movie IDs (keep only last 15 refreshes = 120 movies max)
         return data.slice(-120);
       }
     } catch (error) {
@@ -80,7 +134,6 @@ const Home = () => {
     try {
       const current = getRecentlyShownMovies();
       const updated = [...current, ...movieIds];
-      // Keep only last 15 refreshes (15 * 8 = 120 movies)
       const trimmed = updated.slice(-120);
       localStorage.setItem('recentlyShownMovies', JSON.stringify(trimmed));
     } catch (error) {
@@ -88,13 +141,11 @@ const Home = () => {
     }
   };
 
-  // Load persisted display movies from localStorage
   const loadPersistedMovies = () => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const movies = JSON.parse(stored);
-        // Check if movies are still valid (have required fields)
         if (Array.isArray(movies) && movies.length > 0 && movies[0].id) {
           return movies;
         }
@@ -105,7 +156,6 @@ const Home = () => {
     return null;
   };
 
-  // Save display movies to localStorage
   const savePersistedMovies = (movies) => {
     try {
       if (movies && movies.length > 0) {
@@ -116,14 +166,10 @@ const Home = () => {
     }
   };
 
-
-  // Don't fetch popular movies for guests - they should see empty state instead
-  
   // Clear persisted movies when user logs out or changes
   useEffect(() => {
     const currentUserId = user?._id || null;
     if (prevUserIdRef.current !== null && prevUserIdRef.current !== currentUserId) {
-      // User changed or logged out - clear persisted movies
       localStorage.removeItem(STORAGE_KEY);
       setDisplayMovies([]);
       hasInitialLoad.current = false;
@@ -150,46 +196,24 @@ const Home = () => {
       setGenresLoading(true);
       try {
         const response = await api.get('/api/movies/genres');
-        console.log('Genres API response:', response);
-        console.log('Genres API response.data:', response.data);
-        
         if (response && response.data) {
-          // TMDB returns { genres: [...] }
           let genresList = null;
-          
           if (response.data.genres && Array.isArray(response.data.genres)) {
             genresList = response.data.genres;
           } else if (Array.isArray(response.data)) {
             genresList = response.data;
           }
-          
           if (genresList && genresList.length > 0) {
-            // Show ALL genres, sorted alphabetically
             const sorted = [...genresList].sort((a, b) => a.name.localeCompare(b.name));
-            console.log('All genres loaded:', sorted.length, 'genres');
             setGenres(sorted);
           } else {
-            console.warn('Genres list is empty or not an array. Response structure:', {
-              hasGenres: !!response.data.genres,
-              isArray: Array.isArray(response.data),
-              data: response.data
-            });
             setGenres([]);
           }
         } else {
-          console.warn('No data in API response:', response);
           setGenres([]);
         }
       } catch (error) {
         console.error('Error fetching genres:', error);
-        console.error('Error details:', {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
-          url: error.config?.url
-        });
-        
-        // Fallback: Use common genres if API fails
         const fallbackGenres = [
           { id: 28, name: 'Action' },
           { id: 35, name: 'Comedy' },
@@ -204,7 +228,6 @@ const Home = () => {
           { id: 14, name: 'Fantasy' },
           { id: 9648, name: 'Mystery' }
         ];
-        console.warn('Using fallback genres due to API error');
         setGenres(fallbackGenres);
       } finally {
         setGenresLoading(false);
@@ -213,39 +236,29 @@ const Home = () => {
     fetchGenres();
   }, []);
 
-  // Load persisted movies on mount, or fetch if none exist
+  // Load persisted movies on mount, or fetch if none exist (for authenticated users)
   useEffect(() => {
     if (isAuthenticated && activeTab === 1 && !hasInitialLoad.current) {
       hasInitialLoad.current = true;
-      
-      // First, try to load persisted movies
       const persistedMovies = loadPersistedMovies();
       if (persistedMovies && persistedMovies.length > 0) {
-        // Filter out already-rated movies from persisted list
         const ratedIds = new Set(rawRatings.map(r => r.id?.toString()).filter(Boolean));
         const filteredPersisted = persistedMovies.filter(movie => 
           movie && movie.id && !ratedIds.has(movie.id.toString())
         );
-        
         if (filteredPersisted.length > 0) {
           setDisplayMovies(filteredPersisted.slice(0, 8));
-          return; // Don't fetch new recommendations if we have persisted movies
+          return;
         }
       }
-      
-      // No persisted movies or all were rated - fetch new recommendations
       if (displayMovies.length === 0 && recommendedMovies.length === 0 && !loading) {
-        // Get recently shown movies to exclude
         const recentlyShown = getRecentlyShownMovies();
         getPersonalRecommendations(false, recentlyShown).then((result) => {
-          // Track all movies that are shown (from initial load or refresh)
-          // This ensures they won't appear again for at least 15 refreshes
           if (result && result.results && result.results.length > 0) {
             const newMovieIds = result.results
               .slice(0, 8)
               .map(movie => movie.id)
               .filter(Boolean);
-            // Only add if we have new movies (avoid duplicates)
             const current = getRecentlyShownMovies();
             const newIds = newMovieIds.filter(id => !current.includes(id.toString()));
             if (newIds.length > 0) {
@@ -255,39 +268,31 @@ const Home = () => {
         });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   // Refresh recommendations when a movie is rated
   useEffect(() => {
     if (isAuthenticated && activeTab === 1 && rawRatings.length > 0) {
-      // Filter out rated movies from current display
       const ratedIds = new Set(rawRatings.map(r => r.id?.toString()).filter(Boolean));
       const filteredDisplay = displayMovies.filter(movie => 
         movie && movie.id && !ratedIds.has(movie.id.toString())
       );
-      
-      // If all displayed movies are now rated, clear persisted movies and fetch new ones
       if (filteredDisplay.length === 0 && displayMovies.length > 0) {
         localStorage.removeItem(STORAGE_KEY);
         setDisplayMovies([]);
-        // Small delay to ensure server has updated ratings
         const timer = setTimeout(() => {
           getPersonalRecommendations();
         }, 1000);
         return () => clearTimeout(timer);
       } else if (filteredDisplay.length < displayMovies.length) {
-        // Some movies were rated, update display and persist
         setDisplayMovies(filteredDisplay);
         savePersistedMovies(filteredDisplay);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawRatings.length, isAuthenticated, activeTab]);
 
   const handleRatingComplete = () => {
     setRatingMovie(null);
-    // Refresh recommendations after rating
     if (activeTab === 1) {
       setTimeout(() => {
         getPersonalRecommendations();
@@ -308,49 +313,31 @@ const Home = () => {
   };
 
   const handleRefresh = async () => {
-    // Prevent multiple simultaneous refreshes
     if (isRefreshing || loading) return;
-    
     setIsRefreshing(true);
-    
     try {
-      // Get current movie IDs to exclude from new recommendations (use displayMovies to avoid stale data)
       const currentMovieIds = displayMovies.length > 0 
         ? displayMovies.slice(0, 8).map(movie => movie.id).filter(Boolean)
         : filteredRecommendedMovies.slice(0, 8).map(movie => movie.id).filter(Boolean);
-      
-      // Get recently shown movies to exclude (from last 15 refreshes)
       const recentlyShown = getRecentlyShownMovies();
-      
-      // Combine current and recently shown movies
       const allExcludeIds = [...currentMovieIds, ...recentlyShown];
-      
-      // Fetch new recommendations with forceRefresh to get fresh data
       const result = await getPersonalRecommendations(true, allExcludeIds);
-      
-      // After getting new recommendations, add them to recently shown list
       if (result && result.results) {
         const newMovieIds = result.results
           .slice(0, 8)
           .map(movie => movie.id)
           .filter(Boolean);
         addToRecentlyShown(newMovieIds);
-        
-        // Update displayMovies atomically after new data is ready
-        // Filter out already-rated movies before setting
         const ratedIds = new Set(rawRatings.map(r => r.id?.toString()).filter(Boolean));
         const newFiltered = result.results.filter(movie => 
           movie && movie.id && !ratedIds.has(movie.id.toString())
         );
-        // Only update if we have new movies, otherwise keep current displayMovies
         if (newFiltered.length > 0) {
           const moviesToDisplay = newFiltered.slice(0, 8);
           setDisplayMovies(moviesToDisplay);
-          // Persist the new movies
           savePersistedMovies(moviesToDisplay);
         }
       }
-      // Mark that we've done an initial load so it won't auto-fetch again
       hasInitialLoad.current = true;
     } catch (error) {
       console.error('Error refreshing recommendations:', error);
@@ -359,34 +346,23 @@ const Home = () => {
     }
   };
 
-  // Filter out already-rated movies from recommendations
   const ratedMovieIds = new Set(rawRatings.map(r => r.id?.toString()).filter(Boolean));
   const filteredRecommendedMovies = recommendedMovies.filter(movie => 
     movie && movie.id && !ratedMovieIds.has(movie.id.toString())
   );
 
-  // Use displayMovies to prevent flickering during refresh
-  // Keep old movies visible during refresh, only update when refresh completes
   useEffect(() => {
     if (activeTab === 1) {
-      // Only update displayMovies when not refreshing (smooth transition)
-      // During refresh, keep showing old movies until new ones are ready
       if (!isRefreshing && filteredRecommendedMovies.length > 0 && displayMovies.length === 0) {
-        // Only set if we don't have persisted movies (they were loaded in the other effect)
-        // This handles the case where recommendations come in but we want to use persisted movies
         const persistedMovies = loadPersistedMovies();
         if (!persistedMovies || persistedMovies.length === 0) {
-          // No persisted movies, use the recommendations and persist them
           const moviesToDisplay = filteredRecommendedMovies.slice(0, 8);
           setDisplayMovies(moviesToDisplay);
           savePersistedMovies(moviesToDisplay);
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredRecommendedMovies, activeTab, isRefreshing, loading]);
-
-  
 
   const MovieCard = ({ movie }) => (
     <Card sx={{ 
@@ -491,10 +467,7 @@ const Home = () => {
       </CardContent>
       <CardActions sx={{ p: { xs: 2.5, sm: 3 }, pt: 0, gap: { xs: 1.5, sm: 1 }, flexDirection: { xs: 'column', sm: 'row' } }}>
         {activeTab === 1 && (() => {
-          // Check if movie is already rated
           const isAlreadyRated = rawRatings.some(r => r.id?.toString() === movie.id?.toString());
-          
-          // Handle guests
           if (!isAuthenticated) {
             return (
               <Button
@@ -523,8 +496,6 @@ const Home = () => {
               </Button>
             );
           }
-          
-          // Handle authenticated users
           return isAlreadyRated ? (
             <Button
               size="medium"
@@ -595,6 +566,39 @@ const Home = () => {
     </Card>
   );
 
+  // Show landing experience for guests with <5 ratings
+  if (shouldShowLanding) {
+    return (
+      <Box sx={{ 
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        <Container 
+          maxWidth="lg" 
+          sx={{ 
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            py: { xs: 4, sm: 6 },
+            px: { xs: 2, sm: 3 },
+          }}
+        >
+          {!showCarousel ? (
+            <LandingHero onStartRanking={handleStartRanking} />
+          ) : (
+            <MovieCarousel onRatingComplete={handleCarouselRatingComplete} />
+          )}
+        </Container>
+      </Box>
+    );
+  }
+
+  // Show authenticated experience or guest with 5+ ratings
   return (
     <Box sx={{ 
       height: !isAuthenticated ? '100vh' : 'auto',
@@ -678,68 +682,68 @@ const Home = () => {
           flexDirection: 'column',
           minHeight: 0,
         }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: !isAuthenticated ? 2 : 4, gap: 2 }}>
-            <Tabs
-              value={activeTab}
-              onChange={(e, newValue) => {
-                setActiveTab(newValue);
-                // Update URL to reflect the active tab
-                const newSearchParams = new URLSearchParams(searchParams);
-                newSearchParams.set('tab', newValue.toString());
-                setSearchParams(newSearchParams);
-              }}
-              variant="scrollable"
-              scrollButtons="auto"
-              sx={{
-                '& .MuiTab-root': {
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  minWidth: { xs: 120, sm: 200 },
-                  px: { xs: 2, sm: 3 },
-                  '&.Mui-selected': {
-                    color: '#00d4ff',
-                  },
-                },
-                '& .MuiTabs-indicator': {
-                  background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                  height: 3,
-                },
-              }}
-            >
-              <Tab label="Suggested for You" value={1} />
-              <Tab label="Find by Genre" value={2} />
-            </Tabs>
-            {activeTab === 1 && isAuthenticated && (
-              <IconButton
-                onClick={handleRefresh}
-                disabled={loading || isRefreshing}
-                sx={{
-                  color: '#00d4ff',
-                  '&:hover': {
-                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                  },
-                  '&.Mui-disabled': {
-                    color: 'rgba(255, 255, 255, 0.3)',
-                  },
-                  ...(isRefreshing && {
-                    animation: 'spin 1s linear infinite',
-                    '@keyframes spin': {
-                      '0%': { transform: 'rotate(0deg)' },
-                      '100%': { transform: 'rotate(360deg)' },
-                    },
-                  }),
+          {isAuthenticated && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 4, gap: 2 }}>
+              <Tabs
+                value={activeTab}
+                onChange={(e, newValue) => {
+                  setActiveTab(newValue);
+                  const newSearchParams = new URLSearchParams(searchParams);
+                  newSearchParams.set('tab', newValue.toString());
+                  setSearchParams(newSearchParams);
                 }}
-                title="Refresh recommendations"
+                variant="scrollable"
+                scrollButtons="auto"
+                sx={{
+                  '& .MuiTab-root': {
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    minWidth: { xs: 120, sm: 200 },
+                    px: { xs: 2, sm: 3 },
+                    '&.Mui-selected': {
+                      color: '#00d4ff',
+                    },
+                  },
+                  '& .MuiTabs-indicator': {
+                    background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                    height: 3,
+                  },
+                }}
               >
-                <RefreshIcon />
-              </IconButton>
-            )}
-          </Box>
+                <Tab label="Suggested for You" value={1} />
+                <Tab label="Find by Genre" value={2} />
+              </Tabs>
+              {activeTab === 1 && (
+                <IconButton
+                  onClick={handleRefresh}
+                  disabled={loading || isRefreshing}
+                  sx={{
+                    color: '#00d4ff',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    },
+                    '&.Mui-disabled': {
+                      color: 'rgba(255, 255, 255, 0.3)',
+                    },
+                    ...(isRefreshing && {
+                      animation: 'spin 1s linear infinite',
+                      '@keyframes spin': {
+                        '0%': { transform: 'rotate(0deg)' },
+                        '100%': { transform: 'rotate(360deg)' },
+                      },
+                    }),
+                  }}
+                  title="Refresh recommendations"
+                >
+                  <RefreshIcon />
+                </IconButton>
+              )}
+            </Box>
+          )}
 
-          {activeTab === 2 ? (
-            // Find by Genre tab
+          {isAuthenticated && activeTab === 2 ? (
             <Box>
               {genresLoading ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
@@ -808,9 +812,8 @@ const Home = () => {
                 </Grid>
               )}
             </Box>
-          ) : (
-            // Suggested for You tab
-            loading && !isRefreshing && isAuthenticated && displayMovies.length === 0 && filteredRecommendedMovies.length === 0 ? (
+          ) : isAuthenticated ? (
+            loading && !isRefreshing && displayMovies.length === 0 && filteredRecommendedMovies.length === 0 ? (
               <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
                 <CircularProgress />
               </Box>
@@ -839,14 +842,14 @@ const Home = () => {
                   </Box>
                 )}
                 <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
-                  {isAuthenticated && (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies)
+                  {(displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies)
                     .slice(0, 8)
                     .map((movie) => (
                       <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
                         <MovieCard movie={movie} />
                       </Grid>
                     ))}
-                  {isAuthenticated && activeTab === 1 && displayMovies.length === 0 && filteredRecommendedMovies.length === 0 && !loading && (
+                  {displayMovies.length === 0 && filteredRecommendedMovies.length === 0 && !loading && (
                     <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
                       <Typography variant="h6" sx={{ 
                         color: 'rgba(255, 255, 255, 0.7)', 
@@ -869,47 +872,46 @@ const Home = () => {
                       </Typography>
                     </Box>
                   )}
-                  {!isAuthenticated && (
-                    <Box sx={{ 
-                      textAlign: 'center', 
-                      py: { xs: 2, sm: 3 }, 
-                      width: '100%', 
-                      px: { xs: 2, sm: 0 },
-                      flexShrink: 0,
-                    }}>
-                      <Typography variant="h6" sx={{ 
-                        color: 'rgba(255, 255, 255, 0.7)', 
-                        mb: 1.5,
-                        fontSize: { xs: '0.875rem', sm: '1rem' }
-                      }}>
-                        Start rating to see recommendations
-                      </Typography>
-                      <Typography variant="body2" sx={{ 
-                        color: 'rgba(255, 255, 255, 0.5)',
-                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                        mb: 2
-                      }}>
-                        Sign in and rate movies to get personalized recommendations!
-                      </Typography>
-                      <Button
-                        variant="contained"
-                        component={Link}
-                        to="/login"
-                        sx={{
-                          background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                          px: { xs: 3, sm: 5 },
-                          py: { xs: 1.25, sm: 1.75 },
-                          fontSize: { xs: '0.8125rem', sm: '0.9375rem' },
-                          mt: 1
-                        }}
-                      >
-                        Sign In to Get Started
-                      </Button>
-                    </Box>
-                  )}
                 </Grid>
               </Box>
             )
+          ) : (
+            <Box sx={{ 
+              textAlign: 'center', 
+              py: { xs: 2, sm: 3 }, 
+              width: '100%', 
+              px: { xs: 2, sm: 0 },
+              flexShrink: 0,
+            }}>
+              <Typography variant="h6" sx={{ 
+                color: 'rgba(255, 255, 255, 0.7)', 
+                mb: 1.5,
+                fontSize: { xs: '0.875rem', sm: '1rem' }
+              }}>
+                Start rating to see recommendations
+              </Typography>
+              <Typography variant="body2" sx={{ 
+                color: 'rgba(255, 255, 255, 0.5)',
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                mb: 2
+              }}>
+                Sign in and rate movies to get personalized recommendations!
+              </Typography>
+              <Button
+                variant="contained"
+                component={Link}
+                to="/login"
+                sx={{
+                  background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                  px: { xs: 3, sm: 5 },
+                  py: { xs: 1.25, sm: 1.75 },
+                  fontSize: { xs: '0.8125rem', sm: '0.9375rem' },
+                  mt: 1
+                }}
+              >
+                Sign In to Get Started
+              </Button>
+            </Box>
           )}
         </Box>
       </Container>
@@ -920,6 +922,13 @@ const Home = () => {
           movie={ratingMovie}
           onClose={() => setRatingMovie(null)}
           onComplete={handleRatingComplete}
+        />
+      )}
+
+      {shouldShowConversion && (
+        <ConversionModal
+          open={showConversionModal}
+          onClose={() => setShowConversionModal(false)}
         />
       )}
     </Box>

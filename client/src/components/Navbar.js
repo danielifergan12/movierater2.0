@@ -116,27 +116,30 @@ const Navbar = () => {
             </Typography>
           </Box>
 
-          <Box sx={{ 
-            flexGrow: 1, 
-            display: 'flex', 
-            alignItems: 'center', 
-            maxWidth: { xs: '100%', sm: 600 },
-            width: { xs: '100%', sm: 'auto' },
-            ml: { xs: 0, sm: 3 },
-            mr: { xs: 0, sm: 4 },
-            order: { xs: 3, sm: 0 },
-            mb: { xs: 1, sm: 0 }
-          }}>
-            <AutocompleteSearch 
-              onMovieSelect={handleMovieSelect}
-              placeholder="Search movies"
-            />
-          </Box>
+          {/* Search - only show for authenticated users */}
+          {isAuthenticated && (
+            <Box sx={{ 
+              flexGrow: 1, 
+              display: 'flex', 
+              alignItems: 'center', 
+              maxWidth: { xs: '100%', sm: 600 },
+              width: { xs: '100%', sm: 'auto' },
+              ml: { xs: 0, sm: 3 },
+              mr: { xs: 0, sm: 4 },
+              order: { xs: 3, sm: 0 },
+              mb: { xs: 1, sm: 0 }
+            }}>
+              <AutocompleteSearch 
+                onMovieSelect={handleMovieSelect}
+                placeholder="Search movies"
+              />
+            </Box>
+          )}
 
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
-          ml: { xs: 0, sm: 'auto' },
+          ml: { xs: 0, sm: isAuthenticated ? 'auto' : 0 },
           gap: { xs: 1, sm: 1 },
           flexWrap: 'wrap',
           justifyContent: { xs: 'center', sm: 'flex-end' },
@@ -295,35 +298,24 @@ const Navbar = () => {
               </Button>
             </>
           ) : (
-            <>
-              <Button 
-                color="inherit" 
-                onClick={() => handleNavigation('/login')}
-                sx={{ 
-                  mr: { xs: 1, sm: 1 },
-                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                  px: { xs: 2, sm: 2 },
-                  py: { xs: 1.25, sm: 1 },
-                  minHeight: { xs: 44, sm: 36 },
-                  minWidth: { xs: 44, sm: 'auto' }
-                }}
-              >
-                Login
-              </Button>
-              <Button 
-                variant="contained" 
-                onClick={() => handleNavigation('/register')}
-                sx={{ 
-                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                  px: { xs: 2, sm: 2 },
-                  py: { xs: 1.25, sm: 1 },
-                  minHeight: { xs: 44, sm: 36 },
-                  minWidth: { xs: 44, sm: 'auto' }
-                }}
-              >
-                Sign Up
-              </Button>
-            </>
+            <Button
+              color="inherit"
+              onClick={() => handleNavigation('/login')}
+              sx={{ 
+                fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                px: { xs: 2, sm: 3 },
+                py: { xs: 1.25, sm: 1 },
+                minHeight: { xs: 44, sm: 36 },
+                minWidth: { xs: 44, sm: 'auto' },
+                color: '#00d4ff',
+                fontWeight: 600,
+                '&:hover': {
+                  backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                }
+              }}
+            >
+              Sign In
+            </Button>
           )}
         </Box>
       </Toolbar>
