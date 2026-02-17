@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MovieProvider } from './contexts/MovieContext';
 import Navbar from './components/Navbar';
 import AnimatedMovieBackground from './components/AnimatedMovieBackground';
@@ -151,7 +151,8 @@ const theme = createTheme({
 
 function AppContent() {
   const location = useLocation();
-  const showBackground = ['/', '/login', '/register'].includes(location.pathname);
+  const { isAuthenticated } = useAuth();
+  const showBackground = !isAuthenticated && ['/', '/login', '/register'].includes(location.pathname);
   const prevPathnameRef = React.useRef(location.pathname);
   const [routesKey, setRoutesKey] = React.useState(0);
 
