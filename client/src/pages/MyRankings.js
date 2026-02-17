@@ -822,13 +822,18 @@ const MyRankings = () => {
                       gap: 1,
                       mt: { xs: 2, sm: 0 },
                       width: { xs: '100%', sm: 'auto' },
-                      justifyContent: { xs: 'flex-end', sm: 'flex-start' }
-                    }}>
+                      justifyContent: { xs: 'flex-end', sm: 'flex-start' },
+                      pointerEvents: 'auto',
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onDragStart={(e) => e.stopPropagation()}
+                    >
                       <Button
                         variant="outlined"
                         component={Link}
                         to={`/movie/${ranking.id}`}
                         size="small"
+                        onClick={(e) => e.stopPropagation()}
                         sx={{
                           borderColor: '#00d4ff',
                           color: '#00d4ff',
@@ -843,7 +848,10 @@ const MyRankings = () => {
                         View
                       </Button>
                       <IconButton
-                        onClick={() => handleDeleteMovie(ranking.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteMovie(ranking.id);
+                        }}
                         sx={{ color: '#ff6b35' }}
                         size="small"
                       >
