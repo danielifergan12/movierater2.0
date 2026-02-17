@@ -335,6 +335,33 @@ router.get('/genre/:genreId', async (req, res) => {
   }
 });
 
+// Get highly rated movies by genre
+router.get('/genre/:genreId/highly-rated', async (req, res) => {
+  try {
+    const { genreId } = req.params;
+    const { page = 1 } = req.query;
+    
+    const response = await axios.get(
+      `https://api.themoviedb.org/3/discover/movie`,
+      {
+        params: {
+          api_key: process.env.TMDB_API_KEY,
+          with_genres: genreId,
+          page,
+          language: 'en-US',
+          sort_by: 'vote_average.desc',
+          'vote_count.gte': 100 // Only include movies with at least 100 votes for quality
+        }
+      }
+    );
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Get highly rated movies by genre error:', error);
+    res.status(500).json({ message: 'Error fetching highly rated movies by genre' });
+  }
+});
+
 // Get movie genres list
 router.get('/genres', async (req, res) => {
   try {

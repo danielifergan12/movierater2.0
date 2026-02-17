@@ -25,6 +25,7 @@ import FollowingRankings from './pages/FollowingRankings';
 import AdminUsers from './pages/AdminUsers';
 import Followers from './pages/Followers';
 import Following from './pages/Following';
+import GenreMovies from './pages/GenreMovies';
 
 const theme = createTheme({
   palette: {
@@ -203,6 +204,7 @@ function AppContent() {
         <Route path="/profile/:userId/followers" element={<Followers />} />
         <Route path="/profile/:userId/following" element={<Following />} />
         <Route path="/movie/:movieId" element={<MovieDetail />} />
+        <Route path="/genre/:genreId" element={<GenreMovies />} />
         <Route path="/admin/users" element={
           <ProtectedRoute>
             <AdminUsers />
