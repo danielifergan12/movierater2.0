@@ -17,6 +17,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Rate from './pages/Rate';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import GoogleCallback from './pages/GoogleCallback';
 
 const theme = createTheme({
   palette: {
@@ -158,6 +159,7 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/auth/google/callback" element={<GoogleCallback />} />
                 <Route path="/search" element={
                   <ProtectedRoute>
                     <Search />

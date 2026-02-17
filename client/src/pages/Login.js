@@ -8,8 +8,10 @@ import {
   Typography,
   Box,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Divider
 } from '@mui/material';
+import { Google as GoogleIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
@@ -43,6 +45,11 @@ const Login = () => {
     }
     
     setLoading(false);
+  };
+
+  const handleGoogleSignIn = () => {
+    const backendUrl = process.env.REACT_APP_API_URL || '';
+    window.location.href = `${backendUrl}/api/auth/google`;
   };
 
   return (
@@ -140,6 +147,34 @@ const Login = () => {
             sx={{ mt: 3, mb: 2 }}
           >
             {loading ? <CircularProgress size={24} /> : 'Login'}
+          </Button>
+
+          <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
+            <Divider sx={{ flexGrow: 1 }} />
+            <Typography variant="body2" sx={{ px: 2, color: 'rgba(255, 255, 255, 0.5)' }}>
+              OR
+            </Typography>
+            <Divider sx={{ flexGrow: 1 }} />
+          </Box>
+
+          <Button
+            fullWidth
+            variant="outlined"
+            size="large"
+            startIcon={<GoogleIcon />}
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            sx={{
+              mb: 2,
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              color: '#ffffff',
+              '&:hover': {
+                borderColor: '#4285f4',
+                backgroundColor: 'rgba(66, 133, 244, 0.1)',
+              },
+            }}
+          >
+            Sign in with Google
           </Button>
 
           <Box sx={{ textAlign: 'center', mt: 4 }}>

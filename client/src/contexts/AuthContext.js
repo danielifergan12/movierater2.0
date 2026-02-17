@@ -134,6 +134,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithToken = async (token) => {
+    try {
+      setToken(token);
+      localStorage.setItem('token', token);
+      await fetchUser();
+      return { success: true };
+    } catch (error) {
+      console.error('Login with token error:', error);
+      return { success: false };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -141,6 +153,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    loginWithToken,
     isAuthenticated: !!user
   };
 
