@@ -162,7 +162,8 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
             borderRadius: 3,
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
             maxHeight: 400,
-            overflow: 'hidden',
+            overflowY: 'auto',
+            overflowX: 'hidden',
           }}
         >
           <List sx={{ p: 0 }}>
