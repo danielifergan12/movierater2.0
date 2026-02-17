@@ -153,7 +153,7 @@ const Navbar = () => {
                   Follow
                 </Box>
               </Button>
-              {user?.username === 'danielifergan' && (
+              {user?.username && user.username.toLowerCase() === 'danielifergan' && (
                 <Button
                   color="inherit"
                   startIcon={<AdminIcon />}

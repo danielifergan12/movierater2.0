@@ -151,10 +151,10 @@ const AdminUsers = () => {
                   <TableRow>
                     <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }}>User</TableCell>
                     <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }}>Email</TableCell>
-                    <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' }} align="center">Movies Rated</TableCell>
-                    <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' }} align="center">Followers</TableCell>
-                    <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' }} align="center">Following</TableCell>
-                    <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' }} align="center">Joined</TableCell>
+                    <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }} align="center">Movies Rated</TableCell>
+                    <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }} align="center">Followers</TableCell>
+                    <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }} align="center">Following</TableCell>
+                    <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }} align="center">Joined</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
