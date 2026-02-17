@@ -471,8 +471,84 @@ router.get('/recommendations/personal', auth, async (req, res) => {
     
     const ratedMovieIds = new Set(ratings.map(r => r.id?.toString()).filter(Boolean));
     
+    // FIRST: Analyze user's genre preferences from their rated movies
+    const genreFrequency = new Map();
+    const genreDetailsPromises = topRatedMovies.slice(0, 10).map(async (ratedMovie) => {
+      try {
+        const movieDetailsResponse = await axios.get(
+          `https://api.themoviedb.org/3/movie/${ratedMovie.id}`,
+          {
+            params: {
+              api_key: process.env.TMDB_API_KEY,
+              language: 'en-US'
+            },
+            timeout: 3000
+          }
+        );
+        return movieDetailsResponse.data?.genres || [];
+      } catch (error) {
+        return [];
+      }
+    });
+    
+    const genreDetailsResults = await Promise.all(genreDetailsPromises);
+    genreDetailsResults.forEach(genres => {
+      genres.forEach(genre => {
+        if (genre && genre.id) {
+          genreFrequency.set(genre.id, (genreFrequency.get(genre.id) || 0) + 1);
+        }
+      });
+    });
+    
+    // Get top 3-5 favorite genres (most frequently rated)
+    const favoriteGenres = Array.from(genreFrequency.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([id]) => id);
+    
     // Map to store recommendations with scores
     const recommendationMap = new Map();
+    
+    // Strategy 0: PRIORITIZE - Get movies from user's favorite genres first
+    if (favoriteGenres.length > 0) {
+      try {
+        const favoriteGenreIds = favoriteGenres.join(',');
+        const genrePage = forceRefresh ? Math.floor(Math.random() * 3) + 1 : 1;
+        const genreMoviesResponse = await axios.get(
+          `https://api.themoviedb.org/3/discover/movie`,
+          {
+            params: {
+              api_key: process.env.TMDB_API_KEY,
+              language: 'en-US',
+              with_genres: favoriteGenreIds,
+              sort_by: 'vote_average.desc',
+              'vote_count.gte': 300,
+              'vote_average.gte': 7.0,
+              page: genrePage
+            },
+            timeout: 5000
+          }
+        );
+        
+        const genreMovies = (genreMoviesResponse.data?.results || []).filter(m => m && m.id);
+        genreMovies.forEach((movie, index) => {
+          if (movie.id && 
+              !ratedMovieIds.has(movie.id.toString()) && 
+              !excludeIds.has(movie.id.toString()) &&
+              movie.vote_average >= 6.5 &&
+              movie.vote_count >= 100) {
+            const score = recommendationMap.get(movie.id) || 0;
+            // High score for favorite genres - prioritize these
+            const genreMatchScore = favoriteGenres.some(gid => 
+              movie.genre_ids && movie.genre_ids.includes(gid)
+            ) ? 25 : 15;
+            recommendationMap.set(movie.id, score + genreMatchScore + (5 / (index + 1)));
+          }
+        });
+      } catch (error) {
+        console.log(`Error fetching favorite genre movies:`, error.message);
+      }
+    }
     
     // Strategy 1: Get similar movies for each top-rated movie
     // If forceRefresh, use completely different pages to get different movies
@@ -600,8 +676,8 @@ router.get('/recommendations/personal', auth, async (req, res) => {
                   language: 'en-US',
                   with_genres: genreIds,
                   sort_by: sortBy,
-                  'vote_count.gte': 500,
-                  'vote_average.gte': 7.5,
+                  'vote_count.gte': 300,
+                  'vote_average.gte': 7.0,
                   page: genrePage
                 },
                 timeout: 5000 // 5 second timeout
@@ -612,9 +688,16 @@ router.get('/recommendations/personal', auth, async (req, res) => {
             genreMovies.forEach((movie, index) => {
               if (movie.id && 
                   !ratedMovieIds.has(movie.id.toString()) && 
-                  !excludeIds.has(movie.id.toString())) {
+                  !excludeIds.has(movie.id.toString()) &&
+                  movie.vote_average >= 6.5 &&
+                  movie.vote_count >= 100) {
                 const score = recommendationMap.get(movie.id) || 0;
-                recommendationMap.set(movie.id, score + (8 * positionWeight) + (2 / (index + 1)));
+                // Check if this genre is in user's favorites - boost score if so
+                const isFavoriteGenre = favoriteGenres.some(gid => 
+                  movie.genre_ids && movie.genre_ids.includes(gid)
+                );
+                const genreBoost = isFavoriteGenre ? 5 : 0;
+                recommendationMap.set(movie.id, score + (12 * positionWeight) + genreBoost + (2 / (index + 1)));
               }
             });
           } catch (error) {
@@ -667,10 +750,45 @@ router.get('/recommendations/personal', auth, async (req, res) => {
     }
     
     // Convert map to array and sort by score
-    const recommendations = Array.from(recommendationMap.entries())
+    let recommendations = Array.from(recommendationMap.entries())
       .filter(([id, score]) => id && !isNaN(parseInt(id)) && score > 0)
-      .map(([id, score]) => ({ id: parseInt(id), score }))
-      .sort((a, b) => b.score - a.score);
+      .map(([id, score]) => ({ id: parseInt(id), score }));
+    
+    // Boost scores for movies that match user's favorite genres
+    if (favoriteGenres.length > 0) {
+      // Fetch genre info for top recommendations to boost favorite genres
+      const topRecIds = recommendations.slice(0, 50).map(r => r.id);
+      const genreInfoPromises = topRecIds.map(id =>
+        axios.get(
+          `https://api.themoviedb.org/3/movie/${id}`,
+          {
+            params: {
+              api_key: process.env.TMDB_API_KEY,
+              language: 'en-US'
+            },
+            timeout: 2000
+          }
+        ).catch(() => null)
+      );
+      
+      const genreInfoResults = await Promise.all(genreInfoPromises);
+      genreInfoResults.forEach((result, index) => {
+        if (result && result.data && result.data.genres) {
+          const movieGenres = result.data.genres.map(g => g.id);
+          const favoriteGenreMatches = movieGenres.filter(gid => favoriteGenres.includes(gid)).length;
+          if (favoriteGenreMatches > 0) {
+            // Boost score significantly for favorite genre matches
+            const rec = recommendations.find(r => r.id === topRecIds[index]);
+            if (rec) {
+              rec.score += favoriteGenreMatches * 10;
+            }
+          }
+        }
+      });
+    }
+    
+    // Sort by final score
+    recommendations = recommendations.sort((a, b) => b.score - a.score);
     
     // If no recommendations found, fallback to top-rated
     if (recommendations.length === 0) {
