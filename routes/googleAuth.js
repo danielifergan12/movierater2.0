@@ -6,12 +6,6 @@ const User = require('../models/User');
 
 const router = express.Router();
 
-// Check if Google OAuth is configured
-if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  console.warn('Google OAuth not configured: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set');
-}
-
-// Configure Google OAuth Strategy
 // Build callback URL - use environment variable or construct from backend URL
 const getCallbackURL = () => {
   if (process.env.GOOGLE_CALLBACK_URL) {
@@ -22,11 +16,13 @@ const getCallbackURL = () => {
   return `${backendUrl}/api/auth/google/callback`;
 };
 
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: getCallbackURL()
-}, async (accessToken, refreshToken, profile, done) => {
+// Configure Google OAuth Strategy (only if credentials are provided)
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: getCallbackURL()
+  }, async (accessToken, refreshToken, profile, done) => {
   try {
     // Check if user exists with this Google ID
     let user = await User.findOne({ googleId: profile.id });
@@ -63,7 +59,10 @@ passport.use(new GoogleStrategy({
   } catch (error) {
     return done(error, null);
   }
-}));
+  }));
+} else {
+  console.warn('Google OAuth not configured: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set');
+}
 
 // Serialize user for session
 passport.serializeUser((user, done) => {
@@ -81,16 +80,32 @@ passport.deserializeUser(async (id, done) => {
 
 // Google OAuth routes
 router.get('/google', (req, res, next) => {
-  // Check if Google OAuth is configured
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-    console.error('Google OAuth not configured');
-    return res.status(500).json({ 
-      message: 'Google OAuth is not configured. Please contact the administrator.' 
-    });
+  try {
+    // Check if Google OAuth is configured
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      console.error('Google OAuth not configured');
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=google_oauth_not_configured`);
+    }
+    
+    console.log('Initiating Google OAuth flow...');
+    console.log('Callback URL:', getCallbackURL());
+    console.log('Client ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Not set');
+    
+    // Check if strategy exists
+    const strategy = passport._strategies['google'];
+    if (!strategy) {
+      console.error('Google OAuth strategy not initialized');
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=google_oauth_not_configured`);
+    }
+    
+    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+  } catch (error) {
+    console.error('Error in Google OAuth route:', error);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
   }
-  
-  console.log('Initiating Google OAuth flow...');
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
 });
 
 router.get('/google/callback',

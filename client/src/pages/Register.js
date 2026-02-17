@@ -56,8 +56,15 @@ const Register = () => {
   };
 
   const handleGoogleSignIn = () => {
+    setLoading(true);
     const backendUrl = process.env.REACT_APP_API_URL || '';
-    window.location.href = `${backendUrl}/api/auth/google`;
+    const googleAuthUrl = backendUrl ? `${backendUrl}/api/auth/google` : '/api/auth/google';
+    console.log('Redirecting to Google OAuth:', googleAuthUrl);
+    
+    // Add a small delay to show loading state, then redirect
+    setTimeout(() => {
+      window.location.href = googleAuthUrl;
+    }, 100);
   };
 
   return (

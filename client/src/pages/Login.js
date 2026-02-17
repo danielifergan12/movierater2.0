@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -24,6 +24,17 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  // Check for error in URL params
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
+    if (errorParam === 'google_oauth_not_configured') {
+      setError('Google sign-in is not available. Please use email and password to sign in.');
+    } else if (errorParam === 'google_auth_failed') {
+      setError('Google sign-in failed. Please try again or use email and password.');
+    }
+  }, []);
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -48,8 +59,15 @@ const Login = () => {
   };
 
   const handleGoogleSignIn = () => {
+    setLoading(true);
     const backendUrl = process.env.REACT_APP_API_URL || '';
-    window.location.href = `${backendUrl}/api/auth/google`;
+    const googleAuthUrl = backendUrl ? `${backendUrl}/api/auth/google` : '/api/auth/google';
+    console.log('Redirecting to Google OAuth:', googleAuthUrl);
+    
+    // Add a small delay to show loading state, then redirect
+    setTimeout(() => {
+      window.location.href = googleAuthUrl;
+    }, 100);
   };
 
   return (
