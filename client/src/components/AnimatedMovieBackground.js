@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import api from '../config/axios';
 
-// Famous movies with their TMDB IDs
+// Famous movies with their TMDB IDs - expanded list
 const FAMOUS_MOVIES = [
   { id: 157336, title: 'Interstellar' },
   { id: 27205, title: 'Inception' },
@@ -14,6 +14,36 @@ const FAMOUS_MOVIES = [
   { id: 13, title: 'Forrest Gump' },
   { id: 769, title: 'Goodfellas' },
   { id: 238, title: 'The Godfather' },
+  { id: 424, title: 'Schindler\'s List' },
+  { id: 122, title: 'The Lord of the Rings: The Return of the King' },
+  { id: 120, title: 'The Lord of the Rings: The Fellowship of the Ring' },
+  { id: 121, title: 'The Lord of the Rings: The Two Towers' },
+  { id: 11, title: 'Star Wars' },
+  { id: 181, title: 'Return of the Jedi' },
+  { id: 1891, title: 'The Empire Strikes Back' },
+  { id: 49026, title: 'The Dark Knight Rises' },
+  { id: 245891, title: 'John Wick' },
+  { id: 324857, title: 'Spider-Man: Into the Spider-Verse' },
+  { id: 299536, title: 'Avengers: Infinity War' },
+  { id: 299534, title: 'Avengers: Endgame' },
+  { id: 181808, title: 'Star Wars: The Last Jedi' },
+  { id: 140607, title: 'Star Wars: The Force Awakens' },
+  { id: 181, title: 'Return of the Jedi' },
+  { id: 78, title: 'Blade Runner' },
+  { id: 335984, title: 'Blade Runner 2049' },
+  { id: 475557, title: 'Joker' },
+  { id: 496243, title: 'Parasite' },
+  { id: 19404, title: 'Dilwale Dulhania Le Jayenge' },
+  { id: 429, title: 'The Good, the Bad and the Ugly' },
+  { id: 11216, title: 'Cinema Paradiso' },
+  { id: 346, title: 'Seven Samurai' },
+  { id: 429, title: 'The Good, the Bad and the Ugly' },
+  { id: 389, title: '12 Angry Men' },
+  { id: 497, title: 'The Green Mile' },
+  { id: 510, title: 'One Flew Over the Cuckoo\'s Nest' },
+  { id: 8587, title: 'The Lion King' },
+  { id: 862, title: 'Toy Story' },
+  { id: 324857, title: 'Spider-Man: Into the Spider-Verse' },
 ];
 
 const AnimatedMovieBackground = () => {
@@ -38,10 +68,13 @@ const AnimatedMovieBackground = () => {
     fetchPosters();
   }, []);
 
-  // Create multiple rows of movies
+  // Create multiple rows of movies (4 rows to fill the screen)
+  const moviesPerRow = Math.ceil(FAMOUS_MOVIES.length / 4);
   const rows = [
-    FAMOUS_MOVIES.slice(0, 5), // Top row
-    FAMOUS_MOVIES.slice(5, 10), // Bottom row
+    FAMOUS_MOVIES.slice(0, moviesPerRow),
+    FAMOUS_MOVIES.slice(moviesPerRow, moviesPerRow * 2),
+    FAMOUS_MOVIES.slice(moviesPerRow * 2, moviesPerRow * 3),
+    FAMOUS_MOVIES.slice(moviesPerRow * 3),
   ];
 
   const getPosterUrl = (movieId) => {
@@ -81,14 +114,14 @@ const AnimatedMovieBackground = () => {
           key={rowIndex}
           sx={{
             position: 'absolute',
-            top: `${rowIndex * 50}%`,
+            top: `${rowIndex * 25}%`,
             left: 0,
             width: '200%',
-            height: '50%',
+            height: '25%',
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
-            animation: `slide${rowIndex} ${20 + rowIndex * 5}s linear infinite`,
+            gap: 3,
+            animation: `slide${rowIndex % 2} ${15 + rowIndex * 3}s linear infinite`,
             '@keyframes slide0': {
               '0%': { transform: 'translateX(0)' },
               '100%': { transform: 'translateX(-50%)' },

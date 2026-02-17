@@ -21,6 +21,7 @@ import { useMovies } from '../contexts/MovieContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
+import AnimatedMovieBackground from '../components/AnimatedMovieBackground';
 
 const Home = () => {
   const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
@@ -241,9 +242,11 @@ const Home = () => {
         bottom: 0,
         background: 'radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.1) 0%, transparent 50%)',
         pointerEvents: 'none',
+        zIndex: 1,
       }
     }}>
-      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
+      {!isAuthenticated && <AnimatedMovieBackground />}
+      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 2 }}>
         {!isAuthenticated ? (
           <Box sx={{ 
             display: 'flex', 
