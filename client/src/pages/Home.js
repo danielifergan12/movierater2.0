@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Container,
@@ -31,6 +31,7 @@ const Home = () => {
   const [ratingMovie, setRatingMovie] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [displayMovies, setDisplayMovies] = useState([]);
+  const hasInitialLoad = useRef(false);
 
   // Ensure component responds to route changes for proper navigation
   const [, setRouteUpdate] = useState(0);
@@ -68,8 +69,11 @@ const Home = () => {
   };
 
 
+  // Only fetch recommendations on initial mount if we don't have data
   useEffect(() => {
-    if (isAuthenticated && activeTab === 1 && !isRefreshing) {
+    if (isAuthenticated && activeTab === 1 && !hasInitialLoad.current && 
+        displayMovies.length === 0 && recommendedMovies.length === 0 && !loading) {
+      hasInitialLoad.current = true;
       // Get recently shown movies to exclude
       const recentlyShown = getRecentlyShownMovies();
       getPersonalRecommendations(false, recentlyShown).then((result) => {
@@ -90,7 +94,7 @@ const Home = () => {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, isAuthenticated]);
+  }, [isAuthenticated]);
 
   // Refresh recommendations when a movie is rated
   useEffect(() => {
@@ -154,6 +158,8 @@ const Home = () => {
           setDisplayMovies(newFiltered.slice(0, 8));
         }
       }
+      // Mark that we've done an initial load so it won't auto-fetch again
+      hasInitialLoad.current = true;
     } catch (error) {
       console.error('Error refreshing recommendations:', error);
     } finally {
