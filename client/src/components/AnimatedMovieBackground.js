@@ -51,20 +51,37 @@ const AnimatedMovieBackground = () => {
   const [moviePosters, setMoviePosters] = useState({});
 
   useEffect(() => {
-    // Fetch poster paths for all movies
+    // Fetch all poster paths in one batch request
     const fetchPosters = async () => {
-      const posters = {};
-      for (const movie of FAMOUS_MOVIES) {
-        try {
-          const response = await api.get(`/api/movies/${movie.id}`);
-          if (response.data && response.data.posterPath) {
-            posters[movie.id] = response.data.posterPath;
-          }
-        } catch (error) {
-          console.error(`Error fetching poster for ${movie.title}:`, error);
+      try {
+        const movieIds = FAMOUS_MOVIES.map(m => m.id).join(',');
+        const response = await api.get(`/api/movies/posters/batch?ids=${movieIds}`);
+        if (response.data && response.data.posters) {
+          setMoviePosters(response.data.posters);
         }
+      } catch (error) {
+        console.error('Error fetching movie posters:', error);
+        // Fallback: try to fetch individually in parallel as backup
+        const posterPromises = FAMOUS_MOVIES.map(async (movie) => {
+          try {
+            const response = await api.get(`/api/movies/${movie.id}`);
+            if (response.data && response.data.posterPath) {
+              return { id: movie.id, posterPath: response.data.posterPath };
+            }
+          } catch (err) {
+            console.error(`Error fetching poster for ${movie.title}:`, err);
+          }
+          return null;
+        });
+        const results = await Promise.all(posterPromises);
+        const posters = {};
+        results.forEach(result => {
+          if (result) {
+            posters[result.id] = result.posterPath;
+          }
+        });
+        setMoviePosters(posters);
       }
-      setMoviePosters(posters);
     };
     fetchPosters();
   }, []);

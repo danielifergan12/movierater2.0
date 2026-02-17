@@ -192,6 +192,81 @@ router.get('/trending/week', async (req, res) => {
   }
 });
 
+// Get multiple movie posters by IDs (for animated background)
+router.get('/posters/batch', async (req, res) => {
+  try {
+    const { ids } = req.query;
+    
+    if (!ids) {
+      return res.status(400).json({ message: 'ids parameter is required (comma-separated)' });
+    }
+
+    const movieIds = ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+    
+    if (movieIds.length === 0) {
+      return res.status(400).json({ message: 'No valid movie IDs provided' });
+    }
+
+    // Fetch all movies in parallel
+    const moviePromises = movieIds.map(async (id) => {
+      try {
+        // First check database
+        let movie = await Movie.findOne({ tmdbId: id });
+        
+        if (movie && movie.posterPath) {
+          return { id, posterPath: movie.posterPath };
+        }
+
+        // Fetch from TMDB
+        const response = await axios.get(
+          `https://api.themoviedb.org/3/movie/${id}`,
+          {
+            params: {
+              api_key: process.env.TMDB_API_KEY,
+              language: 'en-US'
+            },
+            timeout: 3000 // 3 second timeout per movie
+          }
+        );
+
+        const posterPath = response.data?.poster_path || null;
+        
+        // Save to database for future use (optional, don't wait)
+        if (posterPath && !movie) {
+          Movie.findOneAndUpdate(
+            { tmdbId: id },
+            { 
+              tmdbId: id,
+              title: response.data.title,
+              posterPath: posterPath,
+              lastUpdated: new Date()
+            },
+            { upsert: true, new: true }
+          ).catch(err => console.log(`Error saving movie ${id}:`, err.message));
+        }
+
+        return { id, posterPath };
+      } catch (error) {
+        console.log(`Error fetching movie ${id}:`, error.message);
+        return { id, posterPath: null };
+      }
+    });
+
+    const results = await Promise.all(moviePromises);
+    const posters = {};
+    results.forEach(({ id, posterPath }) => {
+      if (posterPath) {
+        posters[id] = posterPath;
+      }
+    });
+
+    res.json({ posters });
+  } catch (error) {
+    console.error('Batch fetch posters error:', error);
+    res.status(500).json({ message: 'Error fetching movie posters' });
+  }
+});
+
 // Get popular movies
 router.get('/popular', async (req, res) => {
   try {
