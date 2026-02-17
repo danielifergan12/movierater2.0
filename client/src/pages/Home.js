@@ -31,11 +31,10 @@ const Home = () => {
   const [ratingMovie, setRatingMovie] = useState(null);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      getTrendingMovies();
-    }
+    // Always load trending movies, regardless of authentication
+    getTrendingMovies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && activeTab === 1) {
