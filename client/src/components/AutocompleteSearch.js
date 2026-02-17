@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   TextField,
   Box,
@@ -13,7 +14,8 @@ import {
   CircularProgress,
   Fade,
   Button,
-  IconButton
+  IconButton,
+  InputAdornment
 } from '@mui/material';
 import { Search as SearchIcon, Star as StarIcon } from '@mui/icons-material';
 import api from '../config/axios';
@@ -22,6 +24,7 @@ import { useRatings } from '../hooks/useRatings';
 
 const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." }) => {
   const { rawRatings } = useRatings();
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -62,23 +65,29 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
   };
 
   const handleKeyDown = (event) => {
-    if (!showSuggestions || suggestions.length === 0) return;
-
     switch (event.key) {
       case 'ArrowDown':
-        event.preventDefault();
-        setSelectedIndex(prev => 
-          prev < suggestions.length - 1 ? prev + 1 : prev
-        );
+        if (showSuggestions && suggestions.length > 0) {
+          event.preventDefault();
+          setSelectedIndex(prev => 
+            prev < suggestions.length - 1 ? prev + 1 : prev
+          );
+        }
         break;
       case 'ArrowUp':
-        event.preventDefault();
-        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        if (showSuggestions && suggestions.length > 0) {
+          event.preventDefault();
+          setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        }
         break;
       case 'Enter':
         event.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+        if (showSuggestions && selectedIndex >= 0 && selectedIndex < suggestions.length) {
+          // If a suggestion is selected, navigate to that movie
           handleMovieSelect(suggestions[selectedIndex]);
+        } else if (query.trim().length >= 2) {
+          // If no suggestion selected but query exists, navigate to search page
+          navigateToSearchPage();
         }
         break;
       case 'Escape':
@@ -87,6 +96,13 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
         break;
       default:
         break;
+    }
+  };
+
+  const navigateToSearchPage = () => {
+    if (query.trim().length >= 2) {
+      setShowSuggestions(false);
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
     }
   };
 
@@ -121,8 +137,27 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
           startAdornment: (
             <SearchIcon sx={{ color: '#00d4ff', mr: 1 }} />
           ),
-          endAdornment: loading && (
-            <CircularProgress size={20} sx={{ color: '#00d4ff' }} />
+          endAdornment: (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              {loading && (
+                <CircularProgress size={20} sx={{ color: '#00d4ff' }} />
+              )}
+              {query.trim().length >= 2 && (
+                <IconButton
+                  onClick={navigateToSearchPage}
+                  sx={{
+                    color: '#00d4ff',
+                    padding: { xs: 0.75, sm: 1 },
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    },
+                  }}
+                  aria-label="Search"
+                >
+                  <SearchIcon sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+                </IconButton>
+              )}
+            </Box>
           ),
         }}
         sx={{

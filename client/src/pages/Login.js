@@ -148,6 +148,15 @@ const Login = () => {
             margin="normal"
             required
             autoComplete="email"
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: { xs: '1rem', sm: '1rem' },
+                minHeight: { xs: 56, sm: 56 }
+              },
+              '& .MuiInputLabel-root': {
+                fontSize: { xs: '1rem', sm: '1rem' }
+              }
+            }}
           />
           
           <TextField
@@ -160,6 +169,15 @@ const Login = () => {
             margin="normal"
             required
             autoComplete="current-password"
+            sx={{
+              '& .MuiInputBase-root': {
+                fontSize: { xs: '1rem', sm: '1rem' },
+                minHeight: { xs: 56, sm: 56 }
+              },
+              '& .MuiInputLabel-root': {
+                fontSize: { xs: '1rem', sm: '1rem' }
+              }
+            }}
           />
 
           <Button
@@ -171,8 +189,10 @@ const Login = () => {
             sx={{ 
               mt: 3, 
               mb: 2,
-              py: { xs: 1.25, sm: 1.5 },
-              fontSize: { xs: '0.875rem', sm: '1rem' }
+              py: { xs: 1.75, sm: 1.5 },
+              fontSize: { xs: '1rem', sm: '1rem' },
+              minHeight: { xs: 52, sm: 48 },
+              fontWeight: 600
             }}
           >
             {loading ? <CircularProgress size={24} /> : 'Login'}

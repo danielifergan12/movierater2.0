@@ -52,49 +52,85 @@ const Search = () => {
   };
 
   const MovieCard = ({ movie }) => (
-    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Card sx={{ 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'column',
+      background: 'rgba(26, 26, 26, 0.8)',
+      backdropFilter: 'blur(20px)',
+      border: '1px solid rgba(0, 212, 255, 0.2)',
+      borderRadius: { xs: 3, sm: 4 },
+      overflow: 'hidden',
+      transition: 'all 0.3s ease',
+      mb: { xs: 2, sm: 0 },
+      '&:hover': {
+        transform: { xs: 'none', sm: 'translateY(-8px)' },
+        boxShadow: { xs: 'none', sm: '0 20px 40px rgba(0, 212, 255, 0.3)' },
+        border: { xs: '1px solid rgba(0, 212, 255, 0.2)', sm: '1px solid rgba(0, 212, 255, 0.5)' },
+      }
+    }}>
       <CardMedia
         component="img"
-        height={{ xs: 250, sm: 350, md: 400 }}
+        height={{ xs: 300, sm: 350, md: 400 }}
         image={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'}
         alt={movie.title}
         sx={{ objectFit: 'cover' }}
       />
-      <CardContent sx={{ flexGrow: 1, p: { xs: 1.5, sm: 2 } }}>
-        <Typography gutterBottom variant="h6" component="h2" noWrap sx={{ 
-          fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' }
+      <CardContent sx={{ flexGrow: 1, p: { xs: 2.5, sm: 3 } }}>
+        <Typography gutterBottom variant="h6" component="h2" sx={{ 
+          fontSize: { xs: '1.125rem', sm: '1.25rem' },
+          fontWeight: 600,
+          color: '#ffffff',
+          mb: 1.5,
+          lineHeight: 1.3
         }}>
           {movie.title}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ 
-          mb: 1,
-          fontSize: { xs: '0.75rem', sm: '0.875rem' }
+        <Typography variant="body2" sx={{ 
+          mb: 2,
+          fontSize: { xs: '0.875rem', sm: '0.9rem' },
+          color: 'rgba(255, 255, 255, 0.6)'
         }}>
           {new Date(movie.release_date).getFullYear()}
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Rating
             value={movie.vote_average / 2}
             precision={0.1}
             size="small"
             readOnly
+            sx={{
+              fontSize: { xs: '1.5rem', sm: '1.25rem' },
+              '& .MuiRating-iconFilled': {
+                color: '#00d4ff',
+              },
+              '& .MuiRating-iconEmpty': {
+                color: 'rgba(0, 212, 255, 0.3)',
+              },
+            }}
           />
           <Typography variant="body2" sx={{ 
             ml: 1,
-            fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            fontSize: { xs: '0.875rem', sm: '0.875rem' },
+            color: '#00d4ff',
+            fontWeight: 600
           }}>
             {movie.vote_average.toFixed(1)}
           </Typography>
         </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ 
-          display: { xs: 'none', sm: 'block' },
-          noWrap: { xs: true, sm: false },
-          fontSize: { xs: '0.75rem', sm: '0.875rem' }
+        <Typography variant="body2" sx={{ 
+          display: { xs: 'none', sm: '-webkit-box' },
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          fontSize: { xs: '0.875rem', sm: '0.875rem' },
+          color: 'rgba(255, 255, 255, 0.7)',
+          lineHeight: 1.5
         }}>
           {movie.overview}
         </Typography>
       </CardContent>
-      <Box sx={{ p: { xs: 1.5, sm: 2 }, pt: 0 }}>
+      <Box sx={{ p: { xs: 2.5, sm: 3 }, pt: 0 }}>
         <Link
           to={`/movie/${movie.id}`}
           style={{ textDecoration: 'none' }}
@@ -102,15 +138,22 @@ const Search = () => {
           <Box
             sx={{
               width: '100%',
-              py: { xs: 0.75, sm: 1 },
-              px: { xs: 1, sm: 2 },
-              backgroundColor: 'primary.main',
+              py: { xs: 1.5, sm: 1 },
+              px: { xs: 2, sm: 2 },
+              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
               color: 'white',
-              borderRadius: 1,
+              borderRadius: 2,
               textAlign: 'center',
-              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              fontSize: { xs: '0.875rem', sm: '0.875rem' },
+              fontWeight: 600,
+              minHeight: { xs: 48, sm: 36 },
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.3s ease',
               '&:hover': {
-                backgroundColor: 'primary.dark',
+                transform: { xs: 'none', sm: 'scale(1.05)' },
+                boxShadow: { xs: 'none', sm: '0 8px 24px rgba(0, 212, 255, 0.4)' },
               },
             }}
           >
@@ -140,11 +183,34 @@ const Search = () => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon />
+                <SearchIcon sx={{ color: '#00d4ff' }} />
               </InputAdornment>
             ),
           }}
-          sx={{ mb: 2 }}
+          sx={{ 
+            mb: 2,
+            '& .MuiInputBase-root': {
+              fontSize: { xs: '1rem', sm: '1rem' },
+              minHeight: { xs: 56, sm: 56 }
+            },
+            '& .MuiInputLabel-root': {
+              fontSize: { xs: '1rem', sm: '1rem' }
+            },
+            '& .MuiOutlinedInput-root': {
+              backgroundColor: 'rgba(0, 212, 255, 0.05)',
+              borderRadius: 3,
+              backdropFilter: 'blur(10px)',
+              '& fieldset': {
+                borderColor: 'rgba(0, 212, 255, 0.3)',
+              },
+              '&:hover fieldset': {
+                borderColor: 'rgba(0, 212, 255, 0.6)',
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: '#00d4ff',
+              },
+            },
+          }}
         />
       </Box>
 

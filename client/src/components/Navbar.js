@@ -29,8 +29,9 @@ const Navbar = () => {
     }}>
       <Toolbar sx={{ 
         flexDirection: { xs: 'column', sm: 'row' },
-        py: { xs: 1, sm: 0 },
-        gap: { xs: 1, sm: 0 }
+        py: { xs: 1.5, sm: 0 },
+        gap: { xs: 1.5, sm: 0 },
+        minHeight: { xs: 'auto', sm: 64 }
       }}>
         {isAuthenticated && (
           <Box
@@ -42,10 +43,12 @@ const Navbar = () => {
               display: 'flex',
               alignItems: 'center',
               mr: { xs: 0, sm: 2 },
-              order: { xs: 1, sm: 0 }
+              order: { xs: 1, sm: 0 },
+              minHeight: { xs: 44, sm: 'auto' },
+              minWidth: { xs: 44, sm: 'auto' }
             }}
           >
-            <MovieIcon sx={{ mr: 1, color: '#00d4ff', fontSize: { xs: '1.5rem', sm: '2rem' } }} />
+            <MovieIcon sx={{ mr: 1, color: '#00d4ff', fontSize: { xs: '1.75rem', sm: '2rem' } }} />
             <Typography
               variant="h6"
               component="div"
@@ -73,7 +76,8 @@ const Navbar = () => {
             width: { xs: '100%', sm: 'auto' },
             ml: { xs: 0, sm: 3 },
             mr: { xs: 0, sm: 4 },
-            order: { xs: 3, sm: 0 }
+            order: { xs: 3, sm: 0 },
+            mb: { xs: 1, sm: 0 }
           }}>
             <AutocompleteSearch 
               onMovieSelect={handleMovieSelect}
@@ -86,7 +90,7 @@ const Navbar = () => {
           display: 'flex', 
           alignItems: 'center', 
           ml: { xs: 0, sm: 'auto' },
-          gap: { xs: 0.5, sm: 1 },
+          gap: { xs: 1, sm: 1 },
           flexWrap: 'wrap',
           justifyContent: { xs: 'center', sm: 'flex-end' },
           width: { xs: '100%', sm: 'auto' },
@@ -128,8 +132,11 @@ const Navbar = () => {
                 to="/rankings"
                 sx={{ 
                   mr: { xs: 0.5, sm: 1 },
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  px: { xs: 1, sm: 2 }
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                  px: { xs: 2, sm: 2 },
+                  py: { xs: 1.25, sm: 1 },
+                  minHeight: { xs: 44, sm: 36 },
+                  minWidth: { xs: 44, sm: 'auto' }
                 }}
               >
                 <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
@@ -146,8 +153,11 @@ const Navbar = () => {
                 to="/discover"
                 sx={{ 
                   mr: { xs: 0.5, sm: 1 },
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  px: { xs: 1, sm: 2 }
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                  px: { xs: 2, sm: 2 },
+                  py: { xs: 1.25, sm: 1 },
+                  minHeight: { xs: 44, sm: 36 },
+                  minWidth: { xs: 44, sm: 'auto' }
                 }}
               >
                 <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
@@ -164,8 +174,11 @@ const Navbar = () => {
                 to="/following"
                 sx={{ 
                   mr: { xs: 0.5, sm: 1 },
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  px: { xs: 1, sm: 2 }
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                  px: { xs: 2, sm: 2 },
+                  py: { xs: 1.25, sm: 1 },
+                  minHeight: { xs: 44, sm: 36 },
+                  minWidth: { xs: 44, sm: 'auto' }
                 }}
               >
                 <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
@@ -183,8 +196,11 @@ const Navbar = () => {
                   to="/admin/users"
                   sx={{ 
                     mr: { xs: 0.5, sm: 1 },
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                    px: { xs: 1, sm: 2 },
+                    fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                    px: { xs: 2, sm: 2 },
+                    py: { xs: 1.25, sm: 1 },
+                    minHeight: { xs: 44, sm: 36 },
+                    minWidth: { xs: 44, sm: 'auto' },
                     color: '#ff6b35'
                   }}
                 >
@@ -200,8 +216,11 @@ const Navbar = () => {
                 color="inherit" 
                 onClick={() => { logout(); navigate('/'); }}
                 sx={{ 
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  px: { xs: 1, sm: 2 }
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                  px: { xs: 2, sm: 2 },
+                  py: { xs: 1.25, sm: 1 },
+                  minHeight: { xs: 44, sm: 36 },
+                  minWidth: { xs: 44, sm: 'auto' }
                 }}
               >
                 Logout
@@ -214,9 +233,12 @@ const Navbar = () => {
                 component={Link} 
                 to="/login" 
                 sx={{ 
-                  mr: { xs: 0.5, sm: 1 },
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  px: { xs: 1, sm: 2 }
+                  mr: { xs: 1, sm: 1 },
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                  px: { xs: 2, sm: 2 },
+                  py: { xs: 1.25, sm: 1 },
+                  minHeight: { xs: 44, sm: 36 },
+                  minWidth: { xs: 44, sm: 'auto' }
                 }}
               >
                 Login
@@ -226,8 +248,11 @@ const Navbar = () => {
                 component={Link} 
                 to="/register"
                 sx={{ 
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  px: { xs: 1, sm: 2 }
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                  px: { xs: 2, sm: 2 },
+                  py: { xs: 1.25, sm: 1 },
+                  minHeight: { xs: 44, sm: 36 },
+                  minWidth: { xs: 44, sm: 'auto' }
                 }}
               >
                 Sign Up

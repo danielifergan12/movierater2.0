@@ -155,9 +155,10 @@ const Home = () => {
       background: 'rgba(26, 26, 26, 0.8)',
       backdropFilter: 'blur(20px)',
       border: '1px solid rgba(0, 212, 255, 0.2)',
-      borderRadius: 4,
+      borderRadius: { xs: 3, sm: 4 },
       overflow: 'hidden',
       transition: 'all 0.3s ease',
+      mb: { xs: 2, sm: 0 },
       '&:hover': {
         transform: { xs: 'none', sm: 'translateY(-8px)' },
         boxShadow: { xs: 'none', sm: '0 20px 40px rgba(0, 212, 255, 0.3)' },
@@ -192,19 +193,20 @@ const Home = () => {
           }
         }} />
       </Box>
-      <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}>
+      <CardContent sx={{ flexGrow: 1, p: { xs: 2.5, sm: 3 } }}>
         <Typography gutterBottom variant="h6" component="h2" sx={{ 
           fontWeight: 600,
           color: '#ffffff',
-          mb: 1,
-          fontSize: { xs: '1rem', sm: '1.25rem' },
+          mb: 1.5,
+          fontSize: { xs: '1.125rem', sm: '1.25rem' },
+          lineHeight: 1.3
         }}>
           {movie.title}
         </Typography>
         <Typography variant="body2" sx={{ 
           color: 'rgba(255, 255, 255, 0.6)',
           mb: 2,
-          fontSize: { xs: '0.8rem', sm: '0.9rem' },
+          fontSize: { xs: '0.875rem', sm: '0.9rem' },
         }}>
           {new Date(movie.release_date).getFullYear()}
         </Typography>
@@ -215,6 +217,7 @@ const Home = () => {
             size="small"
             readOnly
             sx={{
+              fontSize: { xs: '1.5rem', sm: '1.25rem' },
               '& .MuiRating-iconFilled': {
                 color: '#00d4ff',
               },
@@ -227,31 +230,31 @@ const Home = () => {
             ml: 1,
             color: '#00d4ff',
             fontWeight: 600,
-            fontSize: { xs: '0.8rem', sm: '0.875rem' },
+            fontSize: { xs: '0.875rem', sm: '0.875rem' },
           }}>
             {movie.vote_average.toFixed(1)}
           </Typography>
         </Box>
         <Typography variant="body2" sx={{ 
           color: 'rgba(255, 255, 255, 0.7)',
-          lineHeight: 1.4,
+          lineHeight: 1.5,
           display: { xs: 'none', sm: '-webkit-box' },
           WebkitLineClamp: 3,
           WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
-          fontSize: { xs: '0.8rem', sm: '0.875rem' },
+          fontSize: { xs: '0.875rem', sm: '0.875rem' },
         }}>
           {movie.overview}
         </Typography>
       </CardContent>
-      <CardActions sx={{ p: { xs: 2, sm: 3 }, pt: 0, gap: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
+      <CardActions sx={{ p: { xs: 2.5, sm: 3 }, pt: 0, gap: { xs: 1.5, sm: 1 }, flexDirection: { xs: 'column', sm: 'row' } }}>
         {activeTab === 1 && (() => {
           // Check if movie is already rated
           const isAlreadyRated = rawRatings.some(r => r.id?.toString() === movie.id?.toString());
           
           return isAlreadyRated ? (
             <Button
-              size="small"
+              size="medium"
               variant="outlined"
               startIcon={<StarIcon />}
               disabled
@@ -259,8 +262,9 @@ const Home = () => {
               sx={{
                 borderColor: 'rgba(0, 212, 255, 0.3)',
                 color: 'rgba(0, 212, 255, 0.5)',
-                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                py: { xs: 0.75, sm: 1 },
+                fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                py: { xs: 1.5, sm: 1 },
+                minHeight: { xs: 48, sm: 36 },
                 cursor: 'not-allowed',
               }}
             >
@@ -268,7 +272,7 @@ const Home = () => {
             </Button>
           ) : (
             <Button
-              size="small"
+              size="medium"
               variant="outlined"
               startIcon={<StarIcon />}
               onClick={(e) => {
@@ -284,8 +288,9 @@ const Home = () => {
               sx={{
                 borderColor: '#00d4ff',
                 color: '#00d4ff',
-                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                py: { xs: 0.75, sm: 1 },
+                fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                py: { xs: 1.5, sm: 1 },
+                minHeight: { xs: 48, sm: 36 },
                 '&:hover': {
                   borderColor: '#66e0ff',
                   backgroundColor: 'rgba(0, 212, 255, 0.1)',
@@ -297,7 +302,7 @@ const Home = () => {
           );
         })()}
         <Button
-          size="small"
+          size="medium"
           component={Link}
           to={`/movie/${movie.id}`}
           variant="contained"
@@ -305,9 +310,10 @@ const Home = () => {
           sx={{
             background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
             borderRadius: 2,
-            py: { xs: 0.75, sm: 1 },
+            py: { xs: 1.5, sm: 1 },
             fontWeight: 600,
-            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            fontSize: { xs: '0.875rem', sm: '0.875rem' },
+            minHeight: { xs: 48, sm: 36 },
           }}
         >
           View Details
