@@ -82,32 +82,50 @@ const MyRankings = () => {
 
   const handleDragStart = (e, originalIndex) => {
     setDraggedIndex(originalIndex);
+    setDragOverIndex(null); // Reset on new drag
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/html', e.target);
+    // Set a custom drag image to prevent flickering
+    const dragImage = e.target.cloneNode(true);
+    dragImage.style.opacity = '0.5';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
   };
 
   const handleDragOver = (e, dropOriginalIndex) => {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
     
+    // Only update if it's different to prevent unnecessary re-renders
+    if (draggedIndex !== null && draggedIndex !== dropOriginalIndex && dragOverIndex !== dropOriginalIndex) {
+      setDragOverIndex(dropOriginalIndex);
+    }
+  };
+
+  const handleDragEnter = (e, dropOriginalIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (draggedIndex !== null && draggedIndex !== dropOriginalIndex) {
       setDragOverIndex(dropOriginalIndex);
     }
   };
 
   const handleDragLeave = (e) => {
-    // Only clear if we're actually leaving the list item (not just moving to a child)
-    if (!e.currentTarget.contains(e.relatedTarget)) {
-      setDragOverIndex(null);
-    }
+    // Don't clear dragOverIndex on dragLeave - let it persist until we enter a new item
+    // This prevents flickering when moving between child elements
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   const handleDrop = (e, dropOriginalIndex) => {
     e.preventDefault();
-    setDragOverIndex(null);
+    e.stopPropagation();
     
     if (draggedIndex === null || draggedIndex === dropOriginalIndex) {
       setDraggedIndex(null);
+      setDragOverIndex(null);
       return;
     }
 
@@ -129,6 +147,7 @@ const MyRankings = () => {
     // Update the ratings
     setRatingsArray(newRatings);
     setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   const handleDragEnd = () => {
@@ -623,7 +642,7 @@ const MyRankings = () => {
                 let shouldMoveUp = false;
                 let shouldMoveDown = false;
                 
-                if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== originalIndex) {
+                if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== originalIndex && !isDragging) {
                   if (draggedIndex < dragOverIndex) {
                     // Dragging down: items between dragged and drop should move up
                     shouldMoveUp = originalIndex > draggedIndex && originalIndex <= dragOverIndex;
@@ -647,18 +666,8 @@ const MyRankings = () => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        transition: 'all 0.2s ease',
-                        animation: 'pulse 1.5s ease-in-out infinite',
-                        '@keyframes pulse': {
-                          '0%, 100%': {
-                            opacity: 0.7,
-                            borderColor: '#00d4ff',
-                          },
-                          '50%': {
-                            opacity: 1,
-                            borderColor: '#66e0ff',
-                          },
-                        },
+                        transition: 'opacity 0.2s ease',
+                        opacity: 1,
                       }}
                     >
                       <Typography variant="body2" sx={{ color: '#00d4ff', fontWeight: 600 }}>
@@ -673,6 +682,11 @@ const MyRankings = () => {
                         handleDragStart(e, originalIndex);
                       } else {
                         e.preventDefault();
+                      }
+                    }}
+                    onDragEnter={(e) => {
+                      if (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) {
+                        handleDragEnter(e, originalIndex);
                       }
                     }}
                     onDragOver={(e) => {
@@ -697,15 +711,16 @@ const MyRankings = () => {
                       flexDirection: { xs: 'column', sm: 'row' },
                       alignItems: { xs: 'flex-start', sm: 'center' },
                       cursor: (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) ? 'grab' : 'default',
-                      opacity: isDragging ? 0.3 : (isDragOver ? 0.8 : 1),
+                      opacity: isDragging ? 0.2 : 1,
                       transform: shouldMoveUp ? 'translateY(-100%)' : shouldMoveDown ? 'translateY(100%)' : 'translateY(0)',
-                      transition: draggedIndex !== null ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease' : 'all 0.2s ease',
-                      backgroundColor: isDragOver ? 'rgba(0, 212, 255, 0.08)' : 'transparent',
-                      border: isDragOver ? '2px solid rgba(0, 212, 255, 0.4)' : '2px solid transparent',
+                      transition: draggedIndex !== null && !isDragging ? 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease' : 'opacity 0.15s ease',
+                      backgroundColor: isDragOver && !isDragging ? 'rgba(0, 212, 255, 0.08)' : 'transparent',
+                      border: isDragOver && !isDragging ? '2px solid rgba(0, 212, 255, 0.4)' : '2px solid transparent',
                       position: 'relative',
                       zIndex: isDragging ? 10 : (isDragOver ? 5 : 1),
+                      pointerEvents: isDragging ? 'none' : 'auto',
                       '&:hover': {
-                        backgroundColor: draggedIndex === null ? 'rgba(0, 212, 255, 0.05)' : (isDragOver ? 'rgba(0, 212, 255, 0.08)' : 'transparent'),
+                        backgroundColor: draggedIndex === null ? 'rgba(0, 212, 255, 0.05)' : (isDragOver && !isDragging ? 'rgba(0, 212, 255, 0.08)' : 'transparent'),
                       },
                       '&:active': {
                         cursor: (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) ? 'grabbing' : 'default',
