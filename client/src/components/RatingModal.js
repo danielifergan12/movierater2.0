@@ -77,9 +77,28 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       onClose && onClose();
       return;
     }
+    
     const nextMid = Math.floor((low + high) / 2);
+    
+    // Safety check: ensure we're not comparing against the same movie
+    // This can happen when rerating a movie that was in the middle of the list
+    if (currentRatings[nextMid] && currentRatings[nextMid].id === movie.id) {
+      // Skip this position, move to next available position
+      if (nextMid + 1 < currentRatings.length) {
+        setMid(nextMid + 1);
+      } else if (nextMid - 1 >= 0) {
+        setMid(nextMid - 1);
+      } else {
+        // No other movies to compare, just insert at this position
+        const updated = upsertAtIndex(movie, nextMid);
+        onComplete && onComplete(updated);
+        onClose && onClose();
+      }
+      return;
+    }
+    
     setMid(nextMid);
-  }, [low, high, open, isInitialized, rawRatings.length, firstTime, movie, upsertAtIndex, onComplete, onClose, isRerating]);
+  }, [low, high, open, isInitialized, rawRatings, firstTime, movie, upsertAtIndex, onComplete, onClose, isRerating]);
 
   const compareTarget = useMemo(() => {
     if (mid == null) return null;
@@ -87,7 +106,15 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     const currentRatings = isRerating 
       ? rawRatings.filter(r => r.id !== movie.id)
       : rawRatings;
-    return currentRatings[mid] || null;
+    
+    const target = currentRatings[mid];
+    
+    // Double-check: if somehow the target is the same movie, return null to avoid comparison
+    if (target && target.id === movie.id) {
+      return null;
+    }
+    
+    return target || null;
   }, [mid, rawRatings, isRerating, movie.id]);
 
   if (!open || !movie || !isInitialized) {
