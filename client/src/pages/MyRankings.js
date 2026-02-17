@@ -114,8 +114,7 @@ const MyRankings = () => {
       const currentY = e.clientY;
       const deltaY = currentY - mouseDownY;
       
-      // Only start dragging if mouse moved at least 5px
-      if (Math.abs(deltaY) < 5) return;
+      // Start dragging immediately (no 5px threshold) for better responsiveness
       
       // Find which item we're hovering over
       const elements = document.elementsFromPoint(e.clientX, e.clientY);
@@ -131,6 +130,9 @@ const MyRankings = () => {
       
       if (hoveredIndex !== null && hoveredIndex !== mouseDownIndex) {
         setDragOverIndex(hoveredIndex);
+      } else if (hoveredIndex === null) {
+        // Clear drag over if not over any item
+        setDragOverIndex(null);
       }
     };
 
