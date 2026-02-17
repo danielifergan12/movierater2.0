@@ -39,6 +39,7 @@ app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/feed', require('./routes/feed'));
 app.use('/api/ratings', require('./routes/ratings'));
+app.use('/api/share', require('./routes/share'));
 
 // Serve React app
 app.get('*', (req, res) => {

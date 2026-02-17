@@ -79,6 +79,16 @@ const userSchema = new mongoose.Schema({
   resetTokenExpiry: {
     type: Date,
     default: null
+  },
+  shareCode: {
+    type: String,
+    unique: true,
+    sparse: true,
+    default: null
+  },
+  shareCodeCreatedAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

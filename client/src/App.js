@@ -18,6 +18,7 @@ import Rate from './pages/Rate';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import GoogleCallback from './pages/GoogleCallback';
+import SharedRankings from './pages/SharedRankings';
 
 const theme = createTheme({
   palette: {
@@ -176,6 +177,7 @@ function App() {
                   </ProtectedRoute>
                 } />
                 <Route path="/rankings" element={<MyRankings />} />
+                <Route path="/share/:shareCode" element={<SharedRankings />} />
                 <Route path="/profile/:userId" element={<Profile />} />
                 <Route path="/movie/:movieId" element={<MovieDetail />} />
               </Routes>
