@@ -23,13 +23,14 @@ import {
   PersonRemove,
   Movie as MovieIcon,
 } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../config/axios';
 
 const Profile = () => {
   const { userId } = useParams();
   const { user: currentUser, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -131,8 +132,18 @@ const Profile = () => {
               )}
 
               <Box sx={{ display: 'flex', justifyContent: 'space-around', my: 3 }}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6">
+                <Box 
+                  sx={{ 
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      transform: 'scale(1.05)',
+                    }
+                  }}
+                  onClick={() => navigate(`/profile/${userId}/followers`)}
+                >
+                  <Typography variant="h6" sx={{ color: '#00d4ff' }}>
                     {profileUser.followers?.length || 0}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
