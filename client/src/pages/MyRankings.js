@@ -91,12 +91,19 @@ const MyRankings = () => {
       return;
     }
     
+    // Start drag immediately for visual feedback
+    setDraggedIndex(originalIndex);
+    setDragOverIndex(null);
     setIsMouseDown(true);
     setMouseDownIndex(originalIndex);
     setMouseDownY(e.clientY);
-    setDraggedIndex(originalIndex);
-    setDragOverIndex(null);
+    
+    // Prevent text selection and default behavior
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Prevent context menu
+    e.currentTarget.style.cursor = 'grabbing';
   };
 
   // Add global mouse event listeners
@@ -164,6 +171,9 @@ const MyRankings = () => {
       setMouseDownIndex(null);
       setDraggedIndex(null);
       setDragOverIndex(null);
+      
+      // Reset cursor
+      document.body.style.cursor = '';
     };
     
     document.addEventListener('mousemove', handleMouseMove);
