@@ -135,7 +135,7 @@ const AnimatedMovieBackground = () => {
             position: 'absolute',
             top: `${rowIndex * 25}%`,
             left: 0,
-            width: '200%',
+            width: `${(row.length * 3) * 100}%`,
             height: '25%',
             display: 'flex',
             alignItems: 'center',
@@ -143,16 +143,16 @@ const AnimatedMovieBackground = () => {
             animation: `slide${rowIndex % 2} ${15 + rowIndex * 3}s linear infinite`,
             '@keyframes slide0': {
               '0%': { transform: 'translateX(0)' },
-              '100%': { transform: 'translateX(-50%)' },
+              '100%': { transform: `translateX(-${100 / 3}%)` },
             },
             '@keyframes slide1': {
-              '0%': { transform: 'translateX(-50%)' },
+              '0%': { transform: `translateX(-${100 / 3}%)` },
               '100%': { transform: 'translateX(0)' },
             },
           }}
         >
-          {/* Render row twice for seamless loop */}
-          {[...row, ...row].map((movie, index) => (
+          {/* Render row multiple times for seamless infinite loop */}
+          {[...row, ...row, ...row].map((movie, index) => (
             <Box
               key={`${movie.id}-${index}`}
               sx={{
