@@ -16,7 +16,11 @@ router.post('/generate', auth, async (req, res) => {
 
     // If user already has a share code, return it
     if (user.shareCode) {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      // Get frontend URL from environment variable, request origin, or default to localhost
+      const frontendUrl = process.env.FRONTEND_URL || 
+        (req.headers.origin && !req.headers.origin.includes('localhost') ? req.headers.origin : null) ||
+        (req.headers.referer ? new URL(req.headers.referer).origin : null) ||
+        'http://localhost:3000';
       const shareUrl = `${frontendUrl}/share/${user.shareCode}`;
       
       return res.json({
@@ -52,7 +56,11 @@ router.post('/generate', auth, async (req, res) => {
     user.shareCodeCreatedAt = new Date();
     await user.save();
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    // Get frontend URL from environment variable, request origin, or default to localhost
+    const frontendUrl = process.env.FRONTEND_URL || 
+      (req.headers.origin && !req.headers.origin.includes('localhost') ? req.headers.origin : null) ||
+      (req.headers.referer ? new URL(req.headers.referer).origin : null) ||
+      'http://localhost:3000';
     const shareUrl = `${frontendUrl}/share/${shareCode}`;
 
     res.json({
