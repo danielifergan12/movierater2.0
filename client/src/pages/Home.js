@@ -67,7 +67,16 @@ const Home = () => {
     if (isAuthenticated && activeTab === 1) {
       // Get recently shown movies to exclude
       const recentlyShown = getRecentlyShownMovies();
-      getPersonalRecommendations(false, recentlyShown);
+      getPersonalRecommendations(false, recentlyShown).then((result) => {
+        // Track initially loaded movies too (but only if not from a refresh)
+        if (result && result.results && refreshKey === 0) {
+          const newMovieIds = result.results
+            .slice(0, 8)
+            .map(movie => movie.id)
+            .filter(Boolean);
+          addToRecentlyShown(newMovieIds);
+        }
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isAuthenticated, refreshKey]);
