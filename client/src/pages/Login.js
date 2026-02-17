@@ -8,10 +8,8 @@ import {
   Typography,
   Box,
   Alert,
-  CircularProgress,
-  Divider
+  CircularProgress
 } from '@mui/material';
-import { Google as GoogleIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
@@ -58,17 +56,6 @@ const Login = () => {
     setLoading(false);
   };
 
-  const handleGoogleSignIn = () => {
-    setLoading(true);
-    const backendUrl = process.env.REACT_APP_API_URL || '';
-    const googleAuthUrl = backendUrl ? `${backendUrl}/api/auth/google` : '/api/auth/google';
-    console.log('Redirecting to Google OAuth:', googleAuthUrl);
-    
-    // Add a small delay to show loading state, then redirect
-    setTimeout(() => {
-      window.location.href = googleAuthUrl;
-    }, 100);
-  };
 
   return (
     <Box sx={{
@@ -148,16 +135,6 @@ const Login = () => {
             autoComplete="current-password"
           />
 
-          <Box sx={{ textAlign: 'right', mt: 1 }}>
-            <Link to="/forgot-password" style={{ 
-              textDecoration: 'none',
-              color: '#00d4ff',
-              fontSize: '0.875rem',
-            }}>
-              Forgot Password?
-            </Link>
-          </Box>
-
           <Button
             type="submit"
             fullWidth
@@ -172,40 +149,6 @@ const Login = () => {
             }}
           >
             {loading ? <CircularProgress size={24} /> : 'Login'}
-          </Button>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
-            <Divider sx={{ flexGrow: 1 }} />
-            <Typography variant="body2" sx={{ 
-              px: 2, 
-              color: 'rgba(255, 255, 255, 0.5)',
-              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-            }}>
-              OR
-            </Typography>
-            <Divider sx={{ flexGrow: 1 }} />
-          </Box>
-
-          <Button
-            fullWidth
-            variant="outlined"
-            size="large"
-            startIcon={<GoogleIcon sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />}
-            onClick={handleGoogleSignIn}
-            disabled={loading}
-            sx={{
-              mb: 2,
-              borderColor: 'rgba(255, 255, 255, 0.3)',
-              color: '#ffffff',
-              py: { xs: 1.25, sm: 1.5 },
-              fontSize: { xs: '0.875rem', sm: '1rem' },
-              '&:hover': {
-                borderColor: '#4285f4',
-                backgroundColor: 'rgba(66, 133, 244, 0.1)',
-              },
-            }}
-          >
-            Sign in with Google
           </Button>
 
           <Box sx={{ textAlign: 'center', mt: 4 }}>
