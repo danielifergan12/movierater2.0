@@ -335,6 +335,29 @@ router.get('/genre/:genreId', async (req, res) => {
   }
 });
 
+// Get new releases (now playing movies)
+router.get('/new-releases', async (req, res) => {
+  try {
+    const { page = 1 } = req.query;
+    
+    const response = await axios.get(
+      `https://api.themoviedb.org/3/movie/now_playing`,
+      {
+        params: {
+          api_key: process.env.TMDB_API_KEY,
+          page,
+          language: 'en-US'
+        }
+      }
+    );
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Get new releases error:', error);
+    res.status(500).json({ message: 'Error fetching new releases' });
+  }
+});
+
 // Get personalized movie recommendations based on user's highly-rated movies
 router.get('/recommendations/personal', auth, async (req, res) => {
   try {

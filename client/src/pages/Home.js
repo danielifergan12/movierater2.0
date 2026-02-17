@@ -24,14 +24,15 @@ import RatingModal from '../components/RatingModal';
 
 const Home = () => {
   const location = useLocation();
-  const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
+  const { trendingMovies, recommendedMovies, newReleases, getTrendingMovies, getPersonalRecommendations, getNewReleases, loading } = useMovies();
   const { isAuthenticated } = useAuth();
   const { rawRatings } = useRatings();
-  const [activeTab, setActiveTab] = useState(1);
+  const [activeTab, setActiveTab] = useState(0);
   const [ratingMovie, setRatingMovie] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [displayMovies, setDisplayMovies] = useState([]);
   const hasInitialLoad = useRef(false);
+  const hasNewReleasesLoaded = useRef(false);
 
   // Ensure component responds to route changes for proper navigation
   const [, setRouteUpdate] = useState(0);
@@ -68,6 +69,15 @@ const Home = () => {
     }
   };
 
+
+  // Fetch new releases on initial mount
+  useEffect(() => {
+    if (!hasNewReleasesLoaded.current && newReleases.length === 0 && !loading) {
+      hasNewReleasesLoaded.current = true;
+      getNewReleases();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Only fetch recommendations on initial mount if we don't have data
   useEffect(() => {
@@ -176,7 +186,10 @@ const Home = () => {
   // Use displayMovies to prevent flickering during refresh
   // Keep old movies visible during refresh, only update when refresh completes
   useEffect(() => {
-    if (activeTab === 1) {
+    if (activeTab === 0) {
+      // For new releases tab, clear displayMovies and use newReleases directly
+      setDisplayMovies([]);
+    } else if (activeTab === 1) {
       // Only update displayMovies when not refreshing (smooth transition)
       // During refresh, keep showing old movies until new ones are ready
       if (!isRefreshing && filteredRecommendedMovies.length > 0) {
@@ -517,6 +530,7 @@ const Home = () => {
                     },
                   }}
                 >
+                  <Tab label="New Releases" />
                   <Tab label="Suggested for You" />
                 </Tabs>
                 {activeTab === 1 && (
@@ -546,7 +560,7 @@ const Home = () => {
                 )}
               </Box>
 
-              {loading && !isRefreshing && displayMovies.length === 0 ? (
+              {loading && !isRefreshing && displayMovies.length === 0 && (activeTab === 1 ? filteredRecommendedMovies.length === 0 : newReleases.length === 0) ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
                   <CircularProgress />
                 </Box>
@@ -575,7 +589,10 @@ const Home = () => {
                     </Box>
                   )}
                   <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
-                    {(displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies)
+                    {(activeTab === 0 
+                      ? newReleases 
+                      : (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies)
+                    )
                       .slice(0, 8)
                       .map((movie) => (
                         <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
