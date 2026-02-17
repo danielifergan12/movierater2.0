@@ -24,7 +24,7 @@ import RatingModal from '../components/RatingModal';
 
 const Home = () => {
   const location = useLocation();
-  const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
+  const { trendingMovies, recommendedMovies, popularMovies, getTrendingMovies, getPersonalRecommendations, getPopularMovies, loading } = useMovies();
   const { isAuthenticated } = useAuth();
   const { rawRatings } = useRatings();
   const [activeTab, setActiveTab] = useState(1);
@@ -68,6 +68,14 @@ const Home = () => {
     }
   };
 
+
+  // Fetch popular movies for guests
+  useEffect(() => {
+    if (!isAuthenticated && popularMovies.length === 0 && !loading) {
+      getPopularMovies(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   // Only fetch recommendations on initial mount if we don't have data
   useEffect(() => {
@@ -517,7 +525,7 @@ const Home = () => {
                     },
                   }}
                 >
-                  <Tab label="Suggested for You" />
+                  <Tab label={isAuthenticated ? "Suggested for You" : "Popular Movies"} />
                 </Tabs>
                 {activeTab === 1 && (
                   <IconButton
@@ -575,14 +583,14 @@ const Home = () => {
                     </Box>
                   )}
                   <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
-                    {(displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies)
+                    {(!isAuthenticated ? popularMovies : (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies))
                       .slice(0, 8)
                       .map((movie) => (
                         <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
                           <MovieCard movie={movie} />
                         </Grid>
                       ))}
-                  {activeTab === 1 && displayMovies.length === 0 && filteredRecommendedMovies.length === 0 && !loading && (
+                  {isAuthenticated && activeTab === 1 && displayMovies.length === 0 && filteredRecommendedMovies.length === 0 && !loading && (
                     <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
                       <Typography variant="h6" sx={{ 
                         color: 'rgba(255, 255, 255, 0.7)', 
@@ -602,6 +610,23 @@ const Home = () => {
                           ? "Keep rating movies to discover more great films!"
                           : "Start rating movies and we'll suggest similar ones you might enjoy."
                         }
+                      </Typography>
+                    </Box>
+                  )}
+                  {!isAuthenticated && popularMovies.length === 0 && !loading && (
+                    <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
+                      <Typography variant="h6" sx={{ 
+                        color: 'rgba(255, 255, 255, 0.7)', 
+                        mb: 2,
+                        fontSize: { xs: '1rem', sm: '1.25rem' }
+                      }}>
+                        Discover popular movies
+                      </Typography>
+                      <Typography variant="body2" sx={{ 
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        fontSize: { xs: '0.875rem', sm: '1rem' }
+                      }}>
+                        Sign in to get personalized recommendations based on your ratings!
                       </Typography>
                     </Box>
                   )}

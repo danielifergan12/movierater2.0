@@ -23,7 +23,7 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Check for error in URL params
+  // Check for error and redirect in URL params
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const errorParam = urlParams.get('error');
@@ -49,7 +49,11 @@ const Login = () => {
     const result = await login(formData.email, formData.password);
     
     if (result.success) {
-      navigate('/');
+      // Get redirect parameter from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirect = urlParams.get('redirect');
+      // Navigate to redirect URL or default to home
+      navigate(redirect && redirect.startsWith('/') ? redirect : '/');
     } else {
       setError(result.message);
     }

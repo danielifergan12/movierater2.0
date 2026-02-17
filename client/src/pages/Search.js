@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { Search as SearchIcon, Star } from '@mui/icons-material';
 import { useMovies } from '../contexts/MovieContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import MovieFilters from '../components/MovieFilters';
 import RatingModal from '../components/RatingModal';
@@ -24,6 +25,7 @@ import RatingModal from '../components/RatingModal';
 const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { searchMovies, searchResults, loading } = useMovies();
+  const { isAuthenticated } = useAuth();
   const { rawRatings } = useRatings();
   const urlQuery = searchParams.get('q') || '';
   const [query, setQuery] = useState(urlQuery);
@@ -91,6 +93,11 @@ const Search = () => {
   };
 
   const handleRateClick = (movie) => {
+    if (!isAuthenticated) {
+      const currentUrl = window.location.pathname + window.location.search;
+      window.location.href = `/login?redirect=${encodeURIComponent(currentUrl)}`;
+      return;
+    }
     setRatingMovie({
       id: movie.id,
       title: movie.title,
@@ -299,7 +306,7 @@ const Search = () => {
             minHeight: { xs: 44, sm: 36 },
           }}
         >
-          {isRated ? 'Rerate' : 'Rate'}
+          {!isAuthenticated ? 'Sign in to Rate' : (isRated ? 'Rerate' : 'Rate')}
         </Button>
         <Link
           to={`/movie/${movie.id}`}

@@ -35,12 +35,14 @@ import {
   ContentCopy as CopyIcon
 } from '@mui/icons-material';
 import { useRatings } from '../hooks/useRatings';
+import { useAuth } from '../contexts/AuthContext';
 import { useMovies } from '../contexts/MovieContext';
 import MovieFilters from '../components/MovieFilters';
 import api from '../config/axios';
 
 const MyRankings = () => {
   const { rawRatings, setRatingsArray, computeScore } = useRatings();
+  const { isAuthenticated } = useAuth();
   const { getMovieDetails } = useMovies();
   const location = useLocation();
   const navigate = useNavigate();
@@ -294,6 +296,85 @@ const MyRankings = () => {
 
     return filtered;
   }, [enhancedRatings, filters, computeScore, rawRatings.length]);
+
+  if (!isAuthenticated) {
+    return (
+      <Box sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.1) 0%, transparent 50%)',
+          pointerEvents: 'none',
+        }
+      }}>
+        <Container maxWidth="md" sx={{ textAlign: 'center', position: 'relative', zIndex: 1, px: { xs: 2, sm: 3 } }}>
+          <MovieIcon sx={{ fontSize: { xs: 60, sm: 80 }, color: '#00d4ff', mb: 3 }} />
+          <Typography variant="h3" gutterBottom sx={{
+            background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            mb: 3,
+            fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
+          }}>
+            Sign In to View Your Rankings
+          </Typography>
+          <Typography variant="h6" sx={{ 
+            color: 'rgba(255, 255, 255, 0.8)', 
+            mb: 4,
+            fontSize: { xs: '1rem', sm: '1.25rem' }
+          }}>
+            Create an account or sign in to start building your personal movie rankings!
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Button
+              variant="contained"
+              component={Link}
+              to="/login"
+              size="large"
+              sx={{
+                background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                px: { xs: 4, sm: 6 },
+                py: { xs: 1.5, sm: 2 },
+                fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
+              }}
+            >
+              Sign In
+            </Button>
+            <Button
+              variant="outlined"
+              component={Link}
+              to="/register"
+              size="large"
+              sx={{
+                borderColor: '#00d4ff',
+                color: '#00d4ff',
+                px: { xs: 4, sm: 6 },
+                py: { xs: 1.5, sm: 2 },
+                fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
+                '&:hover': {
+                  borderColor: '#66e0ff',
+                  backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                },
+              }}
+            >
+              Create Account
+            </Button>
+          </Box>
+        </Container>
+      </Box>
+    );
+  }
 
   if (rawRatings.length === 0) {
     return (

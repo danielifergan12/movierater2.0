@@ -13,12 +13,14 @@ import {
 } from '@mui/material';
 import { Star } from '@mui/icons-material';
 import { useMovies } from '../contexts/MovieContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
 
 const MovieDetail = () => {
   const { movieId } = useParams();
   const { getMovieDetails } = useMovies();
+  const { isAuthenticated } = useAuth();
   const { ratings, rawRatings, computeScore } = useRatings();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +45,14 @@ const MovieDetail = () => {
 
   const handleRatingComplete = () => {
     setShowRatingModal(false);
+  };
+
+  const handleRateClick = () => {
+    if (!isAuthenticated) {
+      window.location.href = `/login?redirect=${encodeURIComponent(`/movie/${movieId}`)}`;
+      return;
+    }
+    setShowRatingModal(true);
   };
 
   const fetchMovieDetails = async () => {
@@ -192,7 +202,7 @@ const MovieDetail = () => {
                   variant="outlined"
                   startIcon={<Star />}
                   size="large"
-                  onClick={() => setShowRatingModal(true)}
+                  onClick={handleRateClick}
                   sx={{
                     borderColor: '#00d4ff',
                     color: '#00d4ff',
@@ -207,7 +217,7 @@ const MovieDetail = () => {
                     },
                   }}
                 >
-                  Rerate This Movie
+                  {!isAuthenticated ? 'Sign in to Rate' : 'Rerate This Movie'}
                 </Button>
               </Box>
             ) : (
@@ -215,8 +225,8 @@ const MovieDetail = () => {
                 variant={movieRating ? "outlined" : "contained"}
                 startIcon={<Star />}
                 size="large"
-                onClick={() => !movieRating && setShowRatingModal(true)}
-                disabled={!!movieRating}
+                onClick={handleRateClick}
+                disabled={!!movieRating && isAuthenticated}
                 sx={{
                   ...(movieRating ? {
                     borderColor: 'rgba(0, 212, 255, 0.3)',
@@ -235,7 +245,7 @@ const MovieDetail = () => {
                   width: { xs: '100%', sm: 'auto' },
                 }}
               >
-                {movieRating ? 'Already Rated' : 'Rate This Movie'}
+                {!isAuthenticated ? 'Sign in to Rate This Movie' : (movieRating ? 'Already Rated' : 'Rate This Movie')}
               </Button>
             )}
           </Grid>

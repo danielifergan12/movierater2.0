@@ -180,11 +180,7 @@ function AppContent() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/auth/google/callback" element={<GoogleCallback />} />
-        <Route path="/search" element={
-          <ProtectedRoute>
-            <Search />
-          </ProtectedRoute>
-        } />
+        <Route path="/search" element={<Search />} />
         <Route path="/feed" element={
           <ProtectedRoute>
             <Feed />
