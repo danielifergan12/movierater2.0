@@ -150,8 +150,18 @@ const Profile = () => {
                     Followers
                   </Typography>
                 </Box>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6">
+                <Box 
+                  sx={{ 
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      transform: 'scale(1.05)',
+                    }
+                  }}
+                  onClick={() => navigate(`/profile/${userId}/following`)}
+                >
+                  <Typography variant="h6" sx={{ color: '#00d4ff' }}>
                     {profileUser.following?.length || 0}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">

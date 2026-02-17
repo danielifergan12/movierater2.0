@@ -24,6 +24,7 @@ import DiscoverUsers from './pages/DiscoverUsers';
 import FollowingRankings from './pages/FollowingRankings';
 import AdminUsers from './pages/AdminUsers';
 import Followers from './pages/Followers';
+import Following from './pages/Following';
 
 const theme = createTheme({
   palette: {
@@ -204,6 +205,7 @@ function AppContent() {
         <Route path="/share/:shareCode" element={<SharedRankings />} />
         <Route path="/profile/:userId" element={<Profile />} />
         <Route path="/profile/:userId/followers" element={<Followers />} />
+        <Route path="/profile/:userId/following" element={<Following />} />
         <Route path="/movie/:movieId" element={<MovieDetail />} />
         <Route path="/admin/users" element={
           <ProtectedRoute>
