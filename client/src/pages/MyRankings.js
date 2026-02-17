@@ -591,8 +591,8 @@ const MyRankings = () => {
                 );
               })}
             </List>
-          )}
           </Card>
+          )}
         </Box>
       </Container>
 
