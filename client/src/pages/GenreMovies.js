@@ -49,7 +49,9 @@ const GenreMovies = () => {
       const response = await api.get(`/api/movies/genre/${genreId}/highly-rated?page=${nextPage}`);
       const newMovies = response.data.results || [];
       setMovies(prev => (replace ? newMovies : [...prev, ...newMovies]));
-      setHasMore(newMovies.length > 0 && newMovies.length === 20); // Assuming 20 per page
+      // Check if there are more pages available
+      const totalPages = response.data.total_pages || 0;
+      setHasMore(nextPage < totalPages && newMovies.length > 0);
       setPage(nextPage);
     } catch (error) {
       console.error('Error loading genre movies:', error);

@@ -143,42 +143,9 @@ const Home = () => {
           // Handle both response.data.genres and response.data directly
           const genresList = response.data.genres || response.data;
           if (Array.isArray(genresList) && genresList.length > 0) {
-            // Map TMDB genre names to our display names
-            const genreMap = {
-              'Science Fiction': 'Sci-Fi',
-              'Sci-Fi': 'Sci-Fi'
-            };
-            
-            // Filter to show most common/popular genres (using both TMDB names and our names)
-            const commonGenres = ['Action', 'Comedy', 'Drama', 'Horror', 'Romance', 'Sci-Fi', 'Science Fiction', 'Thriller', 'Adventure', 'Animation', 'Crime', 'Fantasy', 'Mystery'];
-            const filtered = genresList.filter(genre => 
-              commonGenres.includes(genre.name)
-            );
-            
-            // Normalize genre names (e.g., "Science Fiction" -> "Sci-Fi")
-            const normalized = filtered.map(genre => ({
-              ...genre,
-              name: genreMap[genre.name] || genre.name
-            }));
-            
-            // Remove duplicates after normalization
-            const uniqueGenres = normalized.filter((genre, index, self) =>
-              index === self.findIndex(g => g.name === genre.name)
-            );
-            
-            // Sort by commonGenres order
-            const sorted = [...uniqueGenres].sort((a, b) => {
-              const aName = genreMap[a.name] || a.name;
-              const bName = genreMap[b.name] || b.name;
-              const aIndex = commonGenres.indexOf(aName);
-              const bIndex = commonGenres.indexOf(bName);
-              if (aIndex === -1 && bIndex === -1) return aName.localeCompare(bName);
-              if (aIndex === -1) return 1;
-              if (bIndex === -1) return -1;
-              return aIndex - bIndex;
-            });
-            
-            console.log('Filtered and sorted genres:', sorted);
+            // Show ALL genres, sorted alphabetically
+            const sorted = [...genresList].sort((a, b) => a.name.localeCompare(b.name));
+            console.log('All genres loaded:', sorted);
             setGenres(sorted);
           } else {
             console.warn('Genres list is empty or not an array:', genresList);
