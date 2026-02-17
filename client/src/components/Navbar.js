@@ -32,7 +32,26 @@ const Navbar = () => {
         py: { xs: 1, sm: 0 },
         gap: { xs: 1, sm: 0 }
       }}>
-        {/* MovieRate logo removed from navbar */}
+        {isAuthenticated && (
+          <Link to="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', marginRight: { xs: 0, sm: 2 } }}>
+            <MovieIcon sx={{ mr: 1, color: '#00d4ff', fontSize: { xs: '1.5rem', sm: '2rem' } }} />
+            <Typography
+              variant="h6"
+              component="div"
+              sx={{
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #00d4ff 0%, #ff6b35 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                display: { xs: 'none', sm: 'block' }
+              }}
+            >
+              MovieRate
+            </Typography>
+          </Link>
+        )}
 
         {isAuthenticated && (
           <Box sx={{ 
