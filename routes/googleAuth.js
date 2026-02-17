@@ -6,11 +6,26 @@ const User = require('../models/User');
 
 const router = express.Router();
 
+// Check if Google OAuth is configured
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  console.warn('Google OAuth not configured: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set');
+}
+
 // Configure Google OAuth Strategy
+// Build callback URL - use environment variable or construct from backend URL
+const getCallbackURL = () => {
+  if (process.env.GOOGLE_CALLBACK_URL) {
+    return process.env.GOOGLE_CALLBACK_URL;
+  }
+  // Fallback: construct from backend URL
+  const backendUrl = process.env.BACKEND_URL || process.env.RAILWAY_PUBLIC_DOMAIN || 'http://localhost:5000';
+  return `${backendUrl}/api/auth/google/callback`;
+};
+
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: process.env.GOOGLE_CALLBACK_URL || '/api/auth/google/callback'
+  callbackURL: getCallbackURL()
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     // Check if user exists with this Google ID
@@ -65,15 +80,34 @@ passport.deserializeUser(async (id, done) => {
 });
 
 // Google OAuth routes
-router.get('/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+router.get('/google', (req, res, next) => {
+  // Check if Google OAuth is configured
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    console.error('Google OAuth not configured');
+    return res.status(500).json({ 
+      message: 'Google OAuth is not configured. Please contact the administrator.' 
+    });
+  }
+  
+  console.log('Initiating Google OAuth flow...');
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+});
 
 router.get('/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=google_auth_failed` }),
+  passport.authenticate('google', { 
+    session: false, 
+    failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=google_auth_failed` 
+  }),
   async (req, res) => {
     try {
+      if (!req.user) {
+        console.error('Google OAuth callback: No user found');
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+      }
+
       const user = req.user;
+      console.log(`Google OAuth successful for user: ${user.email}`);
       
       // Generate JWT token
       const token = jwt.sign(
@@ -84,9 +118,11 @@ router.get('/google/callback',
 
       // Redirect to frontend with token
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      console.log(`Redirecting to frontend: ${frontendUrl}/auth/google/callback`);
       res.redirect(`${frontendUrl}/auth/google/callback?token=${token}&userId=${user._id}`);
     } catch (error) {
       console.error('Google OAuth callback error:', error);
+      console.error('Error stack:', error.stack);
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
     }

@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const session = require('express-session');
+const passport = require('passport');
 require('dotenv').config();
 
 const app = express();
@@ -23,6 +24,11 @@ app.use(session({
   resave: false,
   saveUninitialized: false
 }));
+
+// Initialize Passport middleware (required for OAuth)
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use(express.static(path.join(__dirname, 'client/build')));
 
 // Routes
