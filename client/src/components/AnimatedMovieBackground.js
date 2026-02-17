@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import api from '../config/axios';
 
-// Famous movies with their TMDB IDs - expanded list
+// Famous movies with their TMDB IDs - expanded list (40 movies)
 const FAMOUS_MOVIES = [
   { id: 157336, title: 'Interstellar' },
   { id: 27205, title: 'Inception' },
@@ -28,7 +28,6 @@ const FAMOUS_MOVIES = [
   { id: 299534, title: 'Avengers: Endgame' },
   { id: 181808, title: 'Star Wars: The Last Jedi' },
   { id: 140607, title: 'Star Wars: The Force Awakens' },
-  { id: 181, title: 'Return of the Jedi' },
   { id: 78, title: 'Blade Runner' },
   { id: 335984, title: 'Blade Runner 2049' },
   { id: 475557, title: 'Joker' },
@@ -37,13 +36,15 @@ const FAMOUS_MOVIES = [
   { id: 429, title: 'The Good, the Bad and the Ugly' },
   { id: 11216, title: 'Cinema Paradiso' },
   { id: 346, title: 'Seven Samurai' },
-  { id: 429, title: 'The Good, the Bad and the Ugly' },
   { id: 389, title: '12 Angry Men' },
   { id: 497, title: 'The Green Mile' },
   { id: 510, title: 'One Flew Over the Cuckoo\'s Nest' },
   { id: 8587, title: 'The Lion King' },
   { id: 862, title: 'Toy Story' },
-  { id: 324857, title: 'Spider-Man: Into the Spider-Verse' },
+  { id: 105, title: 'Back to the Future' },
+  { id: 62, title: '2001: A Space Odyssey' },
+  { id: 694, title: 'The Shining' },
+  { id: 539, title: 'Psycho' },
 ];
 
 const AnimatedMovieBackground = () => {
