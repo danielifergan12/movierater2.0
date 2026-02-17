@@ -628,20 +628,41 @@ const Home = () => {
                   </Box>
                 )}
                 {!isAuthenticated && (
-                  <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
+                  <Box sx={{ 
+                    textAlign: 'center', 
+                    py: { xs: 2, sm: 3 }, 
+                    width: '100%', 
+                    px: { xs: 2, sm: 0 },
+                    flexShrink: 0,
+                  }}>
                     <Typography variant="h6" sx={{ 
                       color: 'rgba(255, 255, 255, 0.7)', 
-                      mb: 2,
-                      fontSize: { xs: '1rem', sm: '1.25rem' }
+                      mb: 1.5,
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
                     }}>
-                      Rate some movies to get personalized recommendations!
+                      Start rating to see recommendations
                     </Typography>
                     <Typography variant="body2" sx={{ 
                       color: 'rgba(255, 255, 255, 0.5)',
-                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      mb: 2
                     }}>
-                      Start rating movies and we'll suggest similar ones you might enjoy.
+                      Sign in and rate movies to get personalized recommendations!
                     </Typography>
+                    <Button
+                      variant="contained"
+                      component={Link}
+                      to="/login"
+                      sx={{
+                        background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                        px: { xs: 3, sm: 5 },
+                        py: { xs: 1.25, sm: 1.75 },
+                        fontSize: { xs: '0.8125rem', sm: '0.9375rem' },
+                        mt: 1
+                      }}
+                    >
+                      Sign In to Get Started
+                    </Button>
                   </Box>
                 )}
               </Grid>
