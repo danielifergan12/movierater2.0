@@ -35,12 +35,23 @@ const SharedRankings = () => {
     const fetchSharedRankings = async () => {
       try {
         setLoading(true);
-        const response = await api.get(`/api/share/${shareCode}`);
+        // Make request without auth token for public share links
+        const response = await api.get(`/api/share/${shareCode}`, {
+          headers: {
+            // Explicitly don't send auth token for public share links
+            Authorization: undefined
+          }
+        });
         setSharedData(response.data);
         setError(null);
       } catch (err) {
         console.error('Error fetching shared rankings:', err);
-        setError(err.response?.data?.message || 'Failed to load shared rankings');
+        // Handle 401/403 errors gracefully - they shouldn't happen for public share links
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          setError('This share link is invalid or has expired.');
+        } else {
+          setError(err.response?.data?.message || 'Failed to load shared rankings');
+        }
         setSharedData(null);
       } finally {
         setLoading(false);
