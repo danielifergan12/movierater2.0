@@ -817,7 +817,7 @@ const MyRankings = () => {
                       px: { xs: 2, sm: 4 },
                       flexDirection: { xs: 'column', sm: 'row' },
                       alignItems: { xs: 'flex-start', sm: 'center' },
-                      cursor: 'grab',
+                      cursor: isDragging ? 'grabbing' : (isMouseDown && mouseDownIndex === originalIndex ? 'grabbing' : 'grab'),
                       // Enhanced dragged item visual (shadow elevation)
                       opacity: isDragging ? 0.95 : (isSourcePosition ? 0.3 : 1),
                       transform: isDragging 
