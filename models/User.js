@@ -94,6 +94,14 @@ const userSchema = new mongoose.Schema({
     movieId: { type: String, required: true },
     hiddenAt: { type: Date, default: Date.now },
     expiresAt: { type: Date, required: true }
+  }],
+  watchlist: [{
+    movieId: { type: String, required: true },
+    tmdbId: { type: Number, required: true },
+    title: { type: String, required: true },
+    posterPath: String,
+    releaseDate: Date,
+    addedAt: { type: Date, default: Date.now }
   }]
 }, {
   timestamps: true

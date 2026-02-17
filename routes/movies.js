@@ -1578,4 +1578,45 @@ router.get('/recommendations/personal', auth, async (req, res) => {
   }
 });
 
+// Get movie cast and crew
+router.get('/:id/credits', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const response = await axios.get(
+      `https://api.themoviedb.org/3/movie/${id}/credits`,
+      {
+        params: {
+          api_key: process.env.TMDB_API_KEY,
+          language: 'en-US'
+        }
+      }
+    );
+    res.json(response.data);
+  } catch (error) {
+    console.error('Get movie credits error:', error);
+    res.status(500).json({ message: 'Error fetching movie credits' });
+  }
+});
+
+// Get similar movies
+router.get('/:id/similar', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const response = await axios.get(
+      `https://api.themoviedb.org/3/movie/${id}/similar`,
+      {
+        params: {
+          api_key: process.env.TMDB_API_KEY,
+          language: 'en-US',
+          page: req.query.page || 1
+        }
+      }
+    );
+    res.json(response.data);
+  } catch (error) {
+    console.error('Get similar movies error:', error);
+    res.status(500).json({ message: 'Error fetching similar movies' });
+  }
+});
+
 module.exports = router;

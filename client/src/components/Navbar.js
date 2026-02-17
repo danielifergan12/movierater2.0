@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, Box, Chip } from '@mui/material';
-import { Movie as MovieIcon, Star as StarIcon, People as PeopleIcon, Favorite as FavoriteIcon, AdminPanelSettings as AdminIcon } from '@mui/icons-material';
+import { Movie as MovieIcon, Star as StarIcon, People as PeopleIcon, Favorite as FavoriteIcon, AdminPanelSettings as AdminIcon, Bookmark as BookmarkIcon, List as ListIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import AutocompleteSearch from './AutocompleteSearch';
 
@@ -159,6 +159,46 @@ const Navbar = () => {
                 </Box>
                 <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
                   Rankings
+                </Box>
+              </Button>
+              <Button
+                color="inherit"
+                startIcon={<BookmarkIcon />}
+                onClick={() => handleNavigation('/watchlist')}
+                sx={{ 
+                  mr: { xs: 0.5, sm: 1 },
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                  px: { xs: 2, sm: 2 },
+                  py: { xs: 1.25, sm: 1 },
+                  minHeight: { xs: 44, sm: 36 },
+                  minWidth: { xs: 44, sm: 'auto' }
+                }}
+              >
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Watchlist
+                </Box>
+                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                  Watch
+                </Box>
+              </Button>
+              <Button
+                color="inherit"
+                startIcon={<ListIcon />}
+                onClick={() => handleNavigation('/lists')}
+                sx={{ 
+                  mr: { xs: 0.5, sm: 1 },
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                  px: { xs: 2, sm: 2 },
+                  py: { xs: 1.25, sm: 1 },
+                  minHeight: { xs: 44, sm: 36 },
+                  minWidth: { xs: 44, sm: 'auto' }
+                }}
+              >
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Lists
+                </Box>
+                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                  Lists
                 </Box>
               </Button>
               <Button

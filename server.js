@@ -40,6 +40,8 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/feed', require('./routes/feed'));
 app.use('/api/ratings', require('./routes/ratings'));
 app.use('/api/share', require('./routes/share'));
+app.use('/api/watchlist', require('./routes/watchlist'));
+app.use('/api/lists', require('./routes/lists'));
 
 // Serve React app
 app.get('*', (req, res) => {
