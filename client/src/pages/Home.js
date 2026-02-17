@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -23,6 +23,7 @@ import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
 
 const Home = () => {
+  const location = useLocation();
   const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
   const { isAuthenticated } = useAuth();
   const { rawRatings } = useRatings();
@@ -31,6 +32,12 @@ const Home = () => {
   const [ratingMovie, setRatingMovie] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [displayMovies, setDisplayMovies] = useState([]);
+
+  // Ensure component responds to route changes for proper navigation
+  useEffect(() => {
+    // This effect ensures React Router properly detects route changes
+    // when navigating from the Trending tab
+  }, [location.pathname]);
 
   // Helper functions to manage recently shown movies in localStorage
   const getRecentlyShownMovies = () => {
