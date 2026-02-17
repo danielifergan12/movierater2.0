@@ -214,6 +214,9 @@ export function useRatings() {
       id: movie.id,
       title: movie.title,
       posterUrl: movie.posterUrl,
+      // Optionally store additional metadata for filtering
+      releaseDate: movie.releaseDate || movie.release_date || null,
+      genres: movie.genres || movie.genre_ids || null,
     };
     updated.splice(index, 0, entry);
     console.log(`[RATINGS] Adding rating for movie: ${movie.title} at index ${index} for user ${user?._id || 'guest'}`);

@@ -335,6 +335,26 @@ router.get('/genre/:genreId', async (req, res) => {
   }
 });
 
+// Get movie genres list
+router.get('/genres', async (req, res) => {
+  try {
+    const response = await axios.get(
+      `https://api.themoviedb.org/3/genre/movie/list`,
+      {
+        params: {
+          api_key: process.env.TMDB_API_KEY,
+          language: 'en-US'
+        }
+      }
+    );
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Get genres error:', error);
+    res.status(500).json({ message: 'Error fetching genres' });
+  }
+});
+
 // Get new releases (now playing + upcoming movies)
 router.get('/new-releases', async (req, res) => {
   try {

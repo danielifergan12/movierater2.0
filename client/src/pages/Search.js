@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
   Container,
@@ -18,6 +18,7 @@ import {
 import { Search as SearchIcon, Star } from '@mui/icons-material';
 import { useMovies } from '../contexts/MovieContext';
 import { useRatings } from '../hooks/useRatings';
+import MovieFilters from '../components/MovieFilters';
 import RatingModal from '../components/RatingModal';
 
 const Search = () => {
@@ -30,6 +31,14 @@ const Search = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [ratingMovie, setRatingMovie] = useState(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [filters, setFilters] = useState({
+    genres: [],
+    decades: [],
+    yearRange: [1900, new Date().getFullYear() + 1],
+    ratingRange: [0, 10],
+    sortBy: 'popularity',
+    searchQuery: ''
+  });
 
   // Sync query from URL params when they change (e.g., when navigating from navbar search)
   useEffect(() => {
@@ -86,9 +95,95 @@ const Search = () => {
       id: movie.id,
       title: movie.title,
       posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg',
+      releaseDate: movie.release_date,
+      genres: movie.genre_ids || []
     });
     setShowRatingModal(true);
   };
+
+  // Filter and sort search results
+  const filteredAndSortedResults = useMemo(() => {
+    if (!searchResults || searchResults.length === 0) return [];
+
+    let filtered = [...searchResults];
+
+    // Filter by search within (additional to main search)
+    if (filters.searchQuery?.trim()) {
+      const query = filters.searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(m => 
+        m.title.toLowerCase().includes(query)
+      );
+    }
+
+    // Filter by genre
+    if (filters.genres?.length > 0) {
+      filtered = filtered.filter(m => {
+        const movieGenres = m.genre_ids || [];
+        return filters.genres.some(genreId => movieGenres.includes(genreId));
+      });
+    }
+
+    // Filter by decade
+    if (filters.decades?.length > 0) {
+      filtered = filtered.filter(m => {
+        if (!m.release_date) return false;
+        const year = new Date(m.release_date).getFullYear();
+        return filters.decades.some(decade => {
+          if (decade === 0) return year < 1950;
+          return year >= decade && year < decade + 10;
+        });
+      });
+    }
+
+    // Filter by year range
+    if (filters.yearRange) {
+      filtered = filtered.filter(m => {
+        if (!m.release_date) return false;
+        const year = new Date(m.release_date).getFullYear();
+        return year >= filters.yearRange[0] && year <= filters.yearRange[1];
+      });
+    }
+
+    // Filter by rating range (TMDB vote_average)
+    if (filters.ratingRange) {
+      filtered = filtered.filter(m => {
+        const rating = m.vote_average || 0;
+        return rating >= filters.ratingRange[0] && rating <= filters.ratingRange[1];
+      });
+    }
+
+    // Sort
+    if (filters.sortBy) {
+      filtered.sort((a, b) => {
+        switch (filters.sortBy) {
+          case 'popularity':
+            return (b.popularity || 0) - (a.popularity || 0);
+          case 'popularity-asc':
+            return (a.popularity || 0) - (b.popularity || 0);
+          case 'rating':
+            return (b.vote_average || 0) - (a.vote_average || 0);
+          case 'rating-asc':
+            return (a.vote_average || 0) - (b.vote_average || 0);
+          case 'release-date':
+            const dateA = a.release_date ? new Date(a.release_date) : new Date(0);
+            const dateB = b.release_date ? new Date(b.release_date) : new Date(0);
+            return dateB - dateA;
+          case 'release-date-desc':
+            const dateA2 = a.release_date ? new Date(a.release_date) : new Date(0);
+            const dateB2 = b.release_date ? new Date(b.release_date) : new Date(0);
+            return dateA2 - dateB2;
+          case 'title':
+            return a.title.localeCompare(b.title);
+          case 'title-desc':
+            return b.title.localeCompare(a.title);
+          default:
+            return 0;
+        }
+      });
+    }
+
+    return filtered;
+  }, [searchResults, filters]);
 
   const MovieCard = ({ movie }) => {
     // Check if movie is already rated
@@ -305,6 +400,16 @@ const Search = () => {
             },
           }}
         />
+        
+        {/* Filters - only show when there are search results */}
+        {searchResults.length > 0 && (
+          <MovieFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            showRatingRange={false}
+            showSearchWithin={true}
+          />
+        )}
       </Box>
 
       {loading && (
@@ -330,18 +435,33 @@ const Search = () => {
             fontSize: { xs: '1rem', sm: '1.25rem' },
             mb: { xs: 2, sm: 3 }
           }}>
-            Search Results for "{query}" ({searchResults.length} movies)
+            {filteredAndSortedResults.length === searchResults.length
+              ? `Search Results for "${query}" (${searchResults.length} movies)`
+              : `Showing ${filteredAndSortedResults.length} of ${searchResults.length} results for "${query}"`
+            }
           </Typography>
 
-          <Grid container spacing={{ xs: 2, sm: 3 }}>
-            {searchResults.map((movie) => (
-              <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
-                <MovieCard movie={movie} />
-              </Grid>
-            ))}
-          </Grid>
+          {filteredAndSortedResults.length === 0 ? (
+            <Box textAlign="center" py={4}>
+              <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 1 }}>
+                No movies match your filters
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                Try adjusting your filter criteria
+              </Typography>
+            </Box>
+          ) : (
+            <Grid container spacing={{ xs: 2, sm: 3 }}>
+              {filteredAndSortedResults.map((movie) => (
+                <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
+                  <MovieCard movie={movie} />
+                </Grid>
+              ))}
+            </Grid>
+          )}
 
-          {totalPages > 1 && (
+          {/* Only show pagination when not filtering (filters apply to current page results) */}
+          {totalPages > 1 && filteredAndSortedResults.length === searchResults.length && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: { xs: 3, sm: 4 } }}>
               <Pagination
                 count={totalPages}

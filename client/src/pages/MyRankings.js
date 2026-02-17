@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -25,7 +25,8 @@ import {
   Alert,
   Snackbar,
   TextField,
-  InputAdornment
+  InputAdornment,
+  CircularProgress
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -34,15 +35,28 @@ import {
   ContentCopy as CopyIcon
 } from '@mui/icons-material';
 import { useRatings } from '../hooks/useRatings';
+import { useMovies } from '../contexts/MovieContext';
+import MovieFilters from '../components/MovieFilters';
 import api from '../config/axios';
 
 const MyRankings = () => {
-  const { rawRatings, setRatingsArray } = useRatings();
+  const { rawRatings, setRatingsArray, computeScore } = useRatings();
+  const { getMovieDetails } = useMovies();
   const location = useLocation();
   const navigate = useNavigate();
   const [snack, setSnack] = useState({ open: Boolean(location.state?.message), message: location.state?.message || '' });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, movieId: null });
   const [shareDialog, setShareDialog] = useState({ open: false, shareUrl: '', loading: false });
+  const [filters, setFilters] = useState({
+    genres: [],
+    decades: [],
+    yearRange: [1900, new Date().getFullYear() + 1],
+    ratingRange: [1, 10],
+    sortBy: 'rating',
+    searchQuery: ''
+  });
+  const [movieDetailsCache, setMovieDetailsCache] = useState({});
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   useEffect(() => {
     if (location.state?.message) {
@@ -110,6 +124,157 @@ const MyRankings = () => {
     if (position === 2) return '🥉';
     return `#${position + 1}`;
   };
+
+  // Fetch movie details for ratings missing metadata
+  useEffect(() => {
+    const fetchMissingDetails = async () => {
+      const missingIds = rawRatings
+        .filter(r => !r.releaseDate || !r.genres)
+        .map(r => r.id)
+        .filter(id => !movieDetailsCache[id]);
+
+      if (missingIds.length === 0) return;
+
+      setLoadingDetails(true);
+      try {
+        const detailsPromises = missingIds.slice(0, 10).map(async (id) => {
+          try {
+            const details = await getMovieDetails(id);
+            return { id, details };
+          } catch (error) {
+            console.error(`Error fetching details for movie ${id}:`, error);
+            return { id, details: null };
+          }
+        });
+
+        const results = await Promise.all(detailsPromises);
+        const newCache = { ...movieDetailsCache };
+        results.forEach(({ id, details }) => {
+          if (details) {
+            newCache[id] = {
+              releaseDate: details.releaseDate || details.release_date,
+              genres: details.genres || []
+            };
+          }
+        });
+        setMovieDetailsCache(newCache);
+      } catch (error) {
+        console.error('Error fetching movie details:', error);
+      } finally {
+        setLoadingDetails(false);
+      }
+    };
+
+    if (rawRatings.length > 0) {
+      fetchMissingDetails();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawRatings.length]);
+
+  // Enhanced ratings with metadata
+  const enhancedRatings = useMemo(() => {
+    return rawRatings.map((rating, index) => {
+      const cached = movieDetailsCache[rating.id];
+      return {
+        ...rating,
+        releaseDate: rating.releaseDate || cached?.releaseDate || null,
+        genres: rating.genres || cached?.genres || [],
+        computedScore: computeScore(index, rawRatings.length),
+        originalIndex: index
+      };
+    });
+  }, [rawRatings, movieDetailsCache, computeScore]);
+
+  // Filter and sort logic
+  const filteredAndSortedRatings = useMemo(() => {
+    let filtered = [...enhancedRatings];
+
+    // Filter by search query
+    if (filters.searchQuery?.trim()) {
+      const query = filters.searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(r => 
+        r.title.toLowerCase().includes(query)
+      );
+    }
+
+    // Filter by genre
+    if (filters.genres?.length > 0) {
+      filtered = filtered.filter(r => {
+        const movieGenres = Array.isArray(r.genres) 
+          ? r.genres.map(g => (typeof g === 'object' ? g.id : g))
+          : [];
+        return filters.genres.some(genreId => movieGenres.includes(genreId));
+      });
+    }
+
+    // Filter by decade
+    if (filters.decades?.length > 0) {
+      filtered = filtered.filter(r => {
+        if (!r.releaseDate) return false;
+        const releaseDate = r.releaseDate instanceof Date 
+          ? r.releaseDate 
+          : new Date(r.releaseDate);
+        const year = releaseDate.getFullYear();
+        
+        return filters.decades.some(decade => {
+          if (decade === 0) return year < 1950;
+          return year >= decade && year < decade + 10;
+        });
+      });
+    }
+
+    // Filter by year range
+    if (filters.yearRange) {
+      filtered = filtered.filter(r => {
+        if (!r.releaseDate) return false;
+        const releaseDate = r.releaseDate instanceof Date 
+          ? r.releaseDate 
+          : new Date(r.releaseDate);
+        const year = releaseDate.getFullYear();
+        return year >= filters.yearRange[0] && year <= filters.yearRange[1];
+      });
+    }
+
+    // Filter by rating range
+    if (filters.ratingRange) {
+      filtered = filtered.filter(r => {
+        const score = r.computedScore || computeScore(r.originalIndex, rawRatings.length);
+        return score >= filters.ratingRange[0] && score <= filters.ratingRange[1];
+      });
+    }
+
+    // Sort
+    if (filters.sortBy) {
+      filtered.sort((a, b) => {
+        switch (filters.sortBy) {
+          case 'rating':
+            return (b.computedScore || 0) - (a.computedScore || 0);
+          case 'rating-asc':
+            return (a.computedScore || 0) - (b.computedScore || 0);
+          case 'date-added':
+            return b.originalIndex - a.originalIndex;
+          case 'date-added-desc':
+            return a.originalIndex - b.originalIndex;
+          case 'release-date':
+            const dateA = a.releaseDate ? (a.releaseDate instanceof Date ? a.releaseDate : new Date(a.releaseDate)) : new Date(0);
+            const dateB = b.releaseDate ? (b.releaseDate instanceof Date ? b.releaseDate : new Date(b.releaseDate)) : new Date(0);
+            return dateB - dateA;
+          case 'release-date-desc':
+            const dateA2 = a.releaseDate ? (a.releaseDate instanceof Date ? a.releaseDate : new Date(a.releaseDate)) : new Date(0);
+            const dateB2 = b.releaseDate ? (b.releaseDate instanceof Date ? b.releaseDate : new Date(b.releaseDate)) : new Date(0);
+            return dateA2 - dateB2;
+          case 'title':
+            return a.title.localeCompare(b.title);
+          case 'title-desc':
+            return b.title.localeCompare(a.title);
+          default:
+            return 0;
+        }
+      });
+    }
+
+    return filtered;
+  }, [enhancedRatings, filters, computeScore, rawRatings.length]);
 
   if (rawRatings.length === 0) {
     return (
@@ -227,9 +392,20 @@ const MyRankings = () => {
             mb: 4,
             fontSize: { xs: '1rem', sm: '1.25rem' }
           }}>
-            Your personal ranking of {rawRatings.length} rated movies
+            {filteredAndSortedRatings.length === rawRatings.length
+              ? `Your personal ranking of ${rawRatings.length} rated movies`
+              : `Showing ${filteredAndSortedRatings.length} of ${rawRatings.length} movies`
+            }
           </Typography>
         </Box>
+
+        {/* Filters */}
+        <MovieFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          showRatingRange={true}
+          showSearchWithin={true}
+        />
 
         {/* Full Rankings List */}
         <Box>
@@ -239,8 +415,35 @@ const MyRankings = () => {
             textAlign: 'center',
             fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }
           }}>
-            Complete Rankings
+            {filteredAndSortedRatings.length === rawRatings.length
+              ? 'Complete Rankings'
+              : 'Filtered Rankings'
+            }
           </Typography>
+
+          {loadingDetails && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          )}
+
+          {filteredAndSortedRatings.length === 0 ? (
+            <Card sx={{
+              background: 'rgba(26, 26, 26, 0.8)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(0, 212, 255, 0.2)',
+              borderRadius: 4,
+              p: 4,
+              textAlign: 'center'
+            }}>
+              <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 1 }}>
+                No movies match your filters
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                Try adjusting your filter criteria
+              </Typography>
+            </Card>
+          ) : (
           
           <Card sx={{
             background: 'rgba(26, 26, 26, 0.8)',
@@ -249,141 +452,146 @@ const MyRankings = () => {
             borderRadius: 4,
           }}>
             <List sx={{ p: 0 }}>
-              {rawRatings.map((ranking, index) => (
-                <React.Fragment key={ranking.id}>
-                  <ListItem sx={{ 
-                    py: { xs: 2, sm: 3 },
-                    px: { xs: 2, sm: 4 },
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    alignItems: { xs: 'flex-start', sm: 'center' },
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 212, 255, 0.05)',
-                    }
-                  }}>
-                    <ListItemAvatar sx={{ mr: { xs: 2, sm: 3 }, mb: { xs: 1, sm: 0 } }}>
-                      <Box sx={{ position: 'relative' }}>
-                        <Avatar
-                          src={ranking.posterUrl || null}
-                          sx={{ 
-                            width: { xs: 60, sm: 80 }, 
-                            height: { xs: 90, sm: 120 },
-                            borderRadius: 2,
-                            backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                          }}
-                        >
-                          🎬
-                        </Avatar>
-                        <Box sx={{
-                          position: 'absolute',
-                          top: -8,
-                          right: -8,
-                          backgroundColor: getRankingColor(index),
-                          color: index < 3 ? '#000' : '#fff',
-                          borderRadius: '50%',
-                          width: { xs: 24, sm: 30 },
-                          height: { xs: 24, sm: 30 },
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: { xs: '0.7rem', sm: '0.8rem' },
-                          fontWeight: 'bold',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-                        }}>
-                          {index + 1}
-                        </Box>
-                      </Box>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Typography variant="h6" sx={{ 
-                          color: '#ffffff', 
-                          fontWeight: 600,
-                          mb: 1,
-                          fontSize: { xs: '1rem', sm: '1.25rem' }
-                        }}>
-                          {ranking.title}
-                        </Typography>
+              {filteredAndSortedRatings.map((ranking, displayIndex) => {
+                const originalIndex = ranking.originalIndex;
+                const score = ranking.computedScore || computeEvenScore(originalIndex, rawRatings.length);
+                return (
+                  <React.Fragment key={ranking.id}>
+                    <ListItem sx={{ 
+                      py: { xs: 2, sm: 3 },
+                      px: { xs: 2, sm: 4 },
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      alignItems: { xs: 'flex-start', sm: 'center' },
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 212, 255, 0.05)',
                       }
-                      secondary={
-                        <Box>
-                          <Box sx={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: { xs: 1, sm: 2 },
-                            flexWrap: 'wrap'
+                    }}>
+                      <ListItemAvatar sx={{ mr: { xs: 2, sm: 3 }, mb: { xs: 1, sm: 0 } }}>
+                        <Box sx={{ position: 'relative' }}>
+                          <Avatar
+                            src={ranking.posterUrl || null}
+                            sx={{ 
+                              width: { xs: 60, sm: 80 }, 
+                              height: { xs: 90, sm: 120 },
+                              borderRadius: 2,
+                              backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                            }}
+                          >
+                            🎬
+                          </Avatar>
+                          <Box sx={{
+                            position: 'absolute',
+                            top: -8,
+                            right: -8,
+                            backgroundColor: getRankingColor(originalIndex),
+                            color: originalIndex < 3 ? '#000' : '#fff',
+                            borderRadius: '50%',
+                            width: { xs: 24, sm: 30 },
+                            height: { xs: 24, sm: 30 },
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                            fontWeight: 'bold',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
                           }}>
-                            <Rating
-                              precision={0.1}
-                              value={computeEvenScore(index, rawRatings.length) / 2}
-                              readOnly
-                              size="small"
-                              sx={{
-                                '& .MuiRating-iconFilled': {
-                                  color: '#00d4ff',
-                                },
-                              }}
-                            />
-                            <Typography variant="body2" sx={{ 
-                              color: '#00d4ff',
-                              fontWeight: 600,
-                              fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                            }}>
-                              {computeEvenScore(index, rawRatings.length).toFixed(1)}/10
-                            </Typography>
-                            <Chip
-                              label={`#${index + 1}`}
-                              size="small"
-                              sx={{
-                                backgroundColor: getRankingColor(index),
-                                color: index < 3 ? '#000' : '#fff',
-                                fontWeight: 'bold',
-                                fontSize: { xs: '0.7rem', sm: '0.75rem' }
-                              }}
-                            />
+                            {originalIndex + 1}
                           </Box>
                         </Box>
-                      }
-                    />
-                    <Box sx={{ 
-                      display: 'flex', 
-                      gap: 1,
-                      mt: { xs: 2, sm: 0 },
-                      width: { xs: '100%', sm: 'auto' },
-                      justifyContent: { xs: 'flex-end', sm: 'flex-start' }
-                    }}>
-                      <Button
-                        variant="outlined"
-                        component={Link}
-                        to={`/movie/${ranking.id}`}
-                        size="small"
-                        sx={{
-                          borderColor: '#00d4ff',
-                          color: '#00d4ff',
-                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                          px: { xs: 1.5, sm: 2 },
-                          '&:hover': {
-                            borderColor: '#66e0ff',
-                            backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                          },
-                        }}
-                      >
-                        View
-                      </Button>
-                      <IconButton
-                        onClick={() => handleDeleteMovie(ranking.id)}
-                        sx={{ color: '#ff6b35' }}
-                        size="small"
-                      >
-                        <DeleteIcon sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
-                      </IconButton>
-                    </Box>
-                  </ListItem>
-                  {index < rawRatings.length - 1 && (
-                    <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-                  )}
-                </React.Fragment>
-              ))}
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={
+                          <Typography variant="h6" sx={{ 
+                            color: '#ffffff', 
+                            fontWeight: 600,
+                            mb: 1,
+                            fontSize: { xs: '1rem', sm: '1.25rem' }
+                          }}>
+                            {ranking.title}
+                          </Typography>
+                        }
+                        secondary={
+                          <Box>
+                            <Box sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: { xs: 1, sm: 2 },
+                              flexWrap: 'wrap'
+                            }}>
+                              <Rating
+                                precision={0.1}
+                                value={score / 2}
+                                readOnly
+                                size="small"
+                                sx={{
+                                  '& .MuiRating-iconFilled': {
+                                    color: '#00d4ff',
+                                  },
+                                }}
+                              />
+                              <Typography variant="body2" sx={{ 
+                                color: '#00d4ff',
+                                fontWeight: 600,
+                                fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                              }}>
+                                {score.toFixed(1)}/10
+                              </Typography>
+                              <Chip
+                                label={`#${originalIndex + 1}`}
+                                size="small"
+                                sx={{
+                                  backgroundColor: getRankingColor(originalIndex),
+                                  color: originalIndex < 3 ? '#000' : '#fff',
+                                  fontWeight: 'bold',
+                                  fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                                }}
+                              />
+                            </Box>
+                          </Box>
+                        }
+                      />
+                      <Box sx={{ 
+                        display: 'flex', 
+                        gap: 1,
+                        mt: { xs: 2, sm: 0 },
+                        width: { xs: '100%', sm: 'auto' },
+                        justifyContent: { xs: 'flex-end', sm: 'flex-start' }
+                      }}>
+                        <Button
+                          variant="outlined"
+                          component={Link}
+                          to={`/movie/${ranking.id}`}
+                          size="small"
+                          sx={{
+                            borderColor: '#00d4ff',
+                            color: '#00d4ff',
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                            px: { xs: 1.5, sm: 2 },
+                            '&:hover': {
+                              borderColor: '#66e0ff',
+                              backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                            },
+                          }}
+                        >
+                          View
+                        </Button>
+                        <IconButton
+                          onClick={() => handleDeleteMovie(ranking.id)}
+                          sx={{ color: '#ff6b35' }}
+                          size="small"
+                        >
+                          <DeleteIcon sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
+                        </IconButton>
+                      </Box>
+                    </ListItem>
+                    {displayIndex < filteredAndSortedRatings.length - 1 && (
+                      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </List>
+          )}
           </Card>
         </Box>
       </Container>
