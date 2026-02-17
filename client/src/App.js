@@ -157,12 +157,14 @@ function AppContent() {
   const [routesKey, setRoutesKey] = React.useState(0);
 
   React.useEffect(() => {
-    // Only update key when pathname actually changes (not on every render)
+    // Force Routes to remount when pathname changes to ensure React Router detects navigation
+    // This is critical for navigation from static components like Trending tab
     if (prevPathnameRef.current !== location.pathname) {
       prevPathnameRef.current = location.pathname;
-      setRoutesKey(prev => prev + 1);
+      // Use a combination of timestamp and pathname to ensure unique key
+      setRoutesKey(Date.now());
     }
-  }, [location.pathname]);
+  }, [location.pathname, location.search, location.hash]);
 
   return (
     <div className="App" style={{ position: 'relative' }}>
