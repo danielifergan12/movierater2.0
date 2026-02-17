@@ -172,7 +172,7 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3 } }}>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
           <CircularProgress />
         </Box>
@@ -182,8 +182,10 @@ const Profile = () => {
 
   if (!profileUser) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography variant="h4">User not found</Typography>
+      <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3 } }}>
+        <Typography variant="h4" sx={{ fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' } }}>
+          User not found
+        </Typography>
       </Container>
     );
   }
@@ -191,19 +193,26 @@ const Profile = () => {
   const isOwnProfile = currentUser?._id === userId;
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Grid container spacing={4}>
+    <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3 } }}>
+      <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
         <Grid item xs={12} md={4}>
           <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
+            <CardContent sx={{ textAlign: 'center', p: { xs: 2, sm: 3 } }}>
               <Avatar
                 src={profileUser.profilePicture}
-                sx={{ width: 120, height: 120, mx: 'auto', mb: 2 }}
+                sx={{ 
+                  width: { xs: 80, sm: 100, md: 120 }, 
+                  height: { xs: 80, sm: 100, md: 120 }, 
+                  mx: 'auto', 
+                  mb: 2 
+                }}
               >
                 {profileUser.username?.charAt(0).toUpperCase()}
               </Avatar>
               
-              <Typography variant="h4" gutterBottom>
+              <Typography variant="h4" gutterBottom sx={{ 
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }
+              }}>
                 {profileUser.username}
               </Typography>
               

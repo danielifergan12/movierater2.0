@@ -55,16 +55,21 @@ const Search = () => {
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardMedia
         component="img"
-        height="400"
+        height={{ xs: 250, sm: 350, md: 400 }}
         image={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'}
         alt={movie.title}
         sx={{ objectFit: 'cover' }}
       />
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Typography gutterBottom variant="h6" component="h2" noWrap>
+      <CardContent sx={{ flexGrow: 1, p: { xs: 1.5, sm: 2 } }}>
+        <Typography gutterBottom variant="h6" component="h2" noWrap sx={{ 
+          fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' }
+        }}>
           {movie.title}
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ 
+          mb: 1,
+          fontSize: { xs: '0.75rem', sm: '0.875rem' }
+        }}>
           {new Date(movie.release_date).getFullYear()}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -74,15 +79,22 @@ const Search = () => {
             size="small"
             readOnly
           />
-          <Typography variant="body2" sx={{ ml: 1 }}>
+          <Typography variant="body2" sx={{ 
+            ml: 1,
+            fontSize: { xs: '0.75rem', sm: '0.875rem' }
+          }}>
             {movie.vote_average.toFixed(1)}
           </Typography>
         </Box>
-        <Typography variant="body2" color="text.secondary" noWrap>
+        <Typography variant="body2" color="text.secondary" sx={{ 
+          display: { xs: 'none', sm: 'block' },
+          noWrap: { xs: true, sm: false },
+          fontSize: { xs: '0.75rem', sm: '0.875rem' }
+        }}>
           {movie.overview}
         </Typography>
       </CardContent>
-      <Box sx={{ p: 2, pt: 0 }}>
+      <Box sx={{ p: { xs: 1.5, sm: 2 }, pt: 0 }}>
         <Link
           to={`/movie/${movie.id}`}
           style={{ textDecoration: 'none' }}
@@ -90,12 +102,13 @@ const Search = () => {
           <Box
             sx={{
               width: '100%',
-              py: 1,
-              px: 2,
+              py: { xs: 0.75, sm: 1 },
+              px: { xs: 1, sm: 2 },
               backgroundColor: 'primary.main',
               color: 'white',
               borderRadius: 1,
               textAlign: 'center',
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
               '&:hover': {
                 backgroundColor: 'primary.dark',
               },
@@ -109,12 +122,15 @@ const Search = () => {
   );
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
+    <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3 } }}>
+      <Typography variant="h4" gutterBottom sx={{ 
+        fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
+        mb: { xs: 2, sm: 3 }
+      }}>
         Search Movies
       </Typography>
 
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: { xs: 3, sm: 4 } }}>
         <TextField
           fullWidth
           placeholder="Search for movies..."
@@ -151,26 +167,29 @@ const Search = () => {
 
       {!loading && searchResults.length > 0 && (
         <>
-          <Typography variant="h6" gutterBottom>
+          <Typography variant="h6" gutterBottom sx={{ 
+            fontSize: { xs: '1rem', sm: '1.25rem' },
+            mb: { xs: 2, sm: 3 }
+          }}>
             Search Results for "{query}" ({searchResults.length} movies)
           </Typography>
 
-          <Grid container spacing={3}>
+          <Grid container spacing={{ xs: 2, sm: 3 }}>
             {searchResults.map((movie) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={movie.id}>
+              <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
                 <MovieCard movie={movie} />
               </Grid>
             ))}
           </Grid>
 
           {totalPages > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: { xs: 3, sm: 4 } }}>
               <Pagination
                 count={totalPages}
                 page={page}
                 onChange={handlePageChange}
                 color="primary"
-                size="large"
+                size={{ xs: 'small', sm: 'large' }}
               />
             </Box>
           )}

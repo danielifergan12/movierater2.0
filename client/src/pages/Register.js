@@ -86,27 +86,29 @@ const Register = () => {
         pointerEvents: 'none',
       }
     }}>
-      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
+      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1, px: { xs: 2, sm: 3 } }}>
         <Paper elevation={0} sx={{ 
-          p: 6,
+          p: { xs: 3, sm: 4, md: 6 },
           background: 'rgba(26, 26, 26, 0.8)',
           backdropFilter: 'blur(20px)',
           border: '1px solid rgba(0, 212, 255, 0.2)',
           borderRadius: 4,
         }}>
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Box sx={{ textAlign: 'center', mb: { xs: 3, sm: 4 } }}>
             <Typography variant="h3" component="h1" gutterBottom sx={{
               background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               fontWeight: 700,
+              fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
             }}>
               Create Account
             </Typography>
             <Typography variant="h6" sx={{ 
               color: 'rgba(255, 255, 255, 0.8)',
               fontWeight: 300,
+              fontSize: { xs: '1rem', sm: '1.25rem' },
             }}>
               Join MovieRate and start rating movies today!
             </Typography>
@@ -172,14 +174,23 @@ const Register = () => {
             variant="contained"
             size="large"
             disabled={loading}
-            sx={{ mt: 3, mb: 2 }}
+            sx={{ 
+              mt: 3, 
+              mb: 2,
+              py: { xs: 1.25, sm: 1.5 },
+              fontSize: { xs: '0.875rem', sm: '1rem' }
+            }}
           >
             {loading ? <CircularProgress size={24} /> : 'Create Account'}
           </Button>
 
           <Box sx={{ display: 'flex', alignItems: 'center', my: 2 }}>
             <Divider sx={{ flexGrow: 1 }} />
-            <Typography variant="body2" sx={{ px: 2, color: 'rgba(255, 255, 255, 0.5)' }}>
+            <Typography variant="body2" sx={{ 
+              px: 2, 
+              color: 'rgba(255, 255, 255, 0.5)',
+              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+            }}>
               OR
             </Typography>
             <Divider sx={{ flexGrow: 1 }} />
@@ -189,13 +200,15 @@ const Register = () => {
             fullWidth
             variant="outlined"
             size="large"
-            startIcon={<GoogleIcon />}
+            startIcon={<GoogleIcon sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />}
             onClick={handleGoogleSignIn}
             disabled={loading}
             sx={{
               mb: 2,
               borderColor: 'rgba(255, 255, 255, 0.3)',
               color: '#ffffff',
+              py: { xs: 1.25, sm: 1.5 },
+              fontSize: { xs: '0.875rem', sm: '1rem' },
               '&:hover': {
                 borderColor: '#4285f4',
                 backgroundColor: 'rgba(66, 133, 244, 0.1)',

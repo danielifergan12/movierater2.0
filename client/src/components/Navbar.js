@@ -19,21 +19,25 @@ const Navbar = () => {
       backdropFilter: 'blur(20px)',
       borderBottom: '1px solid rgba(0, 212, 255, 0.2)',
     }}>
-      <Toolbar>
+      <Toolbar sx={{ 
+        flexDirection: { xs: 'column', sm: 'row' },
+        py: { xs: 1, sm: 0 },
+        gap: { xs: 1, sm: 0 }
+      }}>
         <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
           <Box sx={{ 
             display: 'flex', 
             alignItems: 'center', 
-            mr: 3,
+            mr: { xs: 0, sm: 3 },
             background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}>
-            <MovieIcon sx={{ mr: 1, color: '#00d4ff' }} />
+            <MovieIcon sx={{ mr: 1, color: '#00d4ff', fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
             <Typography variant="h6" component="div" sx={{ 
               fontWeight: 'bold',
-              fontSize: '1.5rem',
+              fontSize: { xs: '1.2rem', sm: '1.5rem' },
             }}>
               MovieRate
             </Typography>
@@ -41,7 +45,14 @@ const Navbar = () => {
         </Link>
 
         {isAuthenticated && (
-          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', maxWidth: 600 }}>
+          <Box sx={{ 
+            flexGrow: 1, 
+            display: 'flex', 
+            alignItems: 'center', 
+            maxWidth: { xs: '100%', sm: 600 },
+            width: { xs: '100%', sm: 'auto' },
+            order: { xs: 3, sm: 0 }
+          }}>
             <AutocompleteSearch 
               onMovieSelect={handleMovieSelect}
               placeholder="Search movies"
@@ -49,11 +60,28 @@ const Navbar = () => {
           </Box>
         )}
 
-        <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          ml: { xs: 0, sm: 'auto' },
+          gap: { xs: 0.5, sm: 1 },
+          flexWrap: 'wrap',
+          justifyContent: { xs: 'center', sm: 'flex-end' },
+          width: { xs: '100%', sm: 'auto' },
+          order: { xs: 2, sm: 0 }
+        }}>
           {isAuthenticated ? (
             <>
-              <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
-                <Typography variant="body1" sx={{ fontWeight: 600, color: '#66e0ff' }}>
+              <Box sx={{ 
+                mr: { xs: 1, sm: 2 }, 
+                display: { xs: 'none', sm: 'flex' }, 
+                alignItems: 'center' 
+              }}>
+                <Typography variant="body1" sx={{ 
+                  fontWeight: 600, 
+                  color: '#66e0ff',
+                  fontSize: { xs: '0.875rem', sm: '1rem' }
+                }}>
                   {user?.username}
                 </Typography>
               </Box>
@@ -62,18 +90,53 @@ const Navbar = () => {
                 startIcon={<StarIcon />}
                 component={Link}
                 to="/rankings"
-                sx={{ mr: 1 }}
+                sx={{ 
+                  mr: { xs: 0.5, sm: 1 },
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  px: { xs: 1, sm: 2 }
+                }}
               >
-                My Rankings
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  My Rankings
+                </Box>
+                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                  Rankings
+                </Box>
               </Button>
-              <Button color="inherit" onClick={() => { logout(); navigate('/'); }}>Logout</Button>
+              <Button 
+                color="inherit" 
+                onClick={() => { logout(); navigate('/'); }}
+                sx={{ 
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  px: { xs: 1, sm: 2 }
+                }}
+              >
+                Logout
+              </Button>
             </>
           ) : (
             <>
-              <Button color="inherit" component={Link} to="/login" sx={{ mr: 1 }}>
+              <Button 
+                color="inherit" 
+                component={Link} 
+                to="/login" 
+                sx={{ 
+                  mr: { xs: 0.5, sm: 1 },
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  px: { xs: 1, sm: 2 }
+                }}
+              >
                 Login
               </Button>
-              <Button variant="contained" component={Link} to="/register">
+              <Button 
+                variant="contained" 
+                component={Link} 
+                to="/register"
+                sx={{ 
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  px: { xs: 1, sm: 2 }
+                }}
+              >
                 Sign Up
               </Button>
             </>

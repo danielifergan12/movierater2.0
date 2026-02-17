@@ -161,7 +161,7 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
             border: '1px solid rgba(0, 212, 255, 0.3)',
             borderRadius: 3,
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-            maxHeight: 400,
+            maxHeight: { xs: 300, sm: 400 },
             overflowY: 'auto',
             overflowX: 'hidden',
           }}
@@ -184,19 +184,19 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
                 <ListItemButton
                   onClick={() => handleMovieSelect(movie)}
                   sx={{
-                    py: 2,
-                    px: 3,
+                    py: { xs: 1.5, sm: 2 },
+                    px: { xs: 2, sm: 3 },
                     '&:hover': {
                       backgroundColor: 'rgba(0, 212, 255, 0.1)',
                     },
                   }}
                 >
-                  <ListItemAvatar sx={{ mr: 2 }}>
+                  <ListItemAvatar sx={{ mr: { xs: 1, sm: 2 } }}>
                     <Avatar
                       src={movie.poster_path ? `https://image.tmdb.org/t/p/w92${movie.poster_path}` : null}
                       sx={{ 
-                        width: 60, 
-                        height: 90,
+                        width: { xs: 40, sm: 60 }, 
+                        height: { xs: 60, sm: 90 },
                         borderRadius: 2,
                         backgroundColor: 'rgba(0, 212, 255, 0.1)',
                       }}
@@ -212,6 +212,7 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
                           color: '#ffffff',
                           fontWeight: 600,
                           mb: 0.5,
+                          fontSize: { xs: '0.875rem', sm: '1rem' },
                         }}
                       >
                         {movie.title}
@@ -224,6 +225,7 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
                           sx={{
                             color: 'rgba(255, 255, 255, 0.7)',
                             mb: 0.5,
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
                           }}
                         >
                           {new Date(movie.release_date).getFullYear()}
@@ -232,21 +234,23 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
                           variant="body2"
                           sx={{
                             color: 'rgba(255, 255, 255, 0.6)',
-                            display: '-webkit-box',
+                            display: { xs: 'none', sm: '-webkit-box' },
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical',
                             overflow: 'hidden',
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
                           }}
                         >
                           {movie.overview}
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1, flexWrap: 'wrap', gap: 0.5 }}>
                           <Typography
                             variant="caption"
                             sx={{
                               color: '#00d4ff',
                               fontWeight: 600,
                               mr: 1,
+                              fontSize: { xs: '0.7rem', sm: '0.75rem' },
                             }}
                           >
                             ⭐ {movie.vote_average.toFixed(1)}
@@ -254,7 +258,7 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
                           <Button
                             size="small"
                             variant="contained"
-                            startIcon={<StarIcon />}
+                            startIcon={<StarIcon sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }} />}
                             onClick={(e) => {
                               e.stopPropagation();
                               setRatingMovie({
@@ -266,9 +270,9 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
                             }}
                             sx={{
                               background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                              fontSize: '0.75rem',
-                              py: 0.5,
-                              px: 1.5,
+                              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                              py: { xs: 0.25, sm: 0.5 },
+                              px: { xs: 1, sm: 1.5 },
                               minWidth: 'auto',
                             }}
                           >

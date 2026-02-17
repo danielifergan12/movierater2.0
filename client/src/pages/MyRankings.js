@@ -95,18 +95,23 @@ const MyRankings = () => {
           pointerEvents: 'none',
         }
       }}>
-        <Container maxWidth="md" sx={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-          <MovieIcon sx={{ fontSize: 80, color: '#00d4ff', mb: 3 }} />
+        <Container maxWidth="md" sx={{ textAlign: 'center', position: 'relative', zIndex: 1, px: { xs: 2, sm: 3 } }}>
+          <MovieIcon sx={{ fontSize: { xs: 60, sm: 80 }, color: '#00d4ff', mb: 3 }} />
           <Typography variant="h3" gutterBottom sx={{
             background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             mb: 3,
+            fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
           }}>
             No Movies Rated Yet
           </Typography>
-          <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 4 }}>
+          <Typography variant="h6" sx={{ 
+            color: 'rgba(255, 255, 255, 0.8)', 
+            mb: 4,
+            fontSize: { xs: '1rem', sm: '1.25rem' }
+          }}>
             Start rating movies to build your personal ranking list!
           </Typography>
           <Button
@@ -116,9 +121,11 @@ const MyRankings = () => {
             size="large"
             sx={{
               background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-              px: 6,
-              py: 2,
-              fontSize: '1.1rem',
+              px: { xs: 4, sm: 6 },
+              py: { xs: 1.5, sm: 2 },
+              fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
+              width: { xs: '100%', sm: 'auto' },
+              maxWidth: { xs: 300, sm: 'none' }
             }}
           >
             Start Rating Movies
@@ -144,7 +151,7 @@ const MyRankings = () => {
         pointerEvents: 'none',
       }
     }}>
-      <Container maxWidth="lg" sx={{ py: 8, position: 'relative', zIndex: 1 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
         <Snackbar
           open={snack.open}
           autoHideDuration={3000}
@@ -155,34 +162,40 @@ const MyRankings = () => {
             {snack.message}
           </Alert>
         </Snackbar>
-        <Box sx={{ textAlign: 'center', mb: 6 }}>
+        <Box sx={{ textAlign: 'center', mb: { xs: 4, sm: 6 } }}>
           <Typography variant="h2" gutterBottom sx={{
             background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             mb: 2,
+            fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
           }}>
             My Movie Rankings
           </Typography>
-          <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 4 }}>
+          <Typography variant="h6" sx={{ 
+            color: 'rgba(255, 255, 255, 0.8)', 
+            mb: 4,
+            fontSize: { xs: '1rem', sm: '1.25rem' }
+          }}>
             Your personal ranking of {rawRatings.length} rated movies
           </Typography>
         </Box>
 
         {/* Top 3 Movies */}
         {rawRatings.length >= 3 && (
-          <Box sx={{ mb: 6 }}>
+          <Box sx={{ mb: { xs: 4, sm: 6 } }}>
             <Typography variant="h4" gutterBottom sx={{ 
               color: '#ffffff', 
-              mb: 4,
-              textAlign: 'center'
+              mb: { xs: 3, sm: 4 },
+              textAlign: 'center',
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }
             }}>
               🏆 Top 3 Movies
             </Typography>
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, sm: 3 }}>
               {rawRatings.slice(0, 3).map((ranking, index) => (
-                <Grid item xs={12} md={4} key={ranking.id}>
+                <Grid item xs={12} sm={6} md={4} key={ranking.id}>
                   <Card sx={{
                     background: 'rgba(26, 26, 26, 0.8)',
                     backdropFilter: 'blur(20px)',
@@ -192,41 +205,43 @@ const MyRankings = () => {
                     position: 'relative',
                     transition: 'all 0.3s ease',
                     '&:hover': {
-                      transform: 'translateY(-8px)',
-                      boxShadow: '0 20px 40px rgba(0, 212, 255, 0.3)',
+                      transform: { xs: 'none', sm: 'translateY(-8px)' },
+                      boxShadow: { xs: 'none', sm: '0 20px 40px rgba(0, 212, 255, 0.3)' },
                     }
                   }}>
                     <Box sx={{ position: 'relative' }}>
                       <CardMedia
                         component="img"
-                        height="400"
+                        height={{ xs: 300, sm: 350, md: 400 }}
                         image={ranking.posterUrl || '/placeholder-movie.jpg'}
                         alt={ranking.title}
+                        sx={{ objectFit: 'cover' }}
                       />
                       <Box sx={{
                         position: 'absolute',
-                        top: 16,
-                        left: 16,
+                        top: { xs: 8, sm: 16 },
+                        left: { xs: 8, sm: 16 },
                         backgroundColor: getRankingColor(index),
                         color: index === 0 ? '#000' : '#fff',
                         borderRadius: '50%',
-                        width: 50,
-                        height: 50,
+                        width: { xs: 40, sm: 50 },
+                        height: { xs: 40, sm: 50 },
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '1.5rem',
+                        fontSize: { xs: '1.2rem', sm: '1.5rem' },
                         fontWeight: 'bold',
                         boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)',
                       }}>
                         {getRankingIcon(index)}
                       </Box>
                     </Box>
-                    <CardContent sx={{ p: 3 }}>
+                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                       <Typography variant="h6" sx={{ 
                         color: '#ffffff', 
                         mb: 1,
                         fontWeight: 600,
+                        fontSize: { xs: '1rem', sm: '1.25rem' }
                       }}>
                         {ranking.title}
                       </Typography>
@@ -241,6 +256,7 @@ const MyRankings = () => {
                           precision={0.1}
                           value={computeEvenScore(index, rawRatings.length) / 2}
                           readOnly
+                          size="small"
                           sx={{
                             '& .MuiRating-iconFilled': {
                               color: '#00d4ff',
@@ -251,6 +267,7 @@ const MyRankings = () => {
                           ml: 1, 
                           color: '#00d4ff',
                           fontWeight: 600,
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' }
                         }}>
                           {computeEvenScore(index, rawRatings.length).toFixed(1)}/10
                         </Typography>
@@ -263,6 +280,8 @@ const MyRankings = () => {
                         sx={{
                           borderColor: '#00d4ff',
                           color: '#00d4ff',
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                          py: { xs: 0.75, sm: 1 },
                           '&:hover': {
                             borderColor: '#66e0ff',
                             backgroundColor: 'rgba(0, 212, 255, 0.1)',
@@ -283,8 +302,9 @@ const MyRankings = () => {
         <Box>
           <Typography variant="h4" gutterBottom sx={{ 
             color: '#ffffff', 
-            mb: 4,
-            textAlign: 'center'
+            mb: { xs: 3, sm: 4 },
+            textAlign: 'center',
+            fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }
           }}>
             Complete Rankings
           </Typography>
@@ -299,19 +319,21 @@ const MyRankings = () => {
               {rawRatings.map((ranking, index) => (
                 <React.Fragment key={ranking.id}>
                   <ListItem sx={{ 
-                    py: 3,
-                    px: 4,
+                    py: { xs: 2, sm: 3 },
+                    px: { xs: 2, sm: 4 },
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'flex-start', sm: 'center' },
                     '&:hover': {
                       backgroundColor: 'rgba(0, 212, 255, 0.05)',
                     }
                   }}>
-                    <ListItemAvatar sx={{ mr: 3 }}>
+                    <ListItemAvatar sx={{ mr: { xs: 2, sm: 3 }, mb: { xs: 1, sm: 0 } }}>
                       <Box sx={{ position: 'relative' }}>
                         <Avatar
                           src={ranking.posterUrl || null}
                           sx={{ 
-                            width: 80, 
-                            height: 120,
+                            width: { xs: 60, sm: 80 }, 
+                            height: { xs: 90, sm: 120 },
                             borderRadius: 2,
                             backgroundColor: 'rgba(0, 212, 255, 0.1)',
                           }}
@@ -325,12 +347,12 @@ const MyRankings = () => {
                           backgroundColor: getRankingColor(index),
                           color: index < 3 ? '#000' : '#fff',
                           borderRadius: '50%',
-                          width: 30,
-                          height: 30,
+                          width: { xs: 24, sm: 30 },
+                          height: { xs: 24, sm: 30 },
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '0.8rem',
+                          fontSize: { xs: '0.7rem', sm: '0.8rem' },
                           fontWeight: 'bold',
                           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
                         }}>
@@ -344,13 +366,19 @@ const MyRankings = () => {
                           color: '#ffffff', 
                           fontWeight: 600,
                           mb: 1,
+                          fontSize: { xs: '1rem', sm: '1.25rem' }
                         }}>
                           {ranking.title}
                         </Typography>
                       }
                       secondary={
                         <Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: { xs: 1, sm: 2 },
+                            flexWrap: 'wrap'
+                          }}>
                             <Rating
                               precision={0.1}
                               value={computeEvenScore(index, rawRatings.length) / 2}
@@ -365,6 +393,7 @@ const MyRankings = () => {
                             <Typography variant="body2" sx={{ 
                               color: '#00d4ff',
                               fontWeight: 600,
+                              fontSize: { xs: '0.75rem', sm: '0.875rem' }
                             }}>
                               {computeEvenScore(index, rawRatings.length).toFixed(1)}/10
                             </Typography>
@@ -375,13 +404,20 @@ const MyRankings = () => {
                                 backgroundColor: getRankingColor(index),
                                 color: index < 3 ? '#000' : '#fff',
                                 fontWeight: 'bold',
+                                fontSize: { xs: '0.7rem', sm: '0.75rem' }
                               }}
                             />
                           </Box>
                         </Box>
                       }
                     />
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      gap: 1,
+                      mt: { xs: 2, sm: 0 },
+                      width: { xs: '100%', sm: 'auto' },
+                      justifyContent: { xs: 'flex-end', sm: 'flex-start' }
+                    }}>
                       <Button
                         variant="outlined"
                         component={Link}
@@ -390,6 +426,8 @@ const MyRankings = () => {
                         sx={{
                           borderColor: '#00d4ff',
                           color: '#00d4ff',
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                          px: { xs: 1.5, sm: 2 },
                           '&:hover': {
                             borderColor: '#66e0ff',
                             backgroundColor: 'rgba(0, 212, 255, 0.1)',
@@ -401,8 +439,9 @@ const MyRankings = () => {
                       <IconButton
                         onClick={() => handleDeleteMovie(ranking.id)}
                         sx={{ color: '#ff6b35' }}
+                        size="small"
                       >
-                        <DeleteIcon />
+                        <DeleteIcon sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
                       </IconButton>
                     </Box>
                   </ListItem>

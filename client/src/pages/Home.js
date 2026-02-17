@@ -41,7 +41,7 @@ const Home = () => {
 
   const MovieCard = ({ movie }) => (
     <Card sx={{ 
-      maxWidth: 300, 
+      maxWidth: { xs: '100%', sm: 300 }, 
       height: '100%', 
       display: 'flex', 
       flexDirection: 'column',
@@ -52,22 +52,22 @@ const Home = () => {
       overflow: 'hidden',
       transition: 'all 0.3s ease',
       '&:hover': {
-        transform: 'translateY(-8px)',
-        boxShadow: '0 20px 40px rgba(0, 212, 255, 0.3)',
-        border: '1px solid rgba(0, 212, 255, 0.5)',
+        transform: { xs: 'none', sm: 'translateY(-8px)' },
+        boxShadow: { xs: 'none', sm: '0 20px 40px rgba(0, 212, 255, 0.3)' },
+        border: { xs: '1px solid rgba(0, 212, 255, 0.2)', sm: '1px solid rgba(0, 212, 255, 0.5)' },
       }
     }}>
       <Box sx={{ position: 'relative', overflow: 'hidden' }}>
         <CardMedia
           component="img"
-          height="400"
+          height={{ xs: 300, sm: 400 }}
           image={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'}
           alt={movie.title}
           sx={{ 
             objectFit: 'cover',
             transition: 'transform 0.3s ease',
             '&:hover': {
-              transform: 'scale(1.05)',
+              transform: { xs: 'none', sm: 'scale(1.05)' },
             }
           }}
         />
@@ -81,22 +81,23 @@ const Home = () => {
           opacity: 0,
           transition: 'opacity 0.3s ease',
           '&:hover': {
-            opacity: 1,
+            opacity: { xs: 0, sm: 1 },
           }
         }} />
       </Box>
-      <CardContent sx={{ flexGrow: 1, p: 3 }}>
+      <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}>
         <Typography gutterBottom variant="h6" component="h2" sx={{ 
           fontWeight: 600,
           color: '#ffffff',
           mb: 1,
+          fontSize: { xs: '1rem', sm: '1.25rem' },
         }}>
           {movie.title}
         </Typography>
         <Typography variant="body2" sx={{ 
           color: 'rgba(255, 255, 255, 0.6)',
           mb: 2,
-          fontSize: '0.9rem',
+          fontSize: { xs: '0.8rem', sm: '0.9rem' },
         }}>
           {new Date(movie.release_date).getFullYear()}
         </Typography>
@@ -119,6 +120,7 @@ const Home = () => {
             ml: 1,
             color: '#00d4ff',
             fontWeight: 600,
+            fontSize: { xs: '0.8rem', sm: '0.875rem' },
           }}>
             {movie.vote_average.toFixed(1)}
           </Typography>
@@ -126,15 +128,16 @@ const Home = () => {
         <Typography variant="body2" sx={{ 
           color: 'rgba(255, 255, 255, 0.7)',
           lineHeight: 1.4,
-          display: '-webkit-box',
+          display: { xs: 'none', sm: '-webkit-box' },
           WebkitLineClamp: 3,
           WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
+          fontSize: { xs: '0.8rem', sm: '0.875rem' },
         }}>
           {movie.overview}
         </Typography>
       </CardContent>
-      <CardActions sx={{ p: 3, pt: 0 }}>
+      <CardActions sx={{ p: { xs: 2, sm: 3 }, pt: 0 }}>
         <Button
           size="small"
           component={Link}
@@ -144,8 +147,9 @@ const Home = () => {
           sx={{
             background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
             borderRadius: 2,
-            py: 1,
+            py: { xs: 0.75, sm: 1 },
             fontWeight: 600,
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
           }}
         >
           View Details
@@ -170,7 +174,7 @@ const Home = () => {
         pointerEvents: 'none',
       }
     }}>
-      <Container maxWidth="lg" sx={{ py: 8, position: 'relative', zIndex: 1 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
         {!isAuthenticated ? (
           <Box sx={{ 
             display: 'flex', 
@@ -186,10 +190,12 @@ const Home = () => {
               component={Link}
               to="/login"
               sx={{ 
-                px: 6, 
-                py: 2, 
-                fontSize: '1.2rem',
-                minWidth: 200
+                px: { xs: 4, sm: 6 }, 
+                py: { xs: 1.5, sm: 2 }, 
+                fontSize: { xs: '1rem', sm: '1.2rem' },
+                minWidth: { xs: 150, sm: 200 },
+                width: { xs: '100%', sm: 'auto' },
+                maxWidth: { xs: 300, sm: 'none' }
               }}
             >
               Login
@@ -200,10 +206,12 @@ const Home = () => {
               component={Link}
               to="/register"
               sx={{ 
-                px: 6, 
-                py: 2, 
-                fontSize: '1.2rem',
-                minWidth: 200
+                px: { xs: 4, sm: 6 }, 
+                py: { xs: 1.5, sm: 2 }, 
+                fontSize: { xs: '1rem', sm: '1.2rem' },
+                minWidth: { xs: 150, sm: 200 },
+                width: { xs: '100%', sm: 'auto' },
+                maxWidth: { xs: 300, sm: 'none' }
               }}
             >
               Sign Up
@@ -211,13 +219,14 @@ const Home = () => {
           </Box>
         ) : (
           <>
-            <Box sx={{ mb: 6, textAlign: 'center' }}>
+            <Box sx={{ mb: { xs: 4, sm: 6 }, textAlign: 'center' }}>
               <Typography variant="h1" component="h1" gutterBottom sx={{
                 background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 mb: 2,
+                fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
               }}>
                 Welcome to MovieRate
               </Typography>
@@ -225,23 +234,28 @@ const Home = () => {
                 color: 'rgba(255, 255, 255, 0.8)',
                 mb: 4,
                 fontWeight: 300,
+                fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
+                px: { xs: 2, sm: 0 }
               }}>
                 Discover, rate, and share your favorite movies with friends
               </Typography>
             </Box>
 
             <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4, overflowX: 'auto' }}>
                 <Tabs
                   value={activeTab}
                   onChange={(e, newValue) => setActiveTab(newValue)}
+                  variant="scrollable"
+                  scrollButtons="auto"
                   sx={{
                     '& .MuiTab-root': {
                       color: 'rgba(255, 255, 255, 0.7)',
-                      fontSize: '1rem',
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
                       fontWeight: 600,
                       textTransform: 'none',
-                      minWidth: 200,
+                      minWidth: { xs: 120, sm: 200 },
+                      px: { xs: 2, sm: 3 },
                       '&.Mui-selected': {
                         color: '#00d4ff',
                       },
@@ -262,20 +276,27 @@ const Home = () => {
                   <CircularProgress />
                 </Box>
               ) : (
-                <Grid container spacing={3} justifyContent="center">
+                <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
                   {(activeTab === 0 ? trendingMovies : recommendedMovies)
                     .slice(0, 8)
                     .map((movie) => (
-                      <Grid item xs={6} sm={6} md={3} lg={3} key={movie.id}>
+                      <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
                         <MovieCard movie={movie} />
                       </Grid>
                     ))}
                   {activeTab === 1 && recommendedMovies.length === 0 && (
-                    <Box sx={{ textAlign: 'center', py: 8, width: '100%' }}>
-                      <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
+                    <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
+                      <Typography variant="h6" sx={{ 
+                        color: 'rgba(255, 255, 255, 0.7)', 
+                        mb: 2,
+                        fontSize: { xs: '1rem', sm: '1.25rem' }
+                      }}>
                         Rate some movies to get personalized recommendations!
                       </Typography>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                      <Typography variant="body2" sx={{ 
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        fontSize: { xs: '0.875rem', sm: '1rem' }
+                      }}>
                         Start rating movies and we'll suggest similar ones you might enjoy.
                       </Typography>
                     </Box>

@@ -44,7 +44,7 @@ const MovieDetail = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3 } }}>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
           <CircularProgress />
         </Box>
@@ -54,8 +54,10 @@ const MovieDetail = () => {
 
   if (!movie) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography variant="h4">Movie not found</Typography>
+      <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3 } }}>
+        <Typography variant="h4" sx={{ fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' } }}>
+          Movie not found
+        </Typography>
       </Container>
     );
   }
@@ -76,8 +78,8 @@ const MovieDetail = () => {
         pointerEvents: 'none',
       }
     }}>
-      <Container maxWidth="lg" sx={{ py: 8, position: 'relative', zIndex: 1 }}>
-        <Grid container spacing={4}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
+        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
           <Grid item xs={12} md={4}>
             <Card sx={{
               background: 'rgba(26, 26, 26, 0.8)',
@@ -87,7 +89,7 @@ const MovieDetail = () => {
             }}>
               <CardMedia
                 component="img"
-                height="600"
+                height={{ xs: 400, sm: 500, md: 600 }}
                 image={movie.posterPath ? `https://image.tmdb.org/t/p/w500${movie.posterPath}` : '/placeholder-movie.jpg'}
                 alt={movie.title}
                 sx={{ borderRadius: 4 }}
@@ -98,7 +100,8 @@ const MovieDetail = () => {
           <Grid item xs={12} md={8}>
             <Typography variant="h3" gutterBottom sx={{ 
               color: '#ffffff',
-              mb: 3,
+              mb: { xs: 2, sm: 3 },
+              fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
             }}>
               {movie.title}
             </Typography>
@@ -152,10 +155,11 @@ const MovieDetail = () => {
               onClick={() => setShowRatingModal(true)}
               sx={{
                 background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                px: 4,
-                py: 1.5,
-                fontSize: '1.1rem',
+                px: { xs: 3, sm: 4 },
+                py: { xs: 1.25, sm: 1.5 },
+                fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
                 fontWeight: 600,
+                width: { xs: '100%', sm: 'auto' },
                 '&:hover': {
                   background: 'linear-gradient(45deg, #00a8cc, #e64a19)',
                 },

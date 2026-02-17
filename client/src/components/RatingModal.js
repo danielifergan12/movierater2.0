@@ -86,10 +86,20 @@ const RatingModal = ({ movie, open, onClose, onComplete }) => {
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-              <Card sx={{ maxWidth: 240 }}>
-                <CardMedia component="img" height="340" image={movie.posterUrl || '/placeholder-movie.jpg'} alt={movie.title} />
+              <Card sx={{ maxWidth: { xs: '100%', sm: 240 }, width: { xs: '100%', sm: 'auto' } }}>
+                <CardMedia 
+                  component="img" 
+                  height={{ xs: 300, sm: 340 }} 
+                  image={movie.posterUrl || '/placeholder-movie.jpg'} 
+                  alt={movie.title}
+                  sx={{ objectFit: 'cover' }}
+                />
                 <CardContent>
-                  <Typography variant="subtitle1" noWrap>{movie.title}</Typography>
+                  <Typography variant="subtitle1" noWrap sx={{ 
+                    fontSize: { xs: '0.875rem', sm: '1rem' }
+                  }}>
+                    {movie.title}
+                  </Typography>
                 </CardContent>
               </Card>
             </Box>
@@ -100,6 +110,11 @@ const RatingModal = ({ movie, open, onClose, onComplete }) => {
                   const updated = upsertAtIndex(movie, 0);
                   onComplete && onComplete(updated);
                   onClose && onClose();
+                }}
+                sx={{
+                  width: { xs: '100%', sm: 'auto' },
+                  py: { xs: 1.25, sm: 1.5 },
+                  fontSize: { xs: '0.875rem', sm: '1rem' }
                 }}
               >
                 Set as Baseline
@@ -122,16 +137,23 @@ const RatingModal = ({ movie, open, onClose, onComplete }) => {
               </Typography>
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Box sx={{ 
+              display: 'flex', 
+              gap: { xs: 2, sm: 3 }, 
+              justifyContent: 'center', 
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: 'center'
+            }}>
               <Card 
                 sx={{ 
-                  maxWidth: 240,
+                  maxWidth: { xs: '100%', sm: 240 },
+                  width: { xs: '100%', sm: 'auto' },
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   '&:hover': {
-                    transform: 'scale(1.05)',
-                    boxShadow: '0 8px 24px rgba(0, 212, 255, 0.4)',
-                    border: '2px solid rgba(0, 212, 255, 0.6)',
+                    transform: { xs: 'none', sm: 'scale(1.05)' },
+                    boxShadow: { xs: 'none', sm: '0 8px 24px rgba(0, 212, 255, 0.4)' },
+                    border: { xs: '2px solid transparent', sm: '2px solid rgba(0, 212, 255, 0.6)' },
                   },
                   border: '2px solid transparent',
                 }}
@@ -140,20 +162,32 @@ const RatingModal = ({ movie, open, onClose, onComplete }) => {
                   setHigh(mid - 1);
                 }}
               >
-                <CardMedia component="img" height="340" image={movie.posterUrl || '/placeholder-movie.jpg'} alt={movie.title} />
+                <CardMedia 
+                  component="img" 
+                  height={{ xs: 300, sm: 340 }} 
+                  image={movie.posterUrl || '/placeholder-movie.jpg'} 
+                  alt={movie.title}
+                  sx={{ objectFit: 'cover' }}
+                />
                 <CardContent>
-                  <Typography variant="subtitle1" noWrap sx={{ fontWeight: 600 }}>{movie.title}</Typography>
+                  <Typography variant="subtitle1" noWrap sx={{ 
+                    fontWeight: 600,
+                    fontSize: { xs: '0.875rem', sm: '1rem' }
+                  }}>
+                    {movie.title}
+                  </Typography>
                 </CardContent>
               </Card>
               <Card 
                 sx={{ 
-                  maxWidth: 240,
+                  maxWidth: { xs: '100%', sm: 240 },
+                  width: { xs: '100%', sm: 'auto' },
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   '&:hover': {
-                    transform: 'scale(1.05)',
-                    boxShadow: '0 8px 24px rgba(0, 212, 255, 0.4)',
-                    border: '2px solid rgba(0, 212, 255, 0.6)',
+                    transform: { xs: 'none', sm: 'scale(1.05)' },
+                    boxShadow: { xs: 'none', sm: '0 8px 24px rgba(0, 212, 255, 0.4)' },
+                    border: { xs: '2px solid transparent', sm: '2px solid rgba(0, 212, 255, 0.6)' },
                   },
                   border: '2px solid transparent',
                 }}
@@ -162,9 +196,20 @@ const RatingModal = ({ movie, open, onClose, onComplete }) => {
                   setLow(mid + 1);
                 }}
               >
-                <CardMedia component="img" height="340" image={compareTarget?.posterUrl || '/placeholder-movie.jpg'} alt={compareTarget?.title} />
+                <CardMedia 
+                  component="img" 
+                  height={{ xs: 300, sm: 340 }} 
+                  image={compareTarget?.posterUrl || '/placeholder-movie.jpg'} 
+                  alt={compareTarget?.title}
+                  sx={{ objectFit: 'cover' }}
+                />
                 <CardContent>
-                  <Typography variant="subtitle1" noWrap sx={{ fontWeight: 600 }}>{compareTarget?.title}</Typography>
+                  <Typography variant="subtitle1" noWrap sx={{ 
+                    fontWeight: 600,
+                    fontSize: { xs: '0.875rem', sm: '1rem' }
+                  }}>
+                    {compareTarget?.title}
+                  </Typography>
                 </CardContent>
               </Card>
             </Box>

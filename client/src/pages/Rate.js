@@ -65,44 +65,76 @@ const Rate = () => {
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
     }}>
-      <Container maxWidth="lg" sx={{ py: 6 }}>
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h2">Rate Movies</Typography>
-          <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6 }, px: { xs: 2, sm: 3 } }}>
+        <Box sx={{ textAlign: 'center', mb: { xs: 3, sm: 4 } }}>
+          <Typography variant="h2" sx={{ 
+            fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' }
+          }}>
+            Rate Movies
+          </Typography>
+          <Typography variant="h6" sx={{ 
+            color: 'rgba(255,255,255,0.7)',
+            fontSize: { xs: '1rem', sm: '1.25rem' }
+          }}>
             Click a movie to add it to your personal ranking
           </Typography>
         </Box>
 
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 2, sm: 3 }}>
           {movies.map((movie) => (
-            <Grid key={movie.id} item xs={12} sm={6} md={4} lg={3}>
+            <Grid key={movie.id} item xs={6} sm={6} md={4} lg={3}>
               <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                 <CardMedia
                   component="img"
-                  height="360"
+                  height={{ xs: 250, sm: 300, md: 360 }}
                   image={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'}
                   alt={movie.title}
+                  sx={{ objectFit: 'cover' }}
                 />
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Typography variant="h6" noWrap>{movie.title}</Typography>
+                <CardContent sx={{ flexGrow: 1, p: { xs: 1.5, sm: 2 } }}>
+                  <Typography variant="h6" noWrap sx={{ 
+                    fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' }
+                  }}>
+                    {movie.title}
+                  </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                     <Rating value={(movie.vote_average || 0) / 2} precision={0.1} readOnly size="small" />
-                    <Typography variant="body2" sx={{ ml: 1 }}>{(movie.vote_average || 0).toFixed(1)}</Typography>
+                    <Typography variant="body2" sx={{ 
+                      ml: 1,
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                    }}>
+                      {(movie.vote_average || 0).toFixed(1)}
+                    </Typography>
                   </Box>
                 </CardContent>
-                <CardActions sx={{ p: 2, pt: 0 }}>
-                  <Button fullWidth variant="contained" onClick={() => openRate(movie)}>Rate</Button>
+                <CardActions sx={{ p: { xs: 1.5, sm: 2 }, pt: 0 }}>
+                  <Button 
+                    fullWidth 
+                    variant="contained" 
+                    onClick={() => openRate(movie)}
+                    sx={{
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      py: { xs: 0.75, sm: 1 }
+                    }}
+                  >
+                    Rate
+                  </Button>
                 </CardActions>
               </Card>
             </Grid>
           ))}
         </Grid>
 
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: { xs: 3, sm: 4 } }}>
           <Button
             variant="outlined"
             onClick={() => loadPage(page + 1)}
             disabled={!hasMore || loading}
+            sx={{
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+              px: { xs: 3, sm: 4 },
+              py: { xs: 1, sm: 1.25 }
+            }}
           >
             {loading ? <CircularProgress size={18} /> : hasMore ? 'Load More' : 'No More'}
           </Button>
