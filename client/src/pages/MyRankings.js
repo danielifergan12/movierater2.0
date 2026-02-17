@@ -82,24 +82,32 @@ const MyRankings = () => {
 
   const handleDragStart = (e, originalIndex) => {
     // Don't start drag if clicking on a button or link
-    if (e.target.closest('button') || e.target.closest('a')) {
+    const target = e.target;
+    if (target.closest('button') || target.closest('a') || target.tagName === 'BUTTON' || target.tagName === 'A') {
       e.preventDefault();
-      return;
+      e.stopPropagation();
+      return false;
     }
     
+    // Allow drag to start
     setDraggedIndex(originalIndex);
     setDragOverIndex(null); // Reset on new drag
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', e.target.outerHTML);
-    // Use CSS for visual feedback instead of drag image
+    e.dataTransfer.setData('text/plain', originalIndex.toString());
+    // Use invisible drag image so CSS handles visual feedback
     const dragImage = document.createElement('div');
     dragImage.style.position = 'absolute';
     dragImage.style.top = '-9999px';
     dragImage.style.width = '1px';
     dragImage.style.height = '1px';
+    dragImage.style.opacity = '0';
     document.body.appendChild(dragImage);
     e.dataTransfer.setDragImage(dragImage, 0, 0);
-    setTimeout(() => document.body.removeChild(dragImage), 0);
+    setTimeout(() => {
+      if (document.body.contains(dragImage)) {
+        document.body.removeChild(dragImage);
+      }
+    }, 0);
   };
 
   const handleDragOver = (e, dropOriginalIndex) => {
@@ -693,7 +701,11 @@ const MyRankings = () => {
                   <ListItem 
                     draggable={true}
                     onDragStart={(e) => {
-                      handleDragStart(e, originalIndex);
+                      const result = handleDragStart(e, originalIndex);
+                      if (result === false) {
+                        e.preventDefault();
+                        return false;
+                      }
                     }}
                     onDragEnter={(e) => {
                       handleDragEnter(e, originalIndex);
@@ -706,6 +718,12 @@ const MyRankings = () => {
                       handleDrop(e, originalIndex);
                     }}
                     onDragEnd={handleDragEnd}
+                    onMouseDown={(e) => {
+                      // Allow drag to start from anywhere except buttons
+                      if (e.target.closest('button') || e.target.closest('a')) {
+                        return;
+                      }
+                    }}
                     sx={{ 
                       py: { xs: 2, sm: 3 },
                       px: { xs: 2, sm: 4 },
@@ -839,18 +857,24 @@ const MyRankings = () => {
                         </Box>
                       }
                     />
-                    <Box sx={{ 
-                      display: 'flex', 
-                      gap: 1,
-                      mt: { xs: 2, sm: 0 },
-                      width: { xs: '100%', sm: 'auto' },
-                      justifyContent: { xs: 'flex-end', sm: 'flex-start' },
-                    }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onDragStart={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                    }}
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        gap: 1,
+                        mt: { xs: 2, sm: 0 },
+                        width: { xs: '100%', sm: 'auto' },
+                        justifyContent: { xs: 'flex-end', sm: 'flex-start' },
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        // Prevent drag from starting on button area
+                      }}
+                      onDragStart={(e) => {
+                        // Completely prevent drag from buttons
+                        e.stopPropagation();
+                        e.preventDefault();
+                        return false;
+                      }}
                     >
                       <Button
                         variant="outlined"
