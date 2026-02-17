@@ -509,7 +509,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
     // Map to store recommendations with scores
     const recommendationMap = new Map();
     
-    // Strategy 0: PRIORITIZE - Get movies from user's favorite genres first
+    // Strategy 0: PRIORITIZE - Get HIGH QUALITY movies from user's favorite genres
     if (favoriteGenres.length > 0) {
       try {
         const favoriteGenreIds = favoriteGenres.join(',');
@@ -522,8 +522,8 @@ router.get('/recommendations/personal', auth, async (req, res) => {
               language: 'en-US',
               with_genres: favoriteGenreIds,
               sort_by: 'vote_average.desc',
-              'vote_count.gte': 300,
-              'vote_average.gte': 7.0,
+              'vote_count.gte': 1000,  // Much higher threshold - only well-known movies
+              'vote_average.gte': 7.5,  // Higher quality threshold
               page: genrePage
             },
             timeout: 5000
@@ -535,8 +535,8 @@ router.get('/recommendations/personal', auth, async (req, res) => {
           if (movie.id && 
               !ratedMovieIds.has(movie.id.toString()) && 
               !excludeIds.has(movie.id.toString()) &&
-              movie.vote_average >= 6.5 &&
-              movie.vote_count >= 100) {
+              movie.vote_average >= 7.5 &&  // Stricter quality filter
+              movie.vote_count >= 1000) {   // Only well-reviewed movies
             const score = recommendationMap.get(movie.id) || 0;
             // High score for favorite genres - prioritize these
             const genreMatchScore = favoriteGenres.some(gid => 
@@ -574,13 +574,13 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         
         const similarMovies = (similarResponse.data?.results || []).filter(m => m && m.id);
         
-        // Score and add similar movies
+        // Score and add similar movies - only high quality
         similarMovies.forEach((movie, index) => {
           if (movie.id && 
               !ratedMovieIds.has(movie.id.toString()) &&
               !excludeIds.has(movie.id.toString()) &&
-              movie.vote_average >= 6.5 && 
-              movie.vote_count >= 100) {
+              movie.vote_average >= 7.0 &&  // Higher quality threshold
+              movie.vote_count >= 500) {    // More votes = more reliable
             const score = recommendationMap.get(movie.id) || 0;
             // Higher score for movies similar to higher-ranked movies
             const positionWeight = (topRatedMovies.length - topRatedMovies.indexOf(ratedMovie)) / topRatedMovies.length;
@@ -632,24 +632,32 @@ router.get('/recommendations/personal', auth, async (req, res) => {
               }
             );
             
-            // Filter for director role and quality movies
+            // Filter for director role and HIGH QUALITY movies only
             const directorMovies = (directorMoviesResponse.data?.crew || [])
               .filter(movie => 
                 movie && 
                 movie.id &&
                 movie.job === 'Director' && 
-                movie.vote_average >= 7.0 && 
-                movie.vote_count >= 100 &&
+                movie.vote_average >= 7.2 &&  // Higher quality threshold for directors
+                movie.vote_count >= 500 &&    // More votes = more reliable
                 !ratedMovieIds.has(movie.id.toString())
               )
-              .sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))
-              .slice(0, 10); // Top 10 movies by this director
+              .sort((a, b) => {
+                // Sort by vote_average first, then vote_count
+                if (Math.abs((b.vote_average || 0) - (a.vote_average || 0)) > 0.2) {
+                  return (b.vote_average || 0) - (a.vote_average || 0);
+                }
+                return (b.vote_count || 0) - (a.vote_count || 0);
+              })
+              .slice(0, 15); // Top 15 movies by this director (more options)
             
             directorMovies.forEach((movie, index) => {
               if (movie && movie.id && !excludeIds.has(movie.id.toString())) {
                 const score = recommendationMap.get(movie.id) || 0;
-                // High score for same director
-                recommendationMap.set(movie.id, score + (15 * positionWeight) + (3 / (index + 1)));
+                // MUCH higher score for same director - this is a key recommendation factor
+                // Directors are weighted more heavily than genres
+                const directorScore = 30 * positionWeight; // Increased from 15
+                recommendationMap.set(movie.id, score + directorScore + (5 / (index + 1)));
               }
             });
           } catch (error) {
@@ -658,7 +666,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
           }
         }
         
-        // Strategy 4: Get movies with same genres (highly-rated)
+        // Strategy 4: Get HIGH QUALITY movies with same genres
         const genreIds = (movieDetails.genres || [])
           .filter(g => g && g.id)
           .map(g => g.id)
@@ -667,7 +675,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
           try {
             // Vary page and sort criteria if forceRefresh to get completely different movies
             const genrePage = forceRefresh ? Math.floor(Math.random() * 4) + 2 : 1;
-            const sortBy = forceRefresh && Math.random() > 0.5 ? 'popularity.desc' : 'vote_average.desc';
+            const sortBy = 'vote_average.desc'; // Always sort by rating for quality
             const genreMoviesResponse = await axios.get(
               `https://api.themoviedb.org/3/discover/movie`,
               {
@@ -676,8 +684,8 @@ router.get('/recommendations/personal', auth, async (req, res) => {
                   language: 'en-US',
                   with_genres: genreIds,
                   sort_by: sortBy,
-                  'vote_count.gte': 300,
-                  'vote_average.gte': 7.0,
+                  'vote_count.gte': 1000,  // Much higher threshold - only well-known movies
+                  'vote_average.gte': 7.5, // Higher quality threshold
                   page: genrePage
                 },
                 timeout: 5000 // 5 second timeout
@@ -689,14 +697,14 @@ router.get('/recommendations/personal', auth, async (req, res) => {
               if (movie.id && 
                   !ratedMovieIds.has(movie.id.toString()) && 
                   !excludeIds.has(movie.id.toString()) &&
-                  movie.vote_average >= 6.5 &&
-                  movie.vote_count >= 100) {
+                  movie.vote_average >= 7.5 &&  // Stricter quality filter
+                  movie.vote_count >= 1000) {   // Only well-reviewed movies
                 const score = recommendationMap.get(movie.id) || 0;
                 // Check if this genre is in user's favorites - boost score if so
                 const isFavoriteGenre = favoriteGenres.some(gid => 
                   movie.genre_ids && movie.genre_ids.includes(gid)
                 );
-                const genreBoost = isFavoriteGenre ? 5 : 0;
+                const genreBoost = isFavoriteGenre ? 8 : 0;
                 recommendationMap.set(movie.id, score + (12 * positionWeight) + genreBoost + (2 / (index + 1)));
               }
             });
@@ -885,8 +893,8 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         genres: result.data.genres || []
       }))
       .filter(movie => 
-        movie.vote_average >= 6.5 && 
-        movie.vote_count >= 100 &&
+        movie.vote_average >= 7.0 &&  // Higher quality threshold
+        movie.vote_count >= 500 &&    // More votes = more reliable
         !excludeIds.has(movie.id.toString())
       );
     
@@ -928,8 +936,8 @@ router.get('/recommendations/personal', auth, async (req, res) => {
             genres: result.data.genres || []
           }))
           .filter(movie => 
-            movie.vote_average >= 6.5 && 
-            movie.vote_count >= 100 &&
+            movie.vote_average >= 7.0 &&  // Higher quality threshold
+            movie.vote_count >= 500 &&    // More votes = more reliable
             !excludeIds.has(movie.id.toString())
           );
         
