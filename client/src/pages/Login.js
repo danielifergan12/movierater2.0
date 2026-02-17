@@ -10,6 +10,7 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
+import { Movie as MovieIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
@@ -67,6 +68,42 @@ const Login = () => {
       position: 'relative',
     }}>
       <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 2, px: { xs: 2, sm: 3 } }}>
+        {/* MovieRate Logo - Large and Centered */}
+        <Box sx={{ 
+          textAlign: 'center', 
+          mb: { xs: 4, sm: 6 },
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: { xs: 1.5, sm: 2 },
+            mb: 2
+          }}>
+            <MovieIcon sx={{ 
+              color: '#00d4ff', 
+              fontSize: { xs: '3rem', sm: '4rem', md: '5rem' },
+              filter: 'drop-shadow(0 0 10px rgba(0, 212, 255, 0.5))'
+            }} />
+            <Typography variant="h1" component="h1" sx={{
+              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 700,
+              fontSize: { xs: '3rem', sm: '4rem', md: '5rem' },
+              letterSpacing: { xs: '0.05em', sm: '0.1em' },
+              textShadow: '0 0 20px rgba(0, 212, 255, 0.3)',
+            }}>
+              MovieRate
+            </Typography>
+          </Box>
+        </Box>
+
         <Paper elevation={0} sx={{ 
           p: { xs: 3, sm: 4, md: 6 },
           background: 'rgba(26, 26, 26, 0.8)',
@@ -75,13 +112,13 @@ const Login = () => {
           borderRadius: 4,
         }}>
           <Box sx={{ textAlign: 'center', mb: { xs: 3, sm: 4 } }}>
-            <Typography variant="h3" component="h1" gutterBottom sx={{
+            <Typography variant="h4" component="h2" gutterBottom sx={{
               background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               fontWeight: 700,
-              fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+              fontSize: { xs: '1.75rem', sm: '2rem', md: '2.25rem' },
             }}>
               Login
             </Typography>
