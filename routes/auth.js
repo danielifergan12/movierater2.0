@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { sendPasswordResetEmail } = require('../utils/emailService');
 
 const router = express.Router();
 
@@ -190,15 +191,25 @@ router.post('/forgot-password', [
     user.resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
     await user.save();
 
-    // In development, return the reset link
-    // In production, you would send an email here using Nodemailer, SendGrid, etc.
+    // Generate reset link
     const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
 
-    // For development, return the link in the response
-    // In production, remove this and send email instead
+    // Try to send email
+    const emailResult = await sendPasswordResetEmail(email, resetLink);
+
+    // If email was sent successfully, return success message
+    if (emailResult.success) {
+      return res.json({ 
+        message: 'If an account with that email exists, a password reset link has been sent.'
+      });
+    }
+
+    // If email service is not configured, return the link in development mode
+    // This allows testing without email configuration
     res.json({ 
       message: 'If an account with that email exists, a password reset link has been sent.',
-      resetLink: process.env.NODE_ENV === 'development' ? resetLink : undefined
+      resetLink: process.env.NODE_ENV === 'development' ? resetLink : undefined,
+      note: emailResult.message
     });
   } catch (error) {
     console.error('Forgot password error:', error);

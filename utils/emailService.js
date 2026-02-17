@@ -1,0 +1,125 @@
+const nodemailer = require('nodemailer');
+
+// Create reusable transporter object using SMTP transport
+const createTransporter = () => {
+  // If email is not configured, return null
+  if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT || 587,
+    secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+};
+
+// Send password reset email
+const sendPasswordResetEmail = async (email, resetLink) => {
+  const transporter = createTransporter();
+  
+  if (!transporter) {
+    console.log('Email not configured. Reset link:', resetLink);
+    return { success: false, message: 'Email service not configured', resetLink };
+  }
+
+  const mailOptions = {
+    from: `"MovieRate" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Password Reset Request - MovieRate',
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+              background-color: #f4f4f4;
+            }
+            .content {
+              background-color: #ffffff;
+              padding: 30px;
+              border-radius: 8px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .button {
+              display: inline-block;
+              padding: 12px 30px;
+              background: linear-gradient(45deg, #00d4ff, #ff6b35);
+              color: #ffffff;
+              text-decoration: none;
+              border-radius: 5px;
+              font-weight: bold;
+              margin: 20px 0;
+            }
+            .footer {
+              margin-top: 20px;
+              font-size: 12px;
+              color: #666;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="content">
+              <h2>Password Reset Request</h2>
+              <p>Hello,</p>
+              <p>You requested to reset your password for your MovieRate account. Click the button below to reset your password:</p>
+              <p style="text-align: center;">
+                <a href="${resetLink}" class="button">Reset Password</a>
+              </p>
+              <p>Or copy and paste this link into your browser:</p>
+              <p style="word-break: break-all; color: #00d4ff;">${resetLink}</p>
+              <p>This link will expire in 1 hour.</p>
+              <p>If you didn't request this password reset, please ignore this email.</p>
+              <div class="footer">
+                <p>Best regards,<br>The MovieRate Team</p>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `
+      Password Reset Request - MovieRate
+      
+      Hello,
+      
+      You requested to reset your password for your MovieRate account. 
+      Click the link below to reset your password:
+      
+      ${resetLink}
+      
+      This link will expire in 1 hour.
+      
+      If you didn't request this password reset, please ignore this email.
+      
+      Best regards,
+      The MovieRate Team
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    return { success: true, message: 'Password reset email sent successfully' };
+  } catch (error) {
+    console.error('Error sending email:', error);
+    return { success: false, message: 'Failed to send email', resetLink };
+  }
+};
+
+module.exports = {
+  sendPasswordResetEmail,
+};
+
