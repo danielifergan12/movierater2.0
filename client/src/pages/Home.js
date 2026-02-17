@@ -746,33 +746,35 @@ const Home = () => {
               ) : (
                 <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
                   {genres.map((genre) => (
-                    <Grid item xs={6} sm={4} md={3} lg={2.4} key={genre.id}>
+                    <Grid item xs={6} sm={6} md={4} lg={3} key={genre.id}>
                       <Card
                         sx={{
                           cursor: 'pointer',
                           transition: 'all 0.3s ease',
                           background: 'rgba(26, 26, 26, 0.8)',
                           backdropFilter: 'blur(20px)',
-                          border: '2px solid rgba(0, 212, 255, 0.2)',
-                          borderRadius: 3,
-                          minHeight: { xs: 120, sm: 140 },
+                          border: '1px solid rgba(0, 212, 255, 0.2)',
+                          borderRadius: { xs: 3, sm: 4 },
+                          maxWidth: { xs: '100%', sm: 300 },
+                          height: '100%',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
+                          minHeight: { xs: 80, sm: 100 },
                           '&:hover': {
-                            transform: 'translateY(-8px)',
-                            boxShadow: '0 20px 40px rgba(0, 212, 255, 0.3)',
-                            border: '2px solid rgba(0, 212, 255, 0.6)',
+                            transform: { xs: 'none', sm: 'translateY(-8px)' },
+                            boxShadow: { xs: 'none', sm: '0 20px 40px rgba(0, 212, 255, 0.3)' },
+                            border: { xs: '1px solid rgba(0, 212, 255, 0.2)', sm: '1px solid rgba(0, 212, 255, 0.5)' },
                           },
                         }}
                         onClick={() => navigate(`/genre/${genre.id}?name=${encodeURIComponent(genre.name)}`)}
                       >
-                        <CardContent sx={{ textAlign: 'center', p: { xs: 2, sm: 3 } }}>
+                        <CardContent sx={{ textAlign: 'center', p: { xs: 2, sm: 2.5 }, width: '100%' }}>
                           <Typography
                             variant="h6"
                             sx={{
                               fontWeight: 600,
-                              fontSize: { xs: '1rem', sm: '1.25rem' },
+                              fontSize: { xs: '1rem', sm: '1.125rem' },
                               background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
                               backgroundClip: 'text',
                               WebkitBackgroundClip: 'text',
