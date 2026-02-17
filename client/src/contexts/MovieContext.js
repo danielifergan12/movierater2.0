@@ -81,9 +81,9 @@ export const MovieProvider = ({ children }) => {
       if (forceRefresh) {
         setRecommendedMovies([]);
       }
-      // Add cache-busting parameter to ensure fresh data
-      const cacheBuster = forceRefresh ? `&_t=${Date.now()}` : '';
-      const response = await api.get(`/api/movies/recommendations/personal${cacheBuster}`);
+      // Pass forceRefresh parameter to backend
+      const forceRefreshParam = forceRefresh ? '?forceRefresh=true' : '';
+      const response = await api.get(`/api/movies/recommendations/personal${forceRefreshParam}`);
       setRecommendedMovies(response.data.results || []);
       return response.data;
     } catch (error) {

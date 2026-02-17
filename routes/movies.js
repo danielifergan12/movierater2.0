@@ -321,6 +321,16 @@ router.get('/recommendations/personal', auth, async (req, res) => {
   try {
     const user = req.user;
     const ratings = user.ratings || [];
+    const forceRefresh = req.query.forceRefresh === 'true';
+    
+    // Get active hidden movies (not expired)
+    const now = new Date();
+    const hiddenMovieIds = new Set(
+      (user.hiddenMovies || [])
+        .filter(h => h.expiresAt && new Date(h.expiresAt) > now)
+        .map(h => h.movieId?.toString())
+        .filter(Boolean)
+    );
     
     if (ratings.length === 0) {
       // If no ratings, return top-rated movies
@@ -336,9 +346,14 @@ router.get('/recommendations/personal', auth, async (req, res) => {
             timeout: 5000 // 5 second timeout
           }
         );
+        // Filter out hidden movies
+        const topRatedResults = (response.data?.results || [])
+          .filter(m => m && m.id && !hiddenMovieIds.has(m.id.toString()))
+          .slice(0, 20);
+        
         return res.json({
-          results: (response.data?.results || []).slice(0, 20),
-          total_results: 20,
+          results: topRatedResults,
+          total_results: topRatedResults.length,
           page: 1,
           total_pages: 1
         });
@@ -384,18 +399,23 @@ router.get('/recommendations/personal', auth, async (req, res) => {
     const recommendationMap = new Map();
     
     // Strategy 1: Get similar movies for each top-rated movie
+    // If forceRefresh, use different pages or randomize selection
+    const useRandomPage = forceRefresh;
+    const basePage = useRandomPage ? Math.floor(Math.random() * 3) + 1 : 1;
+    
     for (const ratedMovie of topRatedMovies) {
       if (!ratedMovie || !ratedMovie.id) continue;
       
       try {
-        // Get similar movies
+        // Get similar movies - use different page if forceRefresh
+        const pageToUse = useRandomPage ? basePage + Math.floor(Math.random() * 2) : 1;
         const similarResponse = await axios.get(
           `https://api.themoviedb.org/3/movie/${ratedMovie.id}/similar`,
           {
             params: {
               api_key: process.env.TMDB_API_KEY,
               language: 'en-US',
-              page: 1
+              page: pageToUse
             },
             timeout: 5000 // 5 second timeout
           }
@@ -407,6 +427,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         similarMovies.forEach((movie, index) => {
           if (movie.id && 
               !ratedMovieIds.has(movie.id.toString()) && 
+              !hiddenMovieIds.has(movie.id.toString()) &&
               movie.vote_average >= 6.5 && 
               movie.vote_count >= 100) {
             const score = recommendationMap.get(movie.id) || 0;
@@ -474,7 +495,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
               .slice(0, 10); // Top 10 movies by this director
             
             directorMovies.forEach((movie, index) => {
-              if (movie && movie.id) {
+              if (movie && movie.id && !hiddenMovieIds.has(movie.id.toString())) {
                 const score = recommendationMap.get(movie.id) || 0;
                 // High score for same director
                 recommendationMap.set(movie.id, score + (15 * positionWeight) + (3 / (index + 1)));
@@ -493,6 +514,9 @@ router.get('/recommendations/personal', auth, async (req, res) => {
           .join(',');
         if (genreIds) {
           try {
+            // Vary page and sort criteria if forceRefresh
+            const genrePage = forceRefresh ? Math.floor(Math.random() * 3) + 1 : 1;
+            const sortBy = forceRefresh && Math.random() > 0.5 ? 'popularity.desc' : 'vote_average.desc';
             const genreMoviesResponse = await axios.get(
               `https://api.themoviedb.org/3/discover/movie`,
               {
@@ -500,10 +524,10 @@ router.get('/recommendations/personal', auth, async (req, res) => {
                   api_key: process.env.TMDB_API_KEY,
                   language: 'en-US',
                   with_genres: genreIds,
-                  sort_by: 'vote_average.desc',
+                  sort_by: sortBy,
                   'vote_count.gte': 500,
                   'vote_average.gte': 7.5,
-                  page: 1
+                  page: genrePage
                 },
                 timeout: 5000 // 5 second timeout
               }
@@ -511,7 +535,9 @@ router.get('/recommendations/personal', auth, async (req, res) => {
             
             const genreMovies = (genreMoviesResponse.data?.results || []).filter(m => m && m.id);
             genreMovies.forEach((movie, index) => {
-              if (movie.id && !ratedMovieIds.has(movie.id.toString())) {
+              if (movie.id && 
+                  !ratedMovieIds.has(movie.id.toString()) && 
+                  !hiddenMovieIds.has(movie.id.toString())) {
                 const score = recommendationMap.get(movie.id) || 0;
                 recommendationMap.set(movie.id, score + (8 * positionWeight) + (2 / (index + 1)));
               }
@@ -547,7 +573,9 @@ router.get('/recommendations/personal', auth, async (req, res) => {
             
             const keywordMovies = (keywordMoviesResponse.data?.results || []).filter(m => m && m.id);
             keywordMovies.forEach((movie, index) => {
-              if (movie.id && !ratedMovieIds.has(movie.id.toString())) {
+              if (movie.id && 
+                  !ratedMovieIds.has(movie.id.toString()) && 
+                  !hiddenMovieIds.has(movie.id.toString())) {
                 const score = recommendationMap.get(movie.id) || 0;
                 recommendationMap.set(movie.id, score + (5 * positionWeight) + (1 / (index + 1)));
               }
@@ -571,19 +599,25 @@ router.get('/recommendations/personal', auth, async (req, res) => {
     
     // If no recommendations found, fallback to top-rated
     if (recommendations.length === 0) {
+      const fallbackPage = forceRefresh ? Math.floor(Math.random() * 3) + 1 : 1;
       const response = await axios.get(
         `https://api.themoviedb.org/3/movie/top_rated`,
         {
           params: {
             api_key: process.env.TMDB_API_KEY,
             language: 'en-US',
-            page: 1
+            page: fallbackPage
           }
         }
       );
+      // Filter out hidden movies
+      const fallbackResults = (response.data.results || [])
+        .filter(m => m && m.id && !hiddenMovieIds.has(m.id.toString()))
+        .slice(0, 20);
+      
       return res.json({
-        results: (response.data.results || []).slice(0, 20),
-        total_results: 20,
+        results: fallbackResults,
+        total_results: fallbackResults.length,
         page: 1,
         total_pages: 1
       });
@@ -633,7 +667,11 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         popularity: result.data.popularity || 0,
         genres: result.data.genres || []
       }))
-      .filter(movie => movie.vote_average >= 6.5 && movie.vote_count >= 100)
+      .filter(movie => 
+        movie.vote_average >= 6.5 && 
+        movie.vote_count >= 100 &&
+        !hiddenMovieIds.has(movie.id.toString())
+      )
       .slice(0, 20);
     
     return res.json({
@@ -658,9 +696,14 @@ router.get('/recommendations/personal', auth, async (req, res) => {
           timeout: 5000 // 5 second timeout
         }
       );
+      // Filter out hidden movies
+      const fallbackResults = (response.data?.results || [])
+        .filter(m => m && m.id && !hiddenMovieIds.has(m.id.toString()))
+        .slice(0, 20);
+      
       return res.json({
-        results: (response.data?.results || []).slice(0, 20),
-        total_results: 20,
+        results: fallbackResults,
+        total_results: fallbackResults.length,
         page: 1,
         total_pages: 1
       });
@@ -674,6 +717,73 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         total_pages: 1
       });
     }
+  }
+});
+
+// Hide a movie from recommendations for 10 days
+router.post('/hide/:movieId', auth, async (req, res) => {
+  try {
+    const { movieId } = req.params;
+    const user = req.user;
+    
+    if (!movieId) {
+      return res.status(400).json({ message: 'Movie ID is required' });
+    }
+    
+    // Check if movie is already hidden
+    const existingHidden = user.hiddenMovies?.find(
+      h => h.movieId === movieId.toString() && new Date(h.expiresAt) > new Date()
+    );
+    
+    if (existingHidden) {
+      return res.json({ message: 'Movie is already hidden' });
+    }
+    
+    // Add to hiddenMovies with 10 day expiration
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 10);
+    
+    if (!user.hiddenMovies) {
+      user.hiddenMovies = [];
+    }
+    
+    user.hiddenMovies.push({
+      movieId: movieId.toString(),
+      hiddenAt: new Date(),
+      expiresAt: expiresAt
+    });
+    
+    await user.save();
+    
+    res.json({ message: 'Movie hidden from suggestions for 10 days' });
+  } catch (error) {
+    console.error('Hide movie error:', error);
+    res.status(500).json({ message: 'Error hiding movie' });
+  }
+});
+
+// Unhide a movie (remove from hiddenMovies)
+router.delete('/hide/:movieId', auth, async (req, res) => {
+  try {
+    const { movieId } = req.params;
+    const user = req.user;
+    
+    if (!movieId) {
+      return res.status(400).json({ message: 'Movie ID is required' });
+    }
+    
+    // Remove from hiddenMovies
+    if (user.hiddenMovies && user.hiddenMovies.length > 0) {
+      user.hiddenMovies = user.hiddenMovies.filter(
+        h => h.movieId !== movieId.toString()
+      );
+      await user.save();
+    }
+    
+    res.json({ message: 'Movie unhidden successfully' });
+  } catch (error) {
+    console.error('Unhide movie error:', error);
+    res.status(500).json({ message: 'Error unhiding movie' });
   }
 });
 

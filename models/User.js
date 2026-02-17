@@ -89,7 +89,12 @@ const userSchema = new mongoose.Schema({
   shareCodeCreatedAt: {
     type: Date,
     default: null
-  }
+  },
+  hiddenMovies: [{
+    movieId: { type: String, required: true },
+    hiddenAt: { type: Date, default: Date.now },
+    expiresAt: { type: Date, required: true }
+  }]
 }, {
   timestamps: true
 });
