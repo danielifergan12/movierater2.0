@@ -62,6 +62,9 @@ const MyRankings = () => {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [mouseDownIndex, setMouseDownIndex] = useState(null);
+  const [mouseDownY, setMouseDownY] = useState(0);
 
   useEffect(() => {
     if (location.state?.message) {
@@ -80,8 +83,100 @@ const MyRankings = () => {
     setDeleteDialog({ open: false, movieId: null });
   };
 
-  const handleDragStart = (e, originalIndex) => {
+  // Mouse-based drag handlers for better cross-platform support
+  const handleMouseDown = (e, originalIndex) => {
     // Don't start drag if clicking on a button or link
+    const target = e.target;
+    if (target.closest('button') || target.closest('a') || target.tagName === 'BUTTON' || target.tagName === 'A') {
+      return;
+    }
+    
+    setIsMouseDown(true);
+    setMouseDownIndex(originalIndex);
+    setMouseDownY(e.clientY);
+    setDraggedIndex(originalIndex);
+    setDragOverIndex(null);
+    e.preventDefault();
+  };
+
+  // Add global mouse event listeners
+  useEffect(() => {
+    if (!isMouseDown || mouseDownIndex === null) return;
+    
+    const handleMouseMove = (e) => {
+      const currentY = e.clientY;
+      const deltaY = currentY - mouseDownY;
+      
+      // Only start dragging if mouse moved at least 5px
+      if (Math.abs(deltaY) < 5) return;
+      
+      // Find which item we're hovering over
+      const elements = document.elementsFromPoint(e.clientX, e.clientY);
+      let hoveredIndex = null;
+      
+      for (const el of elements) {
+        const listItem = el.closest('[data-ranking-index]');
+        if (listItem) {
+          hoveredIndex = parseInt(listItem.getAttribute('data-ranking-index'));
+          break;
+        }
+      }
+      
+      if (hoveredIndex !== null && hoveredIndex !== mouseDownIndex) {
+        setDragOverIndex(hoveredIndex);
+      }
+    };
+
+    const handleMouseUp = (e) => {
+      // Find drop target
+      const elements = document.elementsFromPoint(e.clientX, e.clientY);
+      let dropIndex = null;
+      
+      for (const el of elements) {
+        const listItem = el.closest('[data-ranking-index]');
+        if (listItem) {
+          dropIndex = parseInt(listItem.getAttribute('data-ranking-index'));
+          break;
+        }
+      }
+      
+      if (dropIndex !== null && dropIndex !== mouseDownIndex) {
+        // Reorder the ratings array
+        const newRatings = [...rawRatings];
+        const draggedItem = newRatings[mouseDownIndex];
+        
+        // Remove the dragged item
+        newRatings.splice(mouseDownIndex, 1);
+        
+        // Find the new position
+        const newPosition = mouseDownIndex < dropIndex 
+          ? dropIndex - 1  // Moving down
+          : dropIndex;      // Moving up
+        
+        // Insert at new position
+        newRatings.splice(newPosition, 0, draggedItem);
+        
+        // Update the ratings
+        setRatingsArray(newRatings);
+      }
+      
+      setIsMouseDown(false);
+      setMouseDownIndex(null);
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isMouseDown, mouseDownIndex, mouseDownY, rawRatings, setRatingsArray]);
+
+  const handleDragStart = (e, originalIndex) => {
+    // Fallback HTML5 drag handler
     const target = e.target;
     if (target.closest('button') || target.closest('a') || target.tagName === 'BUTTON' || target.tagName === 'A') {
       e.preventDefault();
@@ -89,25 +184,10 @@ const MyRankings = () => {
       return false;
     }
     
-    // Allow drag to start
     setDraggedIndex(originalIndex);
-    setDragOverIndex(null); // Reset on new drag
+    setDragOverIndex(null);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', originalIndex.toString());
-    // Use invisible drag image so CSS handles visual feedback
-    const dragImage = document.createElement('div');
-    dragImage.style.position = 'absolute';
-    dragImage.style.top = '-9999px';
-    dragImage.style.width = '1px';
-    dragImage.style.height = '1px';
-    dragImage.style.opacity = '0';
-    document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, 0, 0);
-    setTimeout(() => {
-      if (document.body.contains(dragImage)) {
-        document.body.removeChild(dragImage);
-      }
-    }, 0);
   };
 
   const handleDragOver = (e, dropOriginalIndex) => {
@@ -700,6 +780,10 @@ const MyRankings = () => {
                   )}
                   <ListItem 
                     draggable={true}
+                    data-ranking-index={originalIndex}
+                    onMouseDown={(e) => {
+                      handleMouseDown(e, originalIndex);
+                    }}
                     onDragStart={(e) => {
                       const result = handleDragStart(e, originalIndex);
                       if (result === false) {
@@ -718,12 +802,6 @@ const MyRankings = () => {
                       handleDrop(e, originalIndex);
                     }}
                     onDragEnd={handleDragEnd}
-                    onMouseDown={(e) => {
-                      // Allow drag to start from anywhere except buttons
-                      if (e.target.closest('button') || e.target.closest('a')) {
-                        return;
-                      }
-                    }}
                     sx={{ 
                       py: { xs: 2, sm: 3 },
                       px: { xs: 2, sm: 4 },
@@ -753,7 +831,7 @@ const MyRankings = () => {
                       pointerEvents: isDragging ? 'none' : 'auto',
                       userSelect: 'none',
                       WebkitUserSelect: 'none',
-                      touchAction: 'none',
+                      touchAction: 'pan-y',
                       '&:hover': {
                         backgroundColor: draggedIndex === null ? 'rgba(0, 212, 255, 0.05)' : (isDragOver && !isDragging ? 'rgba(0, 212, 255, 0.08)' : 'transparent'),
                       },
