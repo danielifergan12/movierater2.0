@@ -21,6 +21,7 @@ import { useMovies } from '../contexts/MovieContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
+import api from '../config/axios';
 
 const Home = () => {
   const location = useLocation();
@@ -31,6 +32,7 @@ const Home = () => {
   const [ratingMovie, setRatingMovie] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [displayMovies, setDisplayMovies] = useState([]);
+  const [totalRankings, setTotalRankings] = useState(0);
   const hasInitialLoad = useRef(false);
 
   // Ensure component responds to route changes for proper navigation
@@ -70,6 +72,19 @@ const Home = () => {
 
 
   // Don't fetch popular movies for guests - they should see empty state instead
+  
+  // Fetch total rankings count
+  useEffect(() => {
+    const fetchTotalRankings = async () => {
+      try {
+        const response = await api.get('/api/users/stats/total-rankings');
+        setTotalRankings(response.data.totalRankings || 0);
+      } catch (error) {
+        console.error('Error fetching total rankings:', error);
+      }
+    };
+    fetchTotalRankings();
+  }, []);
 
   // Only fetch recommendations on initial mount if we don't have data
   useEffect(() => {
@@ -448,13 +463,23 @@ const Home = () => {
           </Typography>
           <Typography variant="h5" align="center" sx={{ 
             color: 'rgba(255, 255, 255, 0.8)',
-            mb: 4,
+            mb: 2,
             fontWeight: 300,
             fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
             px: { xs: 2, sm: 0 }
           }}>
             Discover, rate, and share your favorite movies with friends
           </Typography>
+          {totalRankings > 0 && (
+            <Typography variant="body1" align="center" sx={{ 
+              color: 'rgba(255, 255, 255, 0.6)',
+              mb: 4,
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+              px: { xs: 2, sm: 0 }
+            }}>
+              {totalRankings.toLocaleString()} movies ranked by our community
+            </Typography>
+          )}
         </Box>
 
         <Box sx={{ mb: 3 }}>

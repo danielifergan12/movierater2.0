@@ -32,7 +32,8 @@ import {
   Delete as DeleteIcon,
   Movie as MovieIcon,
   Share as ShareIcon,
-  ContentCopy as CopyIcon
+  ContentCopy as CopyIcon,
+  DragIndicator as DragIndicatorIcon
 } from '@mui/icons-material';
 import { useRatings } from '../hooks/useRatings';
 import { useAuth } from '../contexts/AuthContext';
@@ -59,6 +60,7 @@ const MyRankings = () => {
   });
   const [movieDetailsCache, setMovieDetailsCache] = useState({});
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState(null);
 
   useEffect(() => {
     if (location.state?.message) {
@@ -75,6 +77,49 @@ const MyRankings = () => {
     const updatedRankings = rawRatings.filter(ranking => ranking.id !== deleteDialog.movieId);
     setRatingsArray(updatedRankings);
     setDeleteDialog({ open: false, movieId: null });
+  };
+
+  const handleDragStart = (e, originalIndex) => {
+    setDraggedIndex(originalIndex);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.target);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, dropOriginalIndex) => {
+    e.preventDefault();
+    
+    if (draggedIndex === null || draggedIndex === dropOriginalIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+
+    // Reorder the ratings array using original indices
+    const newRatings = [...rawRatings];
+    const draggedItem = newRatings[draggedIndex];
+    
+    // Remove the dragged item
+    newRatings.splice(draggedIndex, 1);
+    
+    // Find the new position based on the drop target's original index
+    const newPosition = draggedIndex < dropOriginalIndex 
+      ? dropOriginalIndex - 1  // Moving down
+      : dropOriginalIndex;      // Moving up
+    
+    // Insert at new position
+    newRatings.splice(newPosition, 0, draggedItem);
+    
+    // Update the ratings
+    setRatingsArray(newRatings);
+    setDraggedIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
   };
 
   const handleShareClick = async () => {
@@ -464,7 +509,7 @@ const MyRankings = () => {
           </Alert>
         </Snackbar>
         <Box sx={{ textAlign: 'center', mb: { xs: 4, sm: 6 } }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 2 }}>
             <Typography variant="h2" sx={{
               background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
               backgroundClip: 'text',
@@ -474,20 +519,6 @@ const MyRankings = () => {
             }}>
               My Movie Rankings
             </Typography>
-            <Chip
-              label={`${rawRatings.length} Total`}
-              sx={{
-                background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                color: '#ffffff',
-                fontWeight: 600,
-                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                height: { xs: 32, sm: 36 },
-                px: { xs: 1, sm: 1.5 },
-                '& .MuiChip-label': {
-                  px: { xs: 1.5, sm: 2 }
-                }
-              }}
-            />
             <IconButton
               onClick={handleShareClick}
               sx={{
@@ -569,139 +600,185 @@ const MyRankings = () => {
               {filteredAndSortedRatings.map((ranking, displayIndex) => {
                 const originalIndex = ranking.originalIndex;
                 const score = ranking.computedScore || computeEvenScore(originalIndex, rawRatings.length);
+                const isDragging = draggedIndex === originalIndex;
                 return (
-                  <React.Fragment key={ranking.id}>
-                    <ListItem sx={{ 
+                <React.Fragment key={ranking.id}>
+                  <ListItem 
+                    draggable={filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length}
+                    onDragStart={(e) => {
+                      if (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) {
+                        handleDragStart(e, originalIndex);
+                      } else {
+                        e.preventDefault();
+                      }
+                    }}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => {
+                      if (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) {
+                        handleDrop(e, originalIndex);
+                      } else {
+                        e.preventDefault();
+                      }
+                    }}
+                    onDragEnd={handleDragEnd}
+                    sx={{ 
                       py: { xs: 2, sm: 3 },
                       px: { xs: 2, sm: 4 },
                       flexDirection: { xs: 'column', sm: 'row' },
                       alignItems: { xs: 'flex-start', sm: 'center' },
+                      cursor: (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) ? 'grab' : 'default',
+                      opacity: isDragging ? 0.5 : 1,
+                      transition: 'all 0.2s ease',
                       '&:hover': {
                         backgroundColor: 'rgba(0, 212, 255, 0.05)',
+                      },
+                      '&:active': {
+                        cursor: (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) ? 'grabbing' : 'default',
+                      },
+                      '&[draggable="true"]': {
+                        userSelect: 'none',
                       }
-                    }}>
-                      <ListItemAvatar sx={{ mr: { xs: 2, sm: 3 }, mb: { xs: 1, sm: 0 } }}>
-                        <Box sx={{ position: 'relative' }}>
-                          <Avatar
-                            src={ranking.posterUrl || null}
-                            sx={{ 
-                              width: { xs: 60, sm: 80 }, 
-                              height: { xs: 90, sm: 120 },
-                              borderRadius: 2,
-                              backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                            }}
-                          >
-                            🎬
-                          </Avatar>
-                          <Box sx={{
-                            position: 'absolute',
-                            top: -8,
-                            right: -8,
-                            backgroundColor: getRankingColor(originalIndex),
-                            color: originalIndex < 3 ? '#000' : '#fff',
-                            borderRadius: '50%',
-                            width: { xs: 24, sm: 30 },
-                            height: { xs: 24, sm: 30 },
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: { xs: '0.7rem', sm: '0.8rem' },
-                            fontWeight: 'bold',
-                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-                          }}>
-                            {originalIndex + 1}
-                          </Box>
-                        </Box>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={
-                          <Typography variant="h6" sx={{ 
-                            color: '#ffffff', 
-                            fontWeight: 600,
-                            mb: 1,
-                            fontSize: { xs: '1rem', sm: '1.25rem' }
-                          }}>
-                            {ranking.title}
-                          </Typography>
-                        }
-                        secondary={
-                          <Box>
-                            <Box sx={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: { xs: 1, sm: 2 },
-                              flexWrap: 'wrap'
-                            }}>
-                              <Rating
-                                precision={0.1}
-                                value={score / 2}
-                                readOnly
-                                size="small"
-                                sx={{
-                                  '& .MuiRating-iconFilled': {
-                                    color: '#00d4ff',
-                                  },
-                                }}
-                              />
-                              <Typography variant="body2" sx={{ 
-                                color: '#00d4ff',
-                                fontWeight: 600,
-                                fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                              }}>
-                                {score.toFixed(1)}/10
-                              </Typography>
-                              <Chip
-                                label={`#${originalIndex + 1}`}
-                                size="small"
-                                sx={{
-                                  backgroundColor: getRankingColor(originalIndex),
-                                  color: originalIndex < 3 ? '#000' : '#fff',
-                                  fontWeight: 'bold',
-                                  fontSize: { xs: '0.7rem', sm: '0.75rem' }
-                                }}
-                              />
-                            </Box>
-                          </Box>
-                        }
-                      />
-                      <Box sx={{ 
-                        display: 'flex', 
-                        gap: 1,
-                        mt: { xs: 2, sm: 0 },
-                        width: { xs: '100%', sm: 'auto' },
-                        justifyContent: { xs: 'flex-end', sm: 'flex-start' }
-                      }}>
-                        <Button
-                          variant="outlined"
-                          component={Link}
-                          to={`/movie/${ranking.id}`}
-                          size="small"
-                          sx={{
-                            borderColor: '#00d4ff',
-                            color: '#00d4ff',
-                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                            px: { xs: 1.5, sm: 2 },
-                            '&:hover': {
-                              borderColor: '#66e0ff',
-                              backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                            },
+                    }}
+                  >
+                    {filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length && (
+                      <Box
+                        sx={{
+                          mr: { xs: 1, sm: 2 },
+                          display: 'flex',
+                          alignItems: 'center',
+                          color: 'rgba(255, 255, 255, 0.5)',
+                          cursor: 'grab',
+                          '&:active': {
+                            cursor: 'grabbing',
+                          }
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <DragIndicatorIcon sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+                      </Box>
+                    )}
+                    <ListItemAvatar sx={{ mr: { xs: 2, sm: 3 }, mb: { xs: 1, sm: 0 } }}>
+                      <Box sx={{ position: 'relative' }}>
+                        <Avatar
+                          src={ranking.posterUrl || null}
+                          sx={{ 
+                            width: { xs: 60, sm: 80 }, 
+                            height: { xs: 90, sm: 120 },
+                            borderRadius: 2,
+                            backgroundColor: 'rgba(0, 212, 255, 0.1)',
                           }}
                         >
-                          View
-                        </Button>
-                        <IconButton
-                          onClick={() => handleDeleteMovie(ranking.id)}
-                          sx={{ color: '#ff6b35' }}
-                          size="small"
-                        >
-                          <DeleteIcon sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
-                        </IconButton>
+                          🎬
+                        </Avatar>
+                        <Box sx={{
+                          position: 'absolute',
+                          top: -8,
+                          right: -8,
+                            backgroundColor: getRankingColor(originalIndex),
+                            color: originalIndex < 3 ? '#000' : '#fff',
+                          borderRadius: '50%',
+                          width: { xs: 24, sm: 30 },
+                          height: { xs: 24, sm: 30 },
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                          fontWeight: 'bold',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                        }}>
+                            {originalIndex + 1}
+                        </Box>
                       </Box>
-                    </ListItem>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Typography variant="h6" sx={{ 
+                          color: '#ffffff', 
+                          fontWeight: 600,
+                          mb: 1,
+                          fontSize: { xs: '1rem', sm: '1.25rem' }
+                        }}>
+                          {ranking.title}
+                        </Typography>
+                      }
+                      secondary={
+                        <Box>
+                          <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: { xs: 1, sm: 2 },
+                            flexWrap: 'wrap'
+                          }}>
+                            <Rating
+                              precision={0.1}
+                                value={score / 2}
+                              readOnly
+                              size="small"
+                              sx={{
+                                '& .MuiRating-iconFilled': {
+                                  color: '#00d4ff',
+                                },
+                              }}
+                            />
+                            <Typography variant="body2" sx={{ 
+                              color: '#00d4ff',
+                              fontWeight: 600,
+                              fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                            }}>
+                                {score.toFixed(1)}/10
+                            </Typography>
+                            <Chip
+                                label={`#${originalIndex + 1}`}
+                              size="small"
+                              sx={{
+                                  backgroundColor: getRankingColor(originalIndex),
+                                  color: originalIndex < 3 ? '#000' : '#fff',
+                                fontWeight: 'bold',
+                                fontSize: { xs: '0.7rem', sm: '0.75rem' }
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                      }
+                    />
+                    <Box sx={{ 
+                      display: 'flex', 
+                      gap: 1,
+                      mt: { xs: 2, sm: 0 },
+                      width: { xs: '100%', sm: 'auto' },
+                      justifyContent: { xs: 'flex-end', sm: 'flex-start' }
+                    }}>
+                      <Button
+                        variant="outlined"
+                        component={Link}
+                        to={`/movie/${ranking.id}`}
+                        size="small"
+                        sx={{
+                          borderColor: '#00d4ff',
+                          color: '#00d4ff',
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                          px: { xs: 1.5, sm: 2 },
+                          '&:hover': {
+                            borderColor: '#66e0ff',
+                            backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                          },
+                        }}
+                      >
+                        View
+                      </Button>
+                      <IconButton
+                        onClick={() => handleDeleteMovie(ranking.id)}
+                        sx={{ color: '#ff6b35' }}
+                        size="small"
+                      >
+                        <DeleteIcon sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />
+                      </IconButton>
+                    </Box>
+                  </ListItem>
                     {displayIndex < filteredAndSortedRatings.length - 1 && (
-                      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-                    )}
-                  </React.Fragment>
+                    <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+                  )}
+                </React.Fragment>
                 );
               })}
             </List>

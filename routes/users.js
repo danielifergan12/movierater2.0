@@ -310,6 +310,33 @@ router.get('/:userId/rankings', async (req, res) => {
 });
 
 // Get user's movie stats
+// Get total rankings count across all users (must be before /:userId route)
+router.get('/stats/total-rankings', async (req, res) => {
+  try {
+    // Aggregate to count total ratings across all users
+    const result = await User.aggregate([
+      {
+        $project: {
+          ratingsCount: { $size: { $ifNull: ['$ratings', []] } }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalRankings: { $sum: '$ratingsCount' }
+        }
+      }
+    ]);
+    
+    const totalRankings = result.length > 0 ? result[0].totalRankings : 0;
+    
+    res.json({ totalRankings });
+  } catch (error) {
+    console.error('Get total rankings error:', error);
+    res.status(500).json({ message: 'Error fetching total rankings', totalRankings: 0 });
+  }
+});
+
 router.get('/:userId/stats', async (req, res) => {
   try {
     const { userId } = req.params;
