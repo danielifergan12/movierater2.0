@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Box, Chip } from '@mui/material';
 import { Movie as MovieIcon, Star as StarIcon, People as PeopleIcon, Favorite as FavoriteIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import AutocompleteSearch from './AutocompleteSearch';
@@ -75,7 +75,8 @@ const Navbar = () => {
               <Box sx={{ 
                 mr: { xs: 1, sm: 2 }, 
                 display: { xs: 'none', sm: 'flex' }, 
-                alignItems: 'center' 
+                alignItems: 'center',
+                gap: 1
               }}>
                 <Typography variant="body1" sx={{ 
                   fontWeight: 600, 
@@ -84,6 +85,19 @@ const Navbar = () => {
                 }}>
                   {user?.username}
                 </Typography>
+                {user?.followers && (
+                  <Chip
+                    label={`${user.followers.length} followers`}
+                    size="small"
+                    sx={{
+                      backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                      color: '#00d4ff',
+                      border: '1px solid rgba(0, 212, 255, 0.3)',
+                      fontSize: '0.7rem',
+                      height: 22
+                    }}
+                  />
+                )}
               </Box>
               <Button
                 color="inherit"
