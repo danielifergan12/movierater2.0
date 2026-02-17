@@ -27,8 +27,6 @@ import {
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
-  TrendingUp as TrendingUpIcon,
-  Star as StarIcon,
   Movie as MovieIcon
 } from '@mui/icons-material';
 import { useRatings } from '../hooks/useRatings';

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -33,6 +32,7 @@ const Feed = () => {
 
   useEffect(() => {
     fetchFeed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, page]);
 
   const fetchFeed = async () => {
@@ -159,7 +159,7 @@ const Feed = () => {
               <img
                 key={index}
                 src={photo.url}
-                alt={`Review photo ${index + 1}`}
+                alt={`Review ${index + 1}`}
                 style={{
                   width: 100,
                   height: 100,

@@ -23,7 +23,6 @@ const Rate = () => {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [ratingMovie, setRatingMovie] = useState(null);
-  const { ratings } = useRatings();
 
   useEffect(() => {
     loadPage(1, true);

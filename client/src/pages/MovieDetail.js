@@ -7,7 +7,6 @@ import {
   CardMedia,
   Typography,
   Box,
-  Rating,
   Button,
   CircularProgress,
 } from '@mui/material';
@@ -24,6 +23,7 @@ const MovieDetail = () => {
 
   useEffect(() => {
     fetchMovieDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [movieId]);
 
   const handleRatingComplete = () => {

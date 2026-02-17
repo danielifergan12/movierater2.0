@@ -12,7 +12,6 @@ import {
   Rating,
   CircularProgress,
   Pagination,
-  Chip,
   InputAdornment
 } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
@@ -29,6 +28,7 @@ const Search = () => {
     if (query) {
       performSearch();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, page]);
 
   const performSearch = async () => {

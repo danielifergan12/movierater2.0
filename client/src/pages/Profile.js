@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   Container,
   Grid,
@@ -15,7 +15,6 @@ import {
   Tabs,
   Tab,
   IconButton,
-  Divider
 } from '@mui/material';
 import {
   PersonAdd,
@@ -23,7 +22,6 @@ import {
   Favorite,
   FavoriteBorder,
   Comment,
-  Share
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../config/axios';
@@ -36,11 +34,10 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [followers, setFollowers] = useState([]);
-  const [following, setFollowing] = useState([]);
 
   useEffect(() => {
     fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const fetchProfile = async () => {
