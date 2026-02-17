@@ -153,10 +153,19 @@ function AppContent() {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
   const showBackground = !isAuthenticated && ['/', '/login', '/register'].includes(location.pathname);
-
-  // Use location.key as primary key - React Router's unique navigation identifier
-  // This ensures Routes remounts on every navigation, critical for static components like Trending tab
-  const routesKey = location.key || `${location.pathname}-${location.search}-${location.hash}`;
+  
+  // Create a key that definitely changes on every navigation
+  // Use location.key (React Router's unique navigation ID) as primary
+  // Fallback to pathname + search + hash to ensure uniqueness
+  const routesKey = React.useMemo(() => {
+    if (location.key) {
+      // location.key is React Router's unique ID - changes on every navigation
+      return location.key;
+    }
+    // Fallback: combine pathname with search and hash
+    // This ensures Routes remounts even when location.key is undefined
+    return `${location.pathname}-${location.search}-${location.hash}`;
+  }, [location.key, location.pathname, location.search, location.hash]);
 
   return (
     <div className="App" style={{ position: 'relative' }}>
