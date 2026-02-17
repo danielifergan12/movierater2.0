@@ -92,7 +92,7 @@ const MovieFilters = ({
       decades: [],
       yearRange: [1900, new Date().getFullYear() + 1],
       ratingRange: [1, 10],
-      sortBy: 'rating',
+      sortBy: showRatingRange ? 'rating' : 'popularity',
       searchQuery: ''
     });
   };
@@ -158,23 +158,34 @@ const MovieFilters = ({
         <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 600 }}>
           Filters
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {activeFilterCount > 0 && (
-            <Button
-              size="small"
-              onClick={clearFilters}
-              startIcon={<ClearIcon />}
-              sx={{
-                color: 'rgba(255, 255, 255, 0.7)',
-                fontSize: '0.75rem',
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Button
+            variant={activeFilterCount > 0 ? "contained" : "outlined"}
+            size="small"
+            onClick={clearFilters}
+            startIcon={<ClearIcon />}
+            disabled={activeFilterCount === 0}
+            sx={{
+              ...(activeFilterCount > 0 ? {
+                backgroundColor: '#ff6b35',
+                color: '#ffffff',
+                border: '1px solid #ff6b35',
                 '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  backgroundColor: '#e64a19',
+                  borderColor: '#e64a19',
                 },
-              }}
-            >
-              Clear All
-            </Button>
-          )}
+              } : {
+                borderColor: 'rgba(255, 107, 53, 0.3)',
+                color: 'rgba(255, 107, 53, 0.5)',
+              }),
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              px: 2,
+              textTransform: 'none',
+            }}
+          >
+            Clear Filters
+          </Button>
           {isMobile && (
             <IconButton onClick={() => setOpen(false)} sx={{ color: '#ffffff' }}>
               <CloseIcon />
