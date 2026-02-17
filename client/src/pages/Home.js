@@ -420,9 +420,9 @@ const Home = () => {
   return (
     <Box sx={{ 
       minHeight: '100vh',
-      background: isAuthenticated ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)' : 'transparent',
+      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
       position: 'relative',
-      '&::before': isAuthenticated ? {
+      '&::before': {
         content: '""',
         position: 'absolute',
         top: 0,
@@ -432,32 +432,30 @@ const Home = () => {
         background: 'radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.1) 0%, transparent 50%)',
         pointerEvents: 'none',
         zIndex: 1,
-      } : {},
+      },
     }}>
       <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 2 }}>
-        {isAuthenticated && (
-          <Box sx={{ mb: { xs: 4, sm: 6 }, textAlign: 'center' }}>
-            <Typography variant="h1" component="h1" gutterBottom sx={{
-              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              mb: 2,
-              fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
-            }}>
-              Welcome to ReelList
-            </Typography>
-            <Typography variant="h5" align="center" sx={{ 
-              color: 'rgba(255, 255, 255, 0.8)',
-              mb: 4,
-              fontWeight: 300,
-              fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
-              px: { xs: 2, sm: 0 }
-            }}>
-              Discover, rate, and share your favorite movies with friends
-            </Typography>
-          </Box>
-        )}
+        <Box sx={{ mb: { xs: 4, sm: 6 }, textAlign: 'center' }}>
+          <Typography variant="h1" component="h1" gutterBottom sx={{
+            background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            mb: 2,
+            fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
+          }}>
+            Welcome to ReelList
+          </Typography>
+          <Typography variant="h5" align="center" sx={{ 
+            color: 'rgba(255, 255, 255, 0.8)',
+            mb: 4,
+            fontWeight: 300,
+            fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
+            px: { xs: 2, sm: 0 }
+          }}>
+            Discover, rate, and share your favorite movies with friends
+          </Typography>
+        </Box>
 
         <Box sx={{ mb: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 4, gap: 2 }}>
@@ -579,28 +577,14 @@ const Home = () => {
                       mb: 2,
                       fontSize: { xs: '1rem', sm: '1.25rem' }
                     }}>
-                      Start rating to see recommendations
+                      Rate some movies to get personalized recommendations!
                     </Typography>
                     <Typography variant="body2" sx={{ 
                       color: 'rgba(255, 255, 255, 0.5)',
-                      fontSize: { xs: '0.875rem', sm: '1rem' },
-                      mb: 3
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
                     }}>
-                      Sign in and rate movies to get personalized recommendations!
+                      Start rating movies and we'll suggest similar ones you might enjoy.
                     </Typography>
-                    <Button
-                      variant="contained"
-                      component={Link}
-                      to="/login"
-                      sx={{
-                        background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                        px: { xs: 4, sm: 6 },
-                        py: { xs: 1.5, sm: 2 },
-                        fontSize: { xs: '0.875rem', sm: '1rem' },
-                      }}
-                    >
-                      Sign In to Get Started
-                    </Button>
                   </Box>
                 )}
               </Grid>

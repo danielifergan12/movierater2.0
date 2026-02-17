@@ -154,7 +154,7 @@ const theme = createTheme({
 function AppContent() {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
-  const showBackground = !isAuthenticated && ['/', '/login', '/register'].includes(location.pathname);
+  const showBackground = !isAuthenticated && ['/login', '/register'].includes(location.pathname);
   
   // Create a key that definitely changes on every navigation
   // Use location.key (React Router's unique navigation ID) as primary
