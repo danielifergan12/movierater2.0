@@ -26,26 +26,34 @@ import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
+import { Tabs, Tab } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../config/axios';
 
 const Lists = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [lists, setLists] = useState([]);
+  const [publicLists, setPublicLists] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState(0);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, list: null });
   const [shareDialog, setShareDialog] = useState({ open: false, list: null, shareUrl: '' });
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
+    if (activeTab === 0) {
+      if (!isAuthenticated) {
+        navigate('/login');
+        return;
+      }
+      fetchMyLists();
+    } else {
+      fetchPublicLists();
     }
-    fetchLists();
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, activeTab]);
 
-  const fetchLists = async () => {
+  const fetchMyLists = async () => {
+    if (!isAuthenticated) return;
     setLoading(true);
     try {
       const response = await api.get('/api/lists/my');
@@ -55,6 +63,22 @@ const Lists = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchPublicLists = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/api/lists/public');
+      setPublicLists(response.data.lists || []);
+    } catch (error) {
+      console.error('Error fetching public lists:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
   };
 
   const handleDelete = async () => {
@@ -84,7 +108,7 @@ const Lists = () => {
     // Could show a toast notification here
   };
 
-  if (!isAuthenticated) {
+  if (activeTab === 0 && !isAuthenticated) {
     return null;
   }
 
@@ -127,22 +151,42 @@ const Lists = () => {
             WebkitTextFillColor: 'transparent',
             fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
           }}>
-            My Lists
+            {activeTab === 0 ? 'My Lists' : 'Public Lists'}
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            component={Link}
-            to="/lists/create"
-            sx={{
-              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-            }}
-          >
-            Create List
-          </Button>
+          {activeTab === 0 && isAuthenticated && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              component={Link}
+              to="/lists/create"
+              sx={{
+                background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+              }}
+            >
+              Create List
+            </Button>
+          )}
         </Box>
 
-        {lists.length === 0 ? (
+        {/* Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 4 }}>
+          <Tabs value={activeTab} onChange={handleTabChange} sx={{
+            '& .MuiTab-root': {
+              color: 'rgba(255, 255, 255, 0.7)',
+              '&.Mui-selected': {
+                color: '#00d4ff',
+              },
+            },
+            '& .MuiTabs-indicator': {
+              backgroundColor: '#00d4ff',
+            },
+          }}>
+            <Tab label="My Lists" disabled={!isAuthenticated} />
+            <Tab label="Public Lists" />
+          </Tabs>
+        </Box>
+
+        {(activeTab === 0 ? lists : publicLists).length === 0 ? (
           <Card sx={{
             background: 'rgba(26, 26, 26, 0.8)',
             backdropFilter: 'blur(20px)',
@@ -152,25 +196,32 @@ const Lists = () => {
             textAlign: 'center'
           }}>
             <Typography variant="h5" sx={{ color: '#ffffff', mb: 2 }}>
-              No Lists Yet
+              {activeTab === 0 ? 'No Lists Yet' : 'No Public Lists'}
             </Typography>
             <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 3 }}>
-              Create your first list to organize your favorite movies!
+              {activeTab === 0 
+                ? 'Create your first list to organize your favorite movies!'
+                : 'No public lists available yet. Be the first to create one!'}
             </Typography>
-            <Button
-              variant="contained"
-              component={Link}
-              to="/lists/create"
-              sx={{
-                background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-              }}
-            >
-              Create Your First List
-            </Button>
+            {activeTab === 0 && isAuthenticated && (
+              <Button
+                variant="contained"
+                component={Link}
+                to="/lists/create"
+                sx={{
+                  background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                }}
+              >
+                Create Your First List
+              </Button>
+            )}
           </Card>
         ) : (
           <Grid container spacing={3}>
-            {lists.map((list) => (
+            {(activeTab === 0 ? lists : publicLists).map((list) => {
+              const listUserId = typeof list.user === 'object' ? list.user?._id : list.user;
+              const isOwner = isAuthenticated && user && listUserId === user._id;
+              return (
               <Grid item xs={12} sm={6} md={4} key={list._id}>
                 <Card sx={{
                   background: 'rgba(26, 26, 26, 0.8)',
@@ -196,28 +247,32 @@ const Lists = () => {
                       sx={{ objectFit: 'cover' }}
                     />
                     <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1 }}>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleShare(list)}
-                        sx={{
-                          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                          color: '#00d4ff',
-                          '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.9)' }
-                        }}
-                      >
-                        <ShareIcon />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => setDeleteDialog({ open: true, list })}
-                        sx={{
-                          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                          color: '#ff6b35',
-                          '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.9)' }
-                        }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+                      {isOwner && (
+                        <>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleShare(list)}
+                            sx={{
+                              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                              color: '#00d4ff',
+                              '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.9)' }
+                            }}
+                          >
+                            <ShareIcon />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => setDeleteDialog({ open: true, list })}
+                            sx={{
+                              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                              color: '#ff6b35',
+                              '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.9)' }
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </>
+                      )}
                     </Box>
                     {list.isPublic ? (
                       <Chip
@@ -282,9 +337,16 @@ const Lists = () => {
                       </Typography>
                     )}
                     <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                        {list.movies?.length || 0} {list.movies?.length === 1 ? 'movie' : 'movies'}
-                      </Typography>
+                      <Box>
+                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                          {list.movies?.length || 0} {list.movies?.length === 1 ? 'movie' : 'movies'}
+                        </Typography>
+                        {activeTab === 1 && list.user && (
+                          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)', display: 'block' }}>
+                            by {list.user.username}
+                          </Typography>
+                        )}
+                      </Box>
                       <Button
                         size="small"
                         component={Link}
@@ -297,7 +359,8 @@ const Lists = () => {
                   </CardContent>
                 </Card>
               </Grid>
-            ))}
+            );
+            })}
           </Grid>
         )}
 

@@ -202,11 +202,7 @@ function AppContent() {
             <Watchlist />
           </ProtectedRoute>
         } />
-        <Route path="/lists" element={
-          <ProtectedRoute>
-            <Lists />
-          </ProtectedRoute>
-        } />
+        <Route path="/lists" element={<Lists />} />
         <Route path="/lists/create" element={
           <ProtectedRoute>
             <CreateList />

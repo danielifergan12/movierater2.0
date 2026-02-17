@@ -19,8 +19,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
 import ReviewForm from '../components/ReviewForm';
+import AddToListDialog from '../components/AddToListDialog';
 import { Link } from 'react-router-dom';
 import { Avatar, Divider } from '@mui/material';
+import { List as ListIcon } from '@mui/icons-material';
 import api from '../config/axios';
 
 const MovieDetail = () => {
@@ -40,6 +42,7 @@ const MovieDetail = () => {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [userReview, setUserReview] = useState(null);
   const [loadingExtras, setLoadingExtras] = useState(false);
+  const [showAddToListDialog, setShowAddToListDialog] = useState(false);
   
   // Check if movie is already rated (handle both number and string IDs)
   const movieIdNum = parseInt(movieId);
@@ -319,35 +322,58 @@ const MovieDetail = () => {
                     {!isAuthenticated ? 'Sign in to Rate' : 'Rerate This Movie'}
                   </Button>
                   {isAuthenticated && (
-                    <Button
-                      variant={inWatchlist ? "contained" : "outlined"}
-                      startIcon={inWatchlist ? <Bookmark /> : <BookmarkBorder />}
-                      size="large"
-                      onClick={handleWatchlistToggle}
-                      disabled={watchlistLoading}
-                      sx={{
-                        ...(inWatchlist ? {
-                          background: 'linear-gradient(45deg, #ff6b35, #e64a19)',
+                    <>
+                      <Button
+                        variant={inWatchlist ? "contained" : "outlined"}
+                        startIcon={inWatchlist ? <Bookmark /> : <BookmarkBorder />}
+                        size="large"
+                        onClick={handleWatchlistToggle}
+                        disabled={watchlistLoading}
+                        sx={{
+                          ...(inWatchlist ? {
+                            background: 'linear-gradient(45deg, #ff6b35, #e64a19)',
+                            '&:hover': {
+                              background: 'linear-gradient(45deg, #e64a19, #cc3d0f)',
+                            },
+                          } : {
+                            borderColor: '#ff6b35',
+                            color: '#ff6b35',
+                            '&:hover': {
+                              borderColor: '#ff8a65',
+                              backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                            },
+                          }),
+                          px: { xs: 3, sm: 4 },
+                          py: { xs: 1.25, sm: 1.5 },
+                          fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
+                          fontWeight: 600,
+                          width: { xs: '100%', sm: 'auto' },
+                        }}
+                      >
+                        {inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<ListIcon />}
+                        size="large"
+                        onClick={() => setShowAddToListDialog(true)}
+                        sx={{
+                          borderColor: '#00d4ff',
+                          color: '#00d4ff',
+                          px: { xs: 3, sm: 4 },
+                          py: { xs: 1.25, sm: 1.5 },
+                          fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
+                          fontWeight: 600,
+                          width: { xs: '100%', sm: 'auto' },
                           '&:hover': {
-                            background: 'linear-gradient(45deg, #e64a19, #cc3d0f)',
+                            borderColor: '#66e0ff',
+                            backgroundColor: 'rgba(0, 212, 255, 0.1)',
                           },
-                        } : {
-                          borderColor: '#ff6b35',
-                          color: '#ff6b35',
-                          '&:hover': {
-                            borderColor: '#ff8a65',
-                            backgroundColor: 'rgba(255, 107, 53, 0.1)',
-                          },
-                        }),
-                        px: { xs: 3, sm: 4 },
-                        py: { xs: 1.25, sm: 1.5 },
-                        fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
-                        fontWeight: 600,
-                        width: { xs: '100%', sm: 'auto' },
-                      }}
-                    >
-                      {inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
-                    </Button>
+                        }}
+                      >
+                        Add to List
+                      </Button>
+                    </>
                   )}
                 </Box>
               </Box>
@@ -380,35 +406,58 @@ const MovieDetail = () => {
                   {!isAuthenticated ? 'Sign in to Rate This Movie' : (movieRating ? 'Already Rated' : 'Rate This Movie')}
                 </Button>
                 {isAuthenticated && (
-                  <Button
-                    variant={inWatchlist ? "contained" : "outlined"}
-                    startIcon={inWatchlist ? <Bookmark /> : <BookmarkBorder />}
-                    size="large"
-                    onClick={handleWatchlistToggle}
-                    disabled={watchlistLoading}
-                    sx={{
-                      ...(inWatchlist ? {
-                        background: 'linear-gradient(45deg, #ff6b35, #e64a19)',
+                  <>
+                    <Button
+                      variant={inWatchlist ? "contained" : "outlined"}
+                      startIcon={inWatchlist ? <Bookmark /> : <BookmarkBorder />}
+                      size="large"
+                      onClick={handleWatchlistToggle}
+                      disabled={watchlistLoading}
+                      sx={{
+                        ...(inWatchlist ? {
+                          background: 'linear-gradient(45deg, #ff6b35, #e64a19)',
+                          '&:hover': {
+                            background: 'linear-gradient(45deg, #e64a19, #cc3d0f)',
+                          },
+                        } : {
+                          borderColor: '#ff6b35',
+                          color: '#ff6b35',
+                          '&:hover': {
+                            borderColor: '#ff8a65',
+                            backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                          },
+                        }),
+                        px: { xs: 3, sm: 4 },
+                        py: { xs: 1.25, sm: 1.5 },
+                        fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
+                        fontWeight: 600,
+                        width: { xs: '100%', sm: 'auto' },
+                      }}
+                    >
+                      {inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={<ListIcon />}
+                      size="large"
+                      onClick={() => setShowAddToListDialog(true)}
+                      sx={{
+                        borderColor: '#00d4ff',
+                        color: '#00d4ff',
+                        px: { xs: 3, sm: 4 },
+                        py: { xs: 1.25, sm: 1.5 },
+                        fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
+                        fontWeight: 600,
+                        width: { xs: '100%', sm: 'auto' },
                         '&:hover': {
-                          background: 'linear-gradient(45deg, #e64a19, #cc3d0f)',
+                          borderColor: '#66e0ff',
+                          backgroundColor: 'rgba(0, 212, 255, 0.1)',
                         },
-                      } : {
-                        borderColor: '#ff6b35',
-                        color: '#ff6b35',
-                        '&:hover': {
-                          borderColor: '#ff8a65',
-                          backgroundColor: 'rgba(255, 107, 53, 0.1)',
-                        },
-                      }),
-                      px: { xs: 3, sm: 4 },
-                      py: { xs: 1.25, sm: 1.5 },
-                      fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
-                      fontWeight: 600,
-                      width: { xs: '100%', sm: 'auto' },
-                    }}
-                  >
-                    {inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
-                  </Button>
+                      }}
+                    >
+                      Add to List
+                    </Button>
+                  </>
                 )}
               </Box>
             )}
@@ -688,6 +737,22 @@ const MovieDetail = () => {
             onComplete={() => {
               fetchUserReview();
               fetchExtras();
+            }}
+          />
+        )}
+
+        {/* Add to List Dialog */}
+        {showAddToListDialog && movie && (
+          <AddToListDialog
+            open={showAddToListDialog}
+            onClose={() => setShowAddToListDialog(false)}
+            movie={{
+              id: movie.id || movie.tmdbId,
+              tmdbId: movie.tmdbId || movie.id,
+              title: movie.title,
+              posterPath: movie.posterPath,
+              posterUrl: movie.posterPath ? `https://image.tmdb.org/t/p/w500${movie.posterPath}` : '/placeholder-movie.jpg',
+              releaseDate: movie.releaseDate
             }}
           />
         )}
