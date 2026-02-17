@@ -34,9 +34,11 @@ const Home = () => {
   const [displayMovies, setDisplayMovies] = useState([]);
 
   // Ensure component responds to route changes for proper navigation
+  const [, setRouteUpdate] = useState(0);
   useEffect(() => {
-    // This effect ensures React Router properly detects route changes
-    // when navigating from the Trending tab
+    // Force a state update when location changes to ensure React Router detects navigation
+    // This is especially important when activeTab === 0 (Trending) where there are no other state updates
+    setRouteUpdate(prev => prev + 1);
   }, [location.pathname]);
 
   // Helper functions to manage recently shown movies in localStorage
