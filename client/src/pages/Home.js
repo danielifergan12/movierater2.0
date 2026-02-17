@@ -27,7 +27,7 @@ const Home = () => {
   const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
   const { isAuthenticated } = useAuth();
   const { rawRatings } = useRatings();
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(1);
   const [refreshKey, setRefreshKey] = useState(0);
   const [ratingMovie, setRatingMovie] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -68,11 +68,6 @@ const Home = () => {
     }
   };
 
-  useEffect(() => {
-    // Always load trending movies, regardless of authentication
-    getTrendingMovies();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (isAuthenticated && activeTab === 1 && !isRefreshing) {
@@ -191,9 +186,6 @@ const Home = () => {
         // Initial load - set display movies
         setDisplayMovies(filteredRecommendedMovies.slice(0, 8));
       }
-    } else {
-      // For trending tab, clear displayMovies
-      setDisplayMovies([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredRecommendedMovies, activeTab, isRefreshing]);
@@ -521,7 +513,6 @@ const Home = () => {
                     },
                   }}
                 >
-                  <Tab label="Trending This Week" />
                   <Tab label="Suggested for You" />
                 </Tabs>
                 {activeTab === 1 && (
@@ -580,7 +571,7 @@ const Home = () => {
                     </Box>
                   )}
                   <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
-                    {(activeTab === 0 ? trendingMovies : (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies))
+                    {(displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies)
                       .slice(0, 8)
                       .map((movie) => (
                         <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
