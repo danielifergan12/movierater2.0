@@ -148,6 +148,72 @@ router.get('/:userId/following', async (req, res) => {
   }
 });
 
+// Discover users - get users with ratings, ordered by rating count
+router.get('/discover', async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+
+    // Use aggregation to sort by ratings array length
+    const users = await User.aggregate([
+      {
+        $match: {
+          ratings: { $exists: true, $ne: [], $not: { $size: 0 } }
+        }
+      },
+      {
+        $addFields: {
+          ratingsCount: { $size: '$ratings' }
+        }
+      },
+      {
+        $sort: { ratingsCount: -1 }
+      },
+      {
+        $skip: (page - 1) * limit
+      },
+      {
+        $limit: limit * 1
+      },
+      {
+        $project: {
+          username: 1,
+          profilePicture: 1,
+          bio: 1,
+          followers: 1,
+          following: 1,
+          ratingsCount: 1
+        }
+      }
+    ]);
+
+    // Get total count of users with ratings
+    const total = await User.countDocuments({
+      ratings: { $exists: true, $ne: [], $not: { $size: 0 } }
+    });
+
+    // Format response
+    const formattedUsers = users.map(user => ({
+      _id: user._id,
+      username: user.username,
+      profilePicture: user.profilePicture,
+      bio: user.bio,
+      followers: user.followers || [],
+      following: user.following || [],
+      ratingsCount: user.ratingsCount || 0
+    }));
+
+    res.json({
+      users: formattedUsers,
+      totalPages: Math.ceil(total / limit),
+      currentPage: parseInt(page),
+      total
+    });
+  } catch (error) {
+    console.error('Discover users error:', error);
+    res.status(500).json({ message: 'Error fetching discover users' });
+  }
+});
+
 // Search users
 router.get('/search/:query', async (req, res) => {
   try {

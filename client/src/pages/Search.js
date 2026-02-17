@@ -12,18 +12,24 @@ import {
   Rating,
   CircularProgress,
   Pagination,
-  InputAdornment
+  InputAdornment,
+  Button
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Star } from '@mui/icons-material';
 import { useMovies } from '../contexts/MovieContext';
+import { useRatings } from '../hooks/useRatings';
+import RatingModal from '../components/RatingModal';
 
 const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { searchMovies, searchResults, loading } = useMovies();
+  const { rawRatings } = useRatings();
   const urlQuery = searchParams.get('q') || '';
   const [query, setQuery] = useState(urlQuery);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [ratingMovie, setRatingMovie] = useState(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
 
   // Sync query from URL params when they change (e.g., when navigating from navbar search)
   useEffect(() => {
@@ -70,7 +76,29 @@ const Search = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const MovieCard = ({ movie }) => (
+  const handleRatingComplete = () => {
+    setShowRatingModal(false);
+    setRatingMovie(null);
+  };
+
+  const handleRateClick = (movie) => {
+    setRatingMovie({
+      id: movie.id,
+      title: movie.title,
+      posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg',
+    });
+    setShowRatingModal(true);
+  };
+
+  const MovieCard = ({ movie }) => {
+    // Check if movie is already rated
+    const movieIdNum = parseInt(movie.id);
+    const isRated = rawRatings.some(r => {
+      const rId = typeof r.id === 'string' ? parseInt(r.id) : r.id;
+      return rId === movieIdNum || r.id?.toString() === movie.id?.toString();
+    });
+
+    return (
     <Card sx={{ 
       height: '100%', 
       display: 'flex', 
@@ -149,7 +177,35 @@ const Search = () => {
           {movie.overview}
         </Typography>
       </CardContent>
-      <Box sx={{ p: { xs: 2.5, sm: 3 }, pt: 0 }}>
+      <Box sx={{ p: { xs: 2.5, sm: 3 }, pt: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <Button
+          variant={isRated ? "outlined" : "contained"}
+          startIcon={<Star />}
+          onClick={() => handleRateClick(movie)}
+          fullWidth
+          sx={{
+            ...(isRated ? {
+              borderColor: '#00d4ff',
+              color: '#00d4ff',
+              '&:hover': {
+                borderColor: '#66e0ff',
+                backgroundColor: 'rgba(0, 212, 255, 0.1)',
+              },
+            } : {
+              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+              color: 'white',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #00a8cc, #e64a19)',
+              },
+            }),
+            fontSize: { xs: '0.875rem', sm: '0.875rem' },
+            fontWeight: 600,
+            py: { xs: 1.25, sm: 1 },
+            minHeight: { xs: 44, sm: 36 },
+          }}
+        >
+          {isRated ? 'Rerate' : 'Rate'}
+        </Button>
         <Link
           to={`/movie/${movie.id}`}
           style={{ textDecoration: 'none' }}
@@ -157,22 +213,24 @@ const Search = () => {
           <Box
             sx={{
               width: '100%',
-              py: { xs: 1.5, sm: 1 },
+              py: { xs: 1.25, sm: 1 },
               px: { xs: 2, sm: 2 },
-              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-              color: 'white',
+              background: 'rgba(0, 212, 255, 0.1)',
+              border: '1px solid rgba(0, 212, 255, 0.3)',
+              color: '#00d4ff',
               borderRadius: 2,
               textAlign: 'center',
               fontSize: { xs: '0.875rem', sm: '0.875rem' },
               fontWeight: 600,
-              minHeight: { xs: 48, sm: 36 },
+              minHeight: { xs: 44, sm: 36 },
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'all 0.3s ease',
               '&:hover': {
                 transform: { xs: 'none', sm: 'scale(1.05)' },
-                boxShadow: { xs: 'none', sm: '0 8px 24px rgba(0, 212, 255, 0.4)' },
+                backgroundColor: 'rgba(0, 212, 255, 0.2)',
+                borderColor: 'rgba(0, 212, 255, 0.5)',
               },
             }}
           >
@@ -181,7 +239,8 @@ const Search = () => {
         </Link>
       </Box>
     </Card>
-  );
+    );
+  };
 
   return (
     <Box sx={{ 
@@ -312,6 +371,19 @@ const Search = () => {
             Discover your next favorite movie!
           </Typography>
         </Box>
+      )}
+
+      {showRatingModal && ratingMovie && (
+        <RatingModal
+          open={showRatingModal}
+          movie={ratingMovie}
+          onClose={() => {
+            setShowRatingModal(false);
+            setRatingMovie(null);
+          }}
+          onComplete={handleRatingComplete}
+          allowRerate={true}
+        />
       )}
       </Container>
     </Box>
