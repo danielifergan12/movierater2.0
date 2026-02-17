@@ -89,6 +89,21 @@ export const AuthProvider = ({ children }) => {
         url: error.config?.url,
         baseURL: error.config?.baseURL
       });
+      
+      // Handle validation errors (array format from express-validator)
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        const errorMessages = error.response.data.errors.map(err => {
+          const field = err.param || err.path || '';
+          const msg = err.msg || err.message || 'Invalid value';
+          return field ? `${field}: ${msg}` : msg;
+        }).join(', ');
+        return { 
+          success: false, 
+          message: errorMessages || 'Validation failed. Please check your input.'
+        };
+      }
+      
+      // Handle message format (user already exists, etc.)
       return { 
         success: false, 
         message: error.response?.data?.message || error.message || 'Registration failed. Please check your backend connection.' 
