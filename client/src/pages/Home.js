@@ -138,57 +138,59 @@ const Home = () => {
       setGenresLoading(true);
       try {
         const response = await api.get('/api/movies/genres');
-        if (response.data && response.data.genres) {
-          // Filter to show most common/popular genres
-          const commonGenres = ['Action', 'Comedy', 'Drama', 'Horror', 'Romance', 'Sci-Fi', 'Thriller', 'Adventure', 'Animation', 'Crime', 'Fantasy', 'Mystery'];
-          const filtered = response.data.genres.filter(genre => 
-            commonGenres.includes(genre.name)
-          );
-          // Sort by commonGenres order, then add any others
-          const sorted = [...filtered].sort((a, b) => {
-            const aIndex = commonGenres.indexOf(a.name);
-            const bIndex = commonGenres.indexOf(b.name);
-            if (aIndex === -1 && bIndex === -1) return a.name.localeCompare(b.name);
-            if (aIndex === -1) return 1;
-            if (bIndex === -1) return -1;
-            return aIndex - bIndex;
-          });
-          setGenres(sorted);
+        console.log('Genres API response:', response.data);
+        if (response.data) {
+          // Handle both response.data.genres and response.data directly
+          const genresList = response.data.genres || response.data;
+          if (Array.isArray(genresList) && genresList.length > 0) {
+            // Map TMDB genre names to our display names
+            const genreMap = {
+              'Science Fiction': 'Sci-Fi',
+              'Sci-Fi': 'Sci-Fi'
+            };
+            
+            // Filter to show most common/popular genres (using both TMDB names and our names)
+            const commonGenres = ['Action', 'Comedy', 'Drama', 'Horror', 'Romance', 'Sci-Fi', 'Science Fiction', 'Thriller', 'Adventure', 'Animation', 'Crime', 'Fantasy', 'Mystery'];
+            const filtered = genresList.filter(genre => 
+              commonGenres.includes(genre.name)
+            );
+            
+            // Normalize genre names (e.g., "Science Fiction" -> "Sci-Fi")
+            const normalized = filtered.map(genre => ({
+              ...genre,
+              name: genreMap[genre.name] || genre.name
+            }));
+            
+            // Remove duplicates after normalization
+            const uniqueGenres = normalized.filter((genre, index, self) =>
+              index === self.findIndex(g => g.name === genre.name)
+            );
+            
+            // Sort by commonGenres order
+            const sorted = [...uniqueGenres].sort((a, b) => {
+              const aName = genreMap[a.name] || a.name;
+              const bName = genreMap[b.name] || b.name;
+              const aIndex = commonGenres.indexOf(aName);
+              const bIndex = commonGenres.indexOf(bName);
+              if (aIndex === -1 && bIndex === -1) return aName.localeCompare(bName);
+              if (aIndex === -1) return 1;
+              if (bIndex === -1) return -1;
+              return aIndex - bIndex;
+            });
+            
+            console.log('Filtered and sorted genres:', sorted);
+            setGenres(sorted);
+          } else {
+            console.warn('Genres list is empty or not an array:', genresList);
+            setGenres([]);
+          }
+        } else {
+          console.warn('No genres found in API response:', response.data);
+          setGenres([]);
         }
       } catch (error) {
         console.error('Error fetching genres:', error);
-      } finally {
-        setGenresLoading(false);
-      }
-    };
-    fetchGenres();
-  }, []);
-
-  // Fetch genres list
-  useEffect(() => {
-    const fetchGenres = async () => {
-      setGenresLoading(true);
-      try {
-        const response = await api.get('/api/movies/genres');
-        if (response.data && response.data.genres) {
-          // Filter to show most common/popular genres
-          const commonGenres = ['Action', 'Comedy', 'Drama', 'Horror', 'Romance', 'Sci-Fi', 'Thriller', 'Adventure', 'Animation', 'Crime', 'Fantasy', 'Mystery'];
-          const filtered = response.data.genres.filter(genre => 
-            commonGenres.includes(genre.name)
-          );
-          // Sort by commonGenres order, then add any others
-          const sorted = [...filtered].sort((a, b) => {
-            const aIndex = commonGenres.indexOf(a.name);
-            const bIndex = commonGenres.indexOf(b.name);
-            if (aIndex === -1 && bIndex === -1) return a.name.localeCompare(b.name);
-            if (aIndex === -1) return 1;
-            if (bIndex === -1) return -1;
-            return aIndex - bIndex;
-          });
-          setGenres(sorted);
-        }
-      } catch (error) {
-        console.error('Error fetching genres:', error);
+        setGenres([]);
       } finally {
         setGenresLoading(false);
       }
@@ -721,6 +723,22 @@ const Home = () => {
               {genresLoading ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
                   <CircularProgress />
+                </Box>
+              ) : genres.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
+                  <Typography variant="h6" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.7)', 
+                    mb: 2,
+                    fontSize: { xs: '1rem', sm: '1.25rem' }
+                  }}>
+                    No genres available
+                  </Typography>
+                  <Typography variant="body2" sx={{ 
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    fontSize: { xs: '0.875rem', sm: '1rem' }
+                  }}>
+                    Unable to load genres. Please try refreshing the page.
+                  </Typography>
                 </Box>
               ) : (
                 <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
