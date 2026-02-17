@@ -24,7 +24,7 @@ import RatingModal from '../components/RatingModal';
 
 const Home = () => {
   const location = useLocation();
-  const { trendingMovies, recommendedMovies, popularMovies, getTrendingMovies, getPersonalRecommendations, getPopularMovies, loading } = useMovies();
+  const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
   const { isAuthenticated } = useAuth();
   const { rawRatings } = useRatings();
   const [activeTab, setActiveTab] = useState(1);
@@ -69,13 +69,7 @@ const Home = () => {
   };
 
 
-  // Fetch popular movies for guests
-  useEffect(() => {
-    if (!isAuthenticated && popularMovies.length === 0 && !loading) {
-      getPopularMovies(1);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
+  // Don't fetch popular movies for guests - they should see empty state instead
 
   // Only fetch recommendations on initial mount if we don't have data
   useEffect(() => {
@@ -490,7 +484,7 @@ const Home = () => {
                 },
               }}
             >
-              <Tab label={isAuthenticated ? "Suggested for You" : "Popular Movies"} />
+              <Tab label="Suggested for You" />
             </Tabs>
             {activeTab === 1 && isAuthenticated && (
               <IconButton
@@ -519,9 +513,7 @@ const Home = () => {
             )}
           </Box>
 
-          {loading && !isRefreshing && 
-           ((isAuthenticated && displayMovies.length === 0 && filteredRecommendedMovies.length === 0) ||
-            (!isAuthenticated && popularMovies.length === 0)) ? (
+          {loading && !isRefreshing && isAuthenticated && displayMovies.length === 0 && filteredRecommendedMovies.length === 0 ? (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
               <CircularProgress />
             </Box>
@@ -550,7 +542,7 @@ const Home = () => {
                 </Box>
               )}
               <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
-                {(!isAuthenticated ? popularMovies : (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies))
+                {isAuthenticated && (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies)
                   .slice(0, 8)
                   .map((movie) => (
                     <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
@@ -580,21 +572,35 @@ const Home = () => {
                     </Typography>
                   </Box>
                 )}
-                {!isAuthenticated && popularMovies.length === 0 && !loading && (
+                {!isAuthenticated && (
                   <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
                     <Typography variant="h6" sx={{ 
                       color: 'rgba(255, 255, 255, 0.7)', 
                       mb: 2,
                       fontSize: { xs: '1rem', sm: '1.25rem' }
                     }}>
-                      Discover popular movies
+                      Start rating to see recommendations
                     </Typography>
                     <Typography variant="body2" sx={{ 
                       color: 'rgba(255, 255, 255, 0.5)',
-                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                      mb: 3
                     }}>
-                      Sign in to get personalized recommendations based on your ratings!
+                      Sign in and rate movies to get personalized recommendations!
                     </Typography>
+                    <Button
+                      variant="contained"
+                      component={Link}
+                      to="/login"
+                      sx={{
+                        background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                        px: { xs: 4, sm: 6 },
+                        py: { xs: 1.5, sm: 2 },
+                        fontSize: { xs: '0.875rem', sm: '1rem' },
+                      }}
+                    >
+                      Sign In to Get Started
+                    </Button>
                   </Box>
                 )}
               </Grid>
