@@ -183,6 +183,28 @@ router.get('/search/:query', async (req, res) => {
   }
 });
 
+// Get user's public rankings
+router.get('/:userId/rankings', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId).select('username ratings');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Return username and ratings (even if empty)
+    res.json({
+      username: user.username || 'Anonymous',
+      ratings: user.ratings || []
+    });
+  } catch (error) {
+    console.error('Get user rankings error:', error);
+    res.status(500).json({ message: 'Error fetching user rankings' });
+  }
+});
+
 // Get user's movie stats
 router.get('/:userId/stats', async (req, res) => {
   try {

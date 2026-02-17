@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
-import { Movie as MovieIcon, Star as StarIcon } from '@mui/icons-material';
+import { Movie as MovieIcon, Star as StarIcon, People as PeopleIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import AutocompleteSearch from './AutocompleteSearch';
 
@@ -101,6 +101,24 @@ const Navbar = () => {
                 </Box>
                 <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
                   Rankings
+                </Box>
+              </Button>
+              <Button
+                color="inherit"
+                startIcon={<PeopleIcon />}
+                component={Link}
+                to="/discover"
+                sx={{ 
+                  mr: { xs: 0.5, sm: 1 },
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  px: { xs: 1, sm: 2 }
+                }}
+              >
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Discover
+                </Box>
+                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                  Users
                 </Box>
               </Button>
               <Button 
