@@ -72,6 +72,7 @@ const Navbar = () => {
             maxWidth: { xs: '100%', sm: 600 },
             width: { xs: '100%', sm: 'auto' },
             ml: { xs: 0, sm: 3 },
+            mr: { xs: 0, sm: 4 },
             order: { xs: 3, sm: 0 }
           }}>
             <AutocompleteSearch 
