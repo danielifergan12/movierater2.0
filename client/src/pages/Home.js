@@ -242,7 +242,7 @@ const Home = () => {
                   <CircularProgress />
                 </Box>
               ) : (
-                <Grid container spacing={3}>
+                <Grid container spacing={3} justifyContent="center">
                   {trendingMovies
                     .slice(0, 8)
                     .map((movie) => (
