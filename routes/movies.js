@@ -357,21 +357,53 @@ router.get('/genre/:genreId/highly-rated', async (req, res) => {
       }
     );
 
-    // Filter results to ensure the genre is actually in the movie's genre_ids
-    // This prevents movies with the genre as a secondary/tangential genre from appearing
-    const filteredResults = (response.data.results || []).filter(movie => {
+    // First filter: ensure the genre is in the movie's genre_ids
+    const initialFiltered = (response.data.results || []).filter(movie => {
       if (!movie.genre_ids || !Array.isArray(movie.genre_ids)) {
         return false;
       }
-      // Ensure the requested genre is actually in the movie's genre list
       return movie.genre_ids.includes(genreIdNum);
     });
 
+    // Fetch full movie details to get accurate genre information
+    // This ensures we only include movies where the genre is actually appropriate
+    const movieDetailsPromises = initialFiltered.map(movie => 
+      axios.get(
+        `https://api.themoviedb.org/3/movie/${movie.id}`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: 'en-US'
+          }
+        }
+      ).then(res => ({ ...movie, fullGenres: res.data.genres }))
+       .catch(() => ({ ...movie, fullGenres: [] }))
+    );
+
+    const moviesWithDetails = await Promise.all(movieDetailsPromises);
+
+    // Filter to ensure the requested genre is a PRIMARY genre (first 2-3 genres)
+    // This prevents movies where the genre is just a tangential tag
+    const filteredResults = moviesWithDetails.filter(movie => {
+      if (!movie.fullGenres || !Array.isArray(movie.fullGenres) || movie.fullGenres.length === 0) {
+        return false;
+      }
+
+      // Find the index of the requested genre in the movie's genre list
+      const genreIndex = movie.fullGenres.findIndex(g => g.id === genreIdNum);
+      
+      // Only include if the genre is in the first 3 genres (primary genres)
+      // This ensures movies are actually of that genre, not just tangentially related
+      return genreIndex >= 0 && genreIndex < 3;
+    });
+
+    // Map back to the original movie format (without fullGenres)
+    const finalResults = filteredResults.map(({ fullGenres, ...movie }) => movie);
+
     // Return the filtered results
-    // Note: total_results and total_pages are approximate since we're filtering
     res.json({
       ...response.data,
-      results: filteredResults
+      results: finalResults
     });
   } catch (error) {
     console.error('Get popular movies by genre error:', error);
