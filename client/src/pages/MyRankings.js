@@ -705,14 +705,20 @@ const MyRankings = () => {
                       position: 'relative',
                       zIndex: isDragging ? 10 : (isDragOver ? 5 : 1),
                       pointerEvents: isDragging ? 'none' : 'auto',
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      touchAction: 'none',
                       '&:hover': {
                         backgroundColor: draggedIndex === null ? 'rgba(0, 212, 255, 0.05)' : (isDragOver && !isDragging ? 'rgba(0, 212, 255, 0.08)' : 'transparent'),
                       },
                       '&:active': {
                         cursor: 'grabbing',
                       },
-                      '&[draggable="true"]': {
-                        userSelect: 'none',
+                      '& *': {
+                        pointerEvents: 'none',
+                      },
+                      '& button, & a': {
+                        pointerEvents: 'auto',
                       }
                     }}
                   >
@@ -722,12 +728,8 @@ const MyRankings = () => {
                         display: 'flex',
                         alignItems: 'center',
                         color: 'rgba(255, 255, 255, 0.5)',
-                        cursor: 'grab',
-                        '&:active': {
-                          cursor: 'grabbing',
-                        }
+                        pointerEvents: 'none',
                       }}
-                      onMouseDown={(e) => e.stopPropagation()}
                     >
                       <DragIndicatorIcon sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
                     </Box>
