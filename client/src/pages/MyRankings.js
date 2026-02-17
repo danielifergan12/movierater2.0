@@ -91,6 +91,15 @@ const MyRankings = () => {
     setDragOverIndex(null); // Reset on new drag
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/html', e.target.outerHTML);
+    // Use CSS for visual feedback instead of drag image
+    const dragImage = document.createElement('div');
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-9999px';
+    dragImage.style.width = '1px';
+    dragImage.style.height = '1px';
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    setTimeout(() => document.body.removeChild(dragImage), 0);
   };
 
   const handleDragOver = (e, dropOriginalIndex) => {
@@ -635,6 +644,7 @@ const MyRankings = () => {
                 const score = ranking.computedScore || computeEvenScore(originalIndex, rawRatings.length);
                 const isDragging = draggedIndex === originalIndex;
                 const isDragOver = dragOverIndex === originalIndex;
+                const isSourcePosition = draggedIndex === originalIndex && draggedIndex !== null;
                 
                 // Determine if this item should move up or down to make space
                 // When dragging down (e.g., from 2 to 5), items 3-5 should move up
@@ -658,16 +668,21 @@ const MyRankings = () => {
                   {isDragOver && draggedIndex !== null && draggedIndex !== originalIndex && (
                     <Box
                       sx={{
-                        minHeight: { xs: 140, sm: 180 },
-                        border: '2px dashed #00d4ff',
+                        height: { xs: 140, sm: 180 },
+                        border: '3px dashed #00d4ff',
                         borderRadius: 2,
-                        backgroundColor: 'rgba(0, 212, 255, 0.15)',
+                        backgroundColor: 'rgba(0, 212, 255, 0.2)',
                         margin: { xs: '8px 16px', sm: '12px 32px' },
+                        boxShadow: '0 0 20px rgba(0, 212, 255, 0.5)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        transition: 'opacity 0.2s ease',
-                        opacity: 1,
+                        transition: 'all 0.2s ease',
+                        animation: 'pulse 2s ease-in-out infinite',
+                        '@keyframes pulse': {
+                          '0%, 100%': { opacity: 0.8 },
+                          '50%': { opacity: 1 },
+                        },
                       }}
                     >
                       <Typography variant="body2" sx={{ color: '#00d4ff', fontWeight: 600 }}>
@@ -697,13 +712,26 @@ const MyRankings = () => {
                       flexDirection: { xs: 'column', sm: 'row' },
                       alignItems: { xs: 'flex-start', sm: 'center' },
                       cursor: 'grab',
-                      opacity: isDragging ? 0.2 : 1,
-                      transform: shouldMoveUp ? 'translateY(-100%)' : shouldMoveDown ? 'translateY(100%)' : 'translateY(0)',
-                      transition: draggedIndex !== null && !isDragging ? 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease' : 'opacity 0.15s ease',
+                      // Enhanced dragged item visual (shadow elevation)
+                      opacity: isDragging ? 0.95 : (isSourcePosition ? 0.3 : 1),
+                      transform: isDragging 
+                        ? 'scale(1.05) translateZ(0)' 
+                        : (shouldMoveUp ? 'translateY(-100%)' : shouldMoveDown ? 'translateY(100%)' : 'translateY(0)'),
+                      boxShadow: isDragging 
+                        ? '0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 212, 255, 0.3)' 
+                        : 'none',
+                      // Original position fade-out
+                      border: isSourcePosition 
+                        ? '2px dashed rgba(0, 212, 255, 0.3)' 
+                        : (isDragOver && !isDragging ? '2px solid rgba(0, 212, 255, 0.4)' : '2px solid transparent'),
+                      transition: isDragging 
+                        ? 'transform 0.2s ease, opacity 0.2s ease, boxShadow 0.2s ease' 
+                        : (draggedIndex !== null && !isDragging 
+                          ? 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease' 
+                          : 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease'),
                       backgroundColor: isDragOver && !isDragging ? 'rgba(0, 212, 255, 0.08)' : 'transparent',
-                      border: isDragOver && !isDragging ? '2px solid rgba(0, 212, 255, 0.4)' : '2px solid transparent',
                       position: 'relative',
-                      zIndex: isDragging ? 10 : (isDragOver ? 5 : 1),
+                      zIndex: isDragging ? 1000 : (isDragOver ? 5 : 1),
                       pointerEvents: isDragging ? 'none' : 'auto',
                       userSelect: 'none',
                       WebkitUserSelect: 'none',
