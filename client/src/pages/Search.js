@@ -20,15 +20,16 @@ import { useMovies } from '../contexts/MovieContext';
 const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { searchMovies, searchResults, loading } = useMovies();
-  const [query, setQuery] = useState(searchParams.get('q') || '');
+  const urlQuery = searchParams.get('q') || '';
+  const [query, setQuery] = useState(urlQuery);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   // Sync query from URL params when they change (e.g., when navigating from navbar search)
   useEffect(() => {
-    const urlQuery = searchParams.get('q') || '';
-    if (urlQuery && urlQuery !== query) {
-      setQuery(urlQuery);
+    const currentUrlQuery = searchParams.get('q') || '';
+    if (currentUrlQuery !== query) {
+      setQuery(currentUrlQuery);
       setPage(1);
     }
   }, [searchParams]);
