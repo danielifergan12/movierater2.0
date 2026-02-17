@@ -21,26 +21,12 @@ router.post('/register', [
 
     const { username, email, password } = req.body;
 
-    // Check if user already exists (case-insensitive)
+    // Check if user already exists
     const existingUser = await User.findOne({
-      $or: [
-        { email: { $regex: new RegExp(`^${email}$`, 'i') } },
-        { username: { $regex: new RegExp(`^${username}$`, 'i') } }
-      ]
+      $or: [{ email }, { username }]
     });
 
     if (existingUser) {
-      // Provide more specific error message
-      if (existingUser.email.toLowerCase() === email.toLowerCase()) {
-        return res.status(400).json({
-          message: 'An account with this email already exists'
-        });
-      }
-      if (existingUser.username && existingUser.username.toLowerCase() === username.toLowerCase()) {
-        return res.status(400).json({
-          message: 'This username is already taken'
-        });
-      }
       return res.status(400).json({
         message: 'User with this email or username already exists'
       });
