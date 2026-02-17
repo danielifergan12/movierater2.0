@@ -184,6 +184,7 @@ export function useRatings() {
         console.log(`[RATINGS] Hydration complete for user ${currentUserId}`);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // (Transition handling consolidated in the user change effect above)
