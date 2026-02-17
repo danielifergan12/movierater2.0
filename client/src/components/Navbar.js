@@ -22,12 +22,7 @@ const Navbar = () => {
     navigate(`/movie/${movie.id}`);
   };
 
-  const handleNavigation = (path, e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    // Use navigate with replace: false to ensure proper navigation
+  const handleNavigation = (path) => {
     navigate(path, { replace: false });
   };
 
@@ -45,7 +40,7 @@ const Navbar = () => {
       }}>
         {isAuthenticated && (
           <Box
-            onClick={(e) => handleNavigation('/', e)}
+            onClick={() => handleNavigation('/')}
             sx={{
               textDecoration: 'none',
               color: 'inherit',
@@ -138,7 +133,7 @@ const Navbar = () => {
               <Button
                 color="inherit"
                 startIcon={<StarIcon />}
-                onClick={(e) => handleNavigation('/rankings', e)}
+                onClick={() => handleNavigation('/rankings')}
                 sx={{ 
                   mr: { xs: 0.5, sm: 1 },
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -158,7 +153,7 @@ const Navbar = () => {
               <Button
                 color="inherit"
                 startIcon={<PeopleIcon />}
-                onClick={(e) => handleNavigation('/discover', e)}
+                onClick={() => handleNavigation('/discover')}
                 sx={{ 
                   mr: { xs: 0.5, sm: 1 },
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -178,7 +173,7 @@ const Navbar = () => {
               <Button
                 color="inherit"
                 startIcon={<FavoriteIcon />}
-                onClick={(e) => handleNavigation('/following', e)}
+                onClick={() => handleNavigation('/following')}
                 sx={{ 
                   mr: { xs: 0.5, sm: 1 },
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -199,7 +194,7 @@ const Navbar = () => {
                 <Button
                   color="inherit"
                   startIcon={<AdminIcon />}
-                  onClick={(e) => handleNavigation('/admin/users', e)}
+                  onClick={() => handleNavigation('/admin/users')}
                   sx={{ 
                     mr: { xs: 0.5, sm: 1 },
                     fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -236,7 +231,7 @@ const Navbar = () => {
             <>
               <Button 
                 color="inherit" 
-                onClick={(e) => handleNavigation('/login', e)}
+                onClick={() => handleNavigation('/login')}
                 sx={{ 
                   mr: { xs: 1, sm: 1 },
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -250,7 +245,7 @@ const Navbar = () => {
               </Button>
               <Button 
                 variant="contained" 
-                onClick={(e) => handleNavigation('/register', e)}
+                onClick={() => handleNavigation('/register')}
                 sx={{ 
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
                   px: { xs: 2, sm: 2 },
