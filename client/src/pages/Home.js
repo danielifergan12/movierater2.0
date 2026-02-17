@@ -14,16 +14,13 @@ import {
   CircularProgress,
   Tabs,
   Tab,
-  IconButton,
-  Snackbar,
-  Alert
+  IconButton
 } from '@mui/material';
-import { Refresh as RefreshIcon, Star as StarIcon, Movie as MovieIcon, VisibilityOff as VisibilityOffIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Star as StarIcon, Movie as MovieIcon } from '@mui/icons-material';
 import { useMovies } from '../contexts/MovieContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
-import api from '../config/axios';
 
 const Home = () => {
   const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
@@ -32,8 +29,6 @@ const Home = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
   const [ratingMovie, setRatingMovie] = useState(null);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [hiddenMovieIds, setHiddenMovieIds] = useState(new Set());
 
   useEffect(() => {
     // Always load trending movies, regardless of authentication
@@ -71,48 +66,15 @@ const Home = () => {
   };
 
   const handleRefresh = () => {
-    // Clear current recommendations and fetch fresh ones
+    // Clear current recommendations and fetch completely fresh ones
     setRefreshKey(prev => prev + 1);
     getPersonalRecommendations(true); // Pass true to force refresh
   };
 
-  const hideMovie = async (movieId) => {
-    try {
-      await api.post(`/api/movies/hide/${movieId}`);
-      // Add to hidden set to immediately remove from UI
-      setHiddenMovieIds(prev => new Set([...prev, movieId.toString()]));
-      setSnackbar({ 
-        open: true, 
-        message: 'Movie hidden from suggestions for 10 days', 
-        severity: 'success' 
-      });
-      // Optionally refresh recommendations to get a replacement
-      if (activeTab === 1) {
-        setTimeout(() => {
-          getPersonalRecommendations();
-        }, 500);
-      }
-    } catch (error) {
-      console.error('Error hiding movie:', error);
-      setSnackbar({ 
-        open: true, 
-        message: error.response?.data?.message || 'Failed to hide movie', 
-        severity: 'error' 
-      });
-    }
-  };
-
-  const handleSnackbarClose = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  // Filter out already-rated movies and hidden movies from recommendations
+  // Filter out already-rated movies from recommendations
   const ratedMovieIds = new Set(rawRatings.map(r => r.id?.toString()).filter(Boolean));
   const filteredRecommendedMovies = recommendedMovies.filter(movie => 
-    movie && 
-    movie.id && 
-    !ratedMovieIds.has(movie.id.toString()) &&
-    !hiddenMovieIds.has(movie.id.toString())
+    movie && movie.id && !ratedMovieIds.has(movie.id.toString())
   );
 
   
@@ -217,58 +179,33 @@ const Home = () => {
       </CardContent>
       <CardActions sx={{ p: { xs: 2, sm: 3 }, pt: 0, gap: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
         {activeTab === 1 && (
-          <>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<StarIcon />}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setRatingMovie({
-                  id: movie.id,
-                  title: movie.title,
-                  posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'
-                });
-              }}
-              fullWidth
-              sx={{
-                borderColor: '#00d4ff',
-                color: '#00d4ff',
-                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                py: { xs: 0.75, sm: 1 },
-                '&:hover': {
-                  borderColor: '#66e0ff',
-                  backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                },
-              }}
-            >
-              Rate
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<VisibilityOffIcon />}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                hideMovie(movie.id);
-              }}
-              fullWidth
-              sx={{
-                borderColor: '#ff6b35',
-                color: '#ff6b35',
-                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                py: { xs: 0.75, sm: 1 },
-                '&:hover': {
-                  borderColor: '#ff8c5a',
-                  backgroundColor: 'rgba(255, 107, 53, 0.1)',
-                },
-              }}
-            >
-              Haven't seen
-            </Button>
-          </>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<StarIcon />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setRatingMovie({
+                id: movie.id,
+                title: movie.title,
+                posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'
+              });
+            }}
+            fullWidth
+            sx={{
+              borderColor: '#00d4ff',
+              color: '#00d4ff',
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              py: { xs: 0.75, sm: 1 },
+              '&:hover': {
+                borderColor: '#66e0ff',
+                backgroundColor: 'rgba(0, 212, 255, 0.1)',
+              },
+            }}
+          >
+            Rate
+          </Button>
         )}
         <Button
           size="small"
@@ -509,25 +446,6 @@ const Home = () => {
           onComplete={handleRatingComplete}
         />
       )}
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={handleSnackbarClose} 
-          severity={snackbar.severity}
-          sx={{ 
-            width: '100%',
-            backgroundColor: snackbar.severity === 'error' ? 'rgba(211, 47, 47, 0.9)' : 'rgba(46, 125, 50, 0.9)',
-            color: '#ffffff'
-          }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };
