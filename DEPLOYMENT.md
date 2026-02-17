@@ -1,54 +1,81 @@
 # Vercel Deployment Guide
 
-## Option 1: Deploy Frontend and Backend Separately (Recommended)
+## Quick Setup (Recommended)
 
-### Deploy Frontend (React App)
+The `vercel.json` file is already configured! Just follow these steps:
+
+### 1. Push to GitHub
+```bash
+git add .
+git commit -m "Add Vercel configuration"
+git push origin main
+```
+
+### 2. Deploy on Vercel
 
 1. Go to [Vercel](https://vercel.com) and create a new project
 2. Import your GitHub repository
-3. Configure:
-   - **Root Directory:** `client`
-   - **Build Command:** `npm run build`
-   - **Output Directory:** `build`
-   - **Install Command:** `npm install`
+3. **Vercel will automatically detect `vercel.json`** - no manual configuration needed!
 
-4. Add Environment Variables (if needed):
-   - `REACT_APP_API_URL` = Your backend API URL
+### 3. Add Environment Variables
 
-### Deploy Backend (Node.js API)
+In Vercel project settings → Environment Variables, add:
+- `MONGODB_URI` - Your MongoDB connection string (use MongoDB Atlas for production)
+- `JWT_SECRET` - Secret key for JWT tokens
+- `TMDB_API_KEY` - The Movie Database API key
+- `OMDB_API_KEY` - OMDB API key (optional, for IMDB ratings)
+- `CLOUDINARY_CLOUD_NAME` - (optional)
+- `CLOUDINARY_API_KEY` - (optional)
+- `CLOUDINARY_API_SECRET` - (optional)
 
-1. Create another Vercel project
-2. Import the same GitHub repository
-3. Configure:
-   - **Root Directory:** `.` (root)
-   - **Build Command:** (leave empty or `npm install`)
-   - **Output Directory:** (leave empty)
-   - **Framework Preset:** Other
+### 4. Deploy!
 
-4. Create `api/index.js` (see below)
+Click "Deploy" and Vercel will:
+- Install root dependencies (`npm install`)
+- Install client dependencies (`cd client && npm install`)
+- Build the React app (`npm run build`)
+- Serve from `client/build`
 
-5. Add Environment Variables:
-   - `MONGODB_URI`
-   - `JWT_SECRET`
-   - `TMDB_API_KEY`
-   - `OMDB_API_KEY` (optional)
-   - All other variables from your `.env`
+## Build Commands Reference
 
-## Option 2: Single Deployment (Current Setup)
+The `vercel.json` uses:
+- **Build Command:** `npm run vercel-build`
+- **Output Directory:** `client/build`
+- **Install Command:** `npm install`
 
-The `vercel.json` file is configured for single deployment. Make sure:
-
-1. All client files are pushed to GitHub
-2. In Vercel settings:
-   - **Root Directory:** Leave empty (root)
-   - **Build Command:** `cd client && npm install && npm run build`
-   - **Output Directory:** `client/build`
-   - **Install Command:** `npm install`
+This runs:
+1. `npm install` (root dependencies)
+2. `cd client && npm install` (client dependencies)
+3. `cd client && npm run build` (build React app)
 
 ## Troubleshooting
 
-If you get "client: No such file or directory":
+### Error: "client: No such file or directory"
 - Make sure all files are pushed to GitHub
 - Check that `client/` folder exists in your repo
-- Verify the root directory setting in Vercel
+- Verify you're using the root directory (not `client`)
+
+### Error: Build fails
+- Check Vercel build logs for specific errors
+- Ensure all environment variables are set
+- Verify `package.json` files are correct
+
+### API calls not working
+- Make sure your backend is deployed separately (Vercel is only serving the frontend)
+- Update API URLs in your frontend if needed
+- Check CORS settings on your backend
+
+## Alternative: Deploy Frontend and Backend Separately
+
+### Frontend Only (Current Setup)
+- Deploy to Vercel using the current `vercel.json`
+- This will serve your React app
+
+### Backend (Separate Service)
+Deploy your Node.js backend to:
+- **Railway** (recommended): https://railway.app
+- **Render**: https://render.com
+- **Heroku**: https://heroku.com
+
+Then update your frontend API calls to point to your backend URL.
 
