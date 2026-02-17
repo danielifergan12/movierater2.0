@@ -184,20 +184,6 @@ const Login = () => {
             }}
           />
 
-          <Box sx={{ textAlign: 'right', mt: 1, mb: 1 }}>
-            <Link 
-              to="/forgot-password" 
-              style={{ 
-                textDecoration: 'none',
-                color: '#00d4ff',
-                fontWeight: 600,
-                fontSize: '0.875rem'
-              }}
-            >
-              Forgot Password?
-            </Link>
-          </Box>
-
           <Button
             type="submit"
             fullWidth
