@@ -58,7 +58,9 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     }
     
     // Check if this movie is already rated
-    const alreadyRatedIndex = rawRatings.findIndex(r => r.id === movie.id);
+    // Use string comparison to handle ID type mismatches
+    const movieIdStr = String(movie.id);
+    const alreadyRatedIndex = rawRatings.findIndex(r => String(r.id) === movieIdStr);
     const alreadyRated = alreadyRatedIndex !== -1;
     
     if (alreadyRated && !allowRerate) {
@@ -68,16 +70,23 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     }
     
     // If re-rating, remove the movie from ratings first
+    // Use robust string comparison to handle ID type mismatches
+    const movieIdStr = String(movie.id);
+    let ratingsToUse = rawRatings;
+    
     if (alreadyRated && allowRerate) {
       setIsRerating(true);
-      const updatedRatings = rawRatings.filter(r => r.id !== movie.id);
+      // Filter out the movie being reranked using string comparison
+      const updatedRatings = rawRatings.filter(r => {
+        const rIdStr = String(r.id);
+        return rIdStr !== movieIdStr;
+      });
       setRatingsArray(updatedRatings);
+      ratingsToUse = updatedRatings; // Use filtered array for calculations
     }
 
     // Determine if it's first time based on ratings length (after potential removal)
-    const currentRatingsLength = alreadyRated && allowRerate 
-      ? rawRatings.length - 1 
-      : rawRatings.length;
+    const currentRatingsLength = ratingsToUse.length;
       
     if (currentRatingsLength === 0) {
       setFirstTime(true);
@@ -94,12 +103,27 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     if (!open || !isInitialized || firstTime) return;
     
     // Get current ratings - always filter out the movie being reranked to prevent self-comparison
-    const currentRatings = rawRatings.filter(r => r.id !== movie.id);
+    // Use robust ID comparison to handle string/number mismatches
+    const movieIdStr = String(movie.id);
+    const currentRatings = rawRatings.filter(r => {
+      const rIdStr = String(r.id);
+      return rIdStr !== movieIdStr;
+    });
     
-    if (currentRatings.length === 0) return;
+    if (currentRatings.length === 0) {
+      // No other movies to compare against, just insert at position 0
+      const updated = upsertAtIndex(movie, 0);
+      onComplete && onComplete(updated);
+      onClose && onClose();
+      return;
+    }
     
-    if (low > high) {
-      const insertAt = low;
+    // Adjust high if it's out of bounds for the filtered array
+    const adjustedHigh = Math.min(high, currentRatings.length - 1);
+    const adjustedLow = Math.min(low, currentRatings.length - 1);
+    
+    if (adjustedLow > adjustedHigh) {
+      const insertAt = adjustedLow;
       // If re-rating, the movie is already removed, so we can just insert
       const updated = upsertAtIndex(movie, insertAt);
       onComplete && onComplete(updated);
@@ -107,21 +131,35 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       return;
     }
     
-    const nextMid = Math.floor((low + high) / 2);
+    const nextMid = Math.floor((adjustedLow + adjustedHigh) / 2);
+    
+    // Ensure nextMid is within bounds
+    if (nextMid < 0 || nextMid >= currentRatings.length) {
+      // Out of bounds, just insert at the end
+      const updated = upsertAtIndex(movie, currentRatings.length);
+      onComplete && onComplete(updated);
+      onClose && onClose();
+      return;
+    }
     
     // Robust safety check: ensure we're not comparing against the same movie
     // Find the next valid comparison target if nextMid points to the same movie
     let validMid = nextMid;
+    const movieIdStrCheck = String(movie.id);
     
-    // If the calculated mid points to the same movie, find the nearest valid position
-    if (currentRatings[validMid] && currentRatings[validMid].id === movie.id) {
+    // Check if the calculated mid points to the same movie
+    const midRating = currentRatings[validMid];
+    const midRatingIdStr = midRating ? String(midRating.id) : '';
+    
+    if (midRatingIdStr === movieIdStrCheck) {
       // Try to find a valid position by searching nearby positions
       let found = false;
-      const maxSearch = Math.max(currentRatings.length, 10); // Search up to array length or 10 positions
+      const maxSearch = Math.max(currentRatings.length, 10);
       
       // First, try positions after nextMid
       for (let i = nextMid + 1; i < currentRatings.length && i < nextMid + maxSearch; i++) {
-        if (currentRatings[i] && currentRatings[i].id !== movie.id) {
+        const ratingIdStr = String(currentRatings[i]?.id || '');
+        if (ratingIdStr !== movieIdStrCheck) {
           validMid = i;
           found = true;
           break;
@@ -131,7 +169,8 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       // If not found, try positions before nextMid
       if (!found) {
         for (let i = nextMid - 1; i >= 0 && i > nextMid - maxSearch; i--) {
-          if (currentRatings[i] && currentRatings[i].id !== movie.id) {
+          const ratingIdStr = String(currentRatings[i]?.id || '');
+          if (ratingIdStr !== movieIdStrCheck) {
             validMid = i;
             found = true;
             break;
@@ -142,7 +181,8 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       // If still no valid position found, search the entire array
       if (!found) {
         for (let i = 0; i < currentRatings.length; i++) {
-          if (currentRatings[i] && currentRatings[i].id !== movie.id) {
+          const ratingIdStr = String(currentRatings[i]?.id || '');
+          if (ratingIdStr !== movieIdStrCheck) {
             validMid = i;
             found = true;
             break;
@@ -161,9 +201,23 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     }
     
     // Final safety check: ensure validMid is within bounds and doesn't match the movie
-    if (validMid >= 0 && validMid < currentRatings.length && 
-        currentRatings[validMid] && currentRatings[validMid].id !== movie.id) {
-      setMid(validMid);
+    if (validMid >= 0 && validMid < currentRatings.length) {
+      const finalRating = currentRatings[validMid];
+      const finalRatingIdStr = String(finalRating?.id || '');
+      if (finalRatingIdStr !== movieIdStrCheck) {
+        setMid(validMid);
+      } else {
+        // Still matches somehow - find any other movie
+        const otherIndex = currentRatings.findIndex(r => String(r.id) !== movieIdStrCheck);
+        if (otherIndex >= 0) {
+          setMid(otherIndex);
+        } else {
+          // No other movies, just complete
+          const updated = upsertAtIndex(movie, currentRatings.length);
+          onComplete && onComplete(updated);
+          onClose && onClose();
+        }
+      }
     } else {
       // Fallback: if somehow we still have an invalid mid, just complete the rating
       const updated = upsertAtIndex(movie, Math.min(nextMid, currentRatings.length));
@@ -176,7 +230,12 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     if (mid == null) return null;
     
     // Get current ratings (always filter out the movie being reranked to prevent self-comparison)
-    const currentRatings = rawRatings.filter(r => r.id !== movie.id);
+    // Use robust string comparison to handle ID type mismatches
+    const movieIdStr = String(movie.id);
+    const currentRatings = rawRatings.filter(r => {
+      const rIdStr = String(r.id);
+      return rIdStr !== movieIdStr;
+    });
     
     // Ensure mid is within valid bounds
     if (mid < 0 || mid >= currentRatings.length) {
@@ -191,13 +250,7 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     }
     
     // Critical check: if somehow the target is the same movie, return null to avoid comparison
-    if (target.id === movie.id) {
-      return null;
-    }
-    
-    // Additional defensive check: verify the target is actually different
-    // This handles edge cases where IDs might be compared incorrectly
-    const movieIdStr = String(movie.id);
+    // Use string comparison to handle type mismatches
     const targetIdStr = String(target.id);
     if (movieIdStr === targetIdStr) {
       return null;
@@ -440,7 +493,10 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                   // Skip current comparison - treat as equal and place at current mid position
                   // This effectively skips to the next step in the binary search
                   const currentRatings = isRerating 
-                    ? rawRatings.filter(r => r.id !== movie.id)
+                    ? (() => {
+                        const movieIdStr = String(movie.id);
+                        return rawRatings.filter(r => String(r.id) !== movieIdStr);
+                      })()
                     : rawRatings;
                   
                   if (low > high) {
