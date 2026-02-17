@@ -14,7 +14,7 @@ import {
   Fade
 } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
-import axios from 'axios';
+import api from '../config/axios';
 
 const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." }) => {
   const [query, setQuery] = useState('');
@@ -35,7 +35,7 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
 
       setLoading(true);
       try {
-        const response = await axios.get(`/api/movies/search?query=${encodeURIComponent(query)}&page=1`);
+        const response = await api.get(`/api/movies/search?query=${encodeURIComponent(query)}&page=1`);
         setSuggestions(response.data.results.slice(0, 8)); // Limit to 8 suggestions
         setShowSuggestions(true);
       } catch (error) {

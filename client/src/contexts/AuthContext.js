@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../config/axios';
 
 const AuthContext = createContext();
 
@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // Token is handled by axios interceptor
       fetchUser();
     } else {
       setLoading(false);
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const response = await axios.get('/api/auth/me');
+      const response = await api.get('/api/auth/me');
       setUser(response.data);
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -40,13 +40,13 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
+      const response = await api.post('/api/auth/login', { email, password });
       const { token: newToken, user: userData } = response.data;
       
       setToken(newToken);
       setUser(userData);
       localStorage.setItem('token', newToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+      // Token is handled by axios interceptor
       
       return { success: true };
     } catch (error) {
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password) => {
     try {
-      const response = await axios.post('/api/auth/register', { 
+      const response = await api.post('/api/auth/register', { 
         username, 
         email, 
         password 
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
       setToken(newToken);
       setUser(userData);
       localStorage.setItem('token', newToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+      // Token is handled by axios interceptor
       
       return { success: true };
     } catch (error) {
@@ -88,12 +88,12 @@ export const AuthProvider = ({ children }) => {
     try {
       localStorage.removeItem('token');
     } catch {}
-    delete axios.defaults.headers.common['Authorization'];
+    // Token removal is handled by interceptor
   };
 
   const updateProfile = async (profileData) => {
     try {
-      const response = await axios.put('/api/auth/profile', profileData);
+      const response = await api.put('/api/auth/profile', profileData);
       setUser(response.data);
       return { success: true };
     } catch (error) {

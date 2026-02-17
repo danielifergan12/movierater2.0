@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import axios from 'axios';
+import api from '../config/axios';
 
 const MovieContext = createContext();
 
@@ -20,7 +20,7 @@ export const MovieProvider = ({ children }) => {
   const searchMovies = async (query, page = 1) => {
     setLoading(true);
     try {
-      const response = await axios.get(`/api/movies/search?query=${encodeURIComponent(query)}&page=${page}`);
+      const response = await api.get(`/api/movies/search?query=${encodeURIComponent(query)}&page=${page}`);
       setSearchResults(response.data.results);
       return response.data;
     } catch (error) {
@@ -33,7 +33,7 @@ export const MovieProvider = ({ children }) => {
 
   const getMovieDetails = async (movieId) => {
     try {
-      const response = await axios.get(`/api/movies/${movieId}`);
+      const response = await api.get(`/api/movies/${movieId}`);
       return response.data;
     } catch (error) {
       console.error('Get movie details error:', error);
@@ -43,7 +43,7 @@ export const MovieProvider = ({ children }) => {
 
   const getTrendingMovies = async () => {
     try {
-      const response = await axios.get('/api/movies/trending/week');
+      const response = await api.get('/api/movies/trending/week');
       setTrendingMovies(response.data.results);
       return response.data;
     } catch (error) {
@@ -54,7 +54,7 @@ export const MovieProvider = ({ children }) => {
 
   const getPopularMovies = async (page = 1) => {
     try {
-      const response = await axios.get(`/api/movies/popular?page=${page}`);
+      const response = await api.get(`/api/movies/popular?page=${page}`);
       setPopularMovies(response.data.results);
       return response.data;
     } catch (error) {
@@ -65,7 +65,7 @@ export const MovieProvider = ({ children }) => {
 
   const getMoviesByGenre = async (genreId, page = 1) => {
     try {
-      const response = await axios.get(`/api/movies/genre/${genreId}?page=${page}`);
+      const response = await api.get(`/api/movies/genre/${genreId}?page=${page}`);
       return response.data;
     } catch (error) {
       console.error('Get movies by genre error:', error);
@@ -75,7 +75,7 @@ export const MovieProvider = ({ children }) => {
 
   const getPersonalRecommendations = async () => {
     try {
-      const response = await axios.get('/api/movies/recommendations/personal');
+      const response = await api.get('/api/movies/recommendations/personal');
       return response.data;
     } catch (error) {
       console.error('Get recommendations error:', error);

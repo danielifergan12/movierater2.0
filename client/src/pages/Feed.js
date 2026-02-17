@@ -23,7 +23,7 @@ import {
   Comment,
   Share
 } from '@mui/icons-material';
-import axios from 'axios';
+import api from '../config/axios';
 
 const Feed = () => {
   const [reviews, setReviews] = useState([]);
@@ -54,7 +54,7 @@ const Feed = () => {
           endpoint = '/api/feed/recent';
       }
 
-      const response = await axios.get(`${endpoint}?page=${page}&limit=10`);
+      const response = await api.get(`${endpoint}?page=${page}&limit=10`);
       setReviews(response.data.reviews);
     } catch (error) {
       console.error('Error fetching feed:', error);
@@ -70,7 +70,7 @@ const Feed = () => {
 
   const handleLike = async (reviewId) => {
     try {
-      const response = await axios.post(`/api/reviews/${reviewId}/like`);
+      const response = await api.post(`/api/reviews/${reviewId}/like`);
       // Update the review in the state
       setReviews(prevReviews =>
         prevReviews.map(review =>

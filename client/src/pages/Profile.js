@@ -26,7 +26,7 @@ import {
   Share
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
+import api from '../config/axios';
 
 const Profile = () => {
   const { userId } = useParams();
@@ -47,8 +47,8 @@ const Profile = () => {
     setLoading(true);
     try {
       const [profileResponse, reviewsResponse] = await Promise.all([
-        axios.get(`/api/users/${userId}`),
-        axios.get(`/api/reviews/user/${userId}`)
+        api.get(`/api/users/${userId}`),
+        api.get(`/api/reviews/user/${userId}`)
       ]);
 
       setProfileUser(profileResponse.data.user);
@@ -63,7 +63,7 @@ const Profile = () => {
 
   const handleFollow = async () => {
     try {
-      const response = await axios.post(`/api/users/${userId}/follow`);
+      const response = await api.post(`/api/users/${userId}/follow`);
       setIsFollowing(response.data.isFollowing);
       fetchProfile(); // Refresh profile data
     } catch (error) {
@@ -73,7 +73,7 @@ const Profile = () => {
 
   const handleLike = async (reviewId) => {
     try {
-      const response = await axios.post(`/api/reviews/${reviewId}/like`);
+      const response = await api.post(`/api/reviews/${reviewId}/like`);
       setReviews(prevReviews =>
         prevReviews.map(review =>
           review._id === reviewId

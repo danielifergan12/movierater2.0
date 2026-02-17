@@ -13,7 +13,7 @@ import {
   Rating,
   CircularProgress
 } from '@mui/material';
-import axios from 'axios';
+import api from '../config/axios';
 import RatingModal from '../components/RatingModal';
 import { useRatings } from '../hooks/useRatings';
 
@@ -35,7 +35,7 @@ const Rate = () => {
   const loadPage = async (nextPage, replace = false) => {
     setLoading(true);
     try {
-      const res = await axios.get(`/api/movies/popular?page=${nextPage}`);
+      const res = await api.get(`/api/movies/popular?page=${nextPage}`);
       const newMovies = res.data.results || [];
       setMovies(prev => (replace ? newMovies : [...prev, ...newMovies]));
       setHasMore(newMovies.length > 0);

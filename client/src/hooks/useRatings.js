@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import axios from 'axios';
+import api from '../config/axios';
 import { useAuth } from '../contexts/AuthContext';
 
 const GUEST_STORAGE_KEY = 'guestRatings';
@@ -52,7 +52,7 @@ export function useRatings() {
     
     if (token && userIdToSave && prevUserIdRef.current === userIdToSave && ratings.length > 0) {
       console.log(`[RATINGS] Auto-saving ${ratings.length} ratings to server for user ${userIdToSave}`);
-      axios.put('/api/ratings', { ratings }).catch((error) => {
+          api.put('/api/ratings', { ratings }).catch((error) => {
         console.error('[RATINGS] Error saving to server:', error);
         console.error('[RATINGS] Error response:', error.response?.data);
       });
@@ -74,7 +74,7 @@ export function useRatings() {
       if (token) {
         console.log(`[RATINGS] Saving ${ratings.length} ratings before logout for user ${prevUserId}`);
         // Save synchronously if possible, or at least attempt save
-        axios.put('/api/ratings', { ratings }).then(() => {
+        api.put('/api/ratings', { ratings }).then(() => {
           console.log(`[RATINGS] Successfully saved ratings before logout`);
         }).catch((error) => {
           console.error('[RATINGS] Error saving before logout:', error);
@@ -122,7 +122,7 @@ export function useRatings() {
       try {
         isHydratingRef.current = true;
         console.log(`[RATINGS] Fetching ratings for user: ${currentUserId}`);
-        const res = await axios.get('/api/ratings');
+        const res = await api.get('/api/ratings');
         console.log('[RATINGS] Server response:', res.data);
         const serverRatings = Array.isArray(res.data?.ratings) ? res.data.ratings : [];
         console.log(`[RATINGS] Loaded ${serverRatings.length} ratings for user ${currentUserId}`);
@@ -151,7 +151,7 @@ export function useRatings() {
             if (guest.length > 0) {
               // Migrate guest ratings to this account
               console.log(`[RATINGS] Migrating ${guest.length} guest ratings to user ${currentUserId}`);
-              await axios.put('/api/ratings', { ratings: guest });
+              await api.put('/api/ratings', { ratings: guest });
               setRatings(guest);
               try {
                 localStorage.setItem(`${USER_STORAGE_PREFIX}${currentUserId}`, JSON.stringify(guest));
@@ -226,7 +226,7 @@ export function useRatings() {
         const token = localStorage.getItem('token');
         if (token) {
           console.log(`[RATINGS] Immediately saving ${updated.length} ratings to server for user ${user._id}`);
-          axios.put('/api/ratings', { ratings: updated }).catch((error) => {
+          api.put('/api/ratings', { ratings: updated }).catch((error) => {
             console.error('[RATINGS] Error saving to server:', error);
             console.error('[RATINGS] Error response:', error.response?.data);
           });
