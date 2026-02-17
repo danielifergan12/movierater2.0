@@ -676,33 +676,19 @@ const MyRankings = () => {
                     </Box>
                   )}
                   <ListItem 
-                    draggable={filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length}
+                    draggable={true}
                     onDragStart={(e) => {
-                      if (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) {
-                        handleDragStart(e, originalIndex);
-                      } else {
-                        e.preventDefault();
-                      }
+                      handleDragStart(e, originalIndex);
                     }}
                     onDragEnter={(e) => {
-                      if (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) {
-                        handleDragEnter(e, originalIndex);
-                      }
+                      handleDragEnter(e, originalIndex);
                     }}
                     onDragOver={(e) => {
-                      if (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) {
-                        handleDragOver(e, originalIndex);
-                      } else {
-                        e.preventDefault();
-                      }
+                      handleDragOver(e, originalIndex);
                     }}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => {
-                      if (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) {
-                        handleDrop(e, originalIndex);
-                      } else {
-                        e.preventDefault();
-                      }
+                      handleDrop(e, originalIndex);
                     }}
                     onDragEnd={handleDragEnd}
                     sx={{ 
@@ -710,7 +696,7 @@ const MyRankings = () => {
                       px: { xs: 2, sm: 4 },
                       flexDirection: { xs: 'column', sm: 'row' },
                       alignItems: { xs: 'flex-start', sm: 'center' },
-                      cursor: (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) ? 'grab' : 'default',
+                      cursor: 'grab',
                       opacity: isDragging ? 0.2 : 1,
                       transform: shouldMoveUp ? 'translateY(-100%)' : shouldMoveDown ? 'translateY(100%)' : 'translateY(0)',
                       transition: draggedIndex !== null && !isDragging ? 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease' : 'opacity 0.15s ease',
@@ -723,30 +709,28 @@ const MyRankings = () => {
                         backgroundColor: draggedIndex === null ? 'rgba(0, 212, 255, 0.05)' : (isDragOver && !isDragging ? 'rgba(0, 212, 255, 0.08)' : 'transparent'),
                       },
                       '&:active': {
-                        cursor: (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) ? 'grabbing' : 'default',
+                        cursor: 'grabbing',
                       },
                       '&[draggable="true"]': {
                         userSelect: 'none',
                       }
                     }}
                   >
-                    {filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length && (
-                      <Box
-                        sx={{
-                          mr: { xs: 1, sm: 2 },
-                          display: 'flex',
-                          alignItems: 'center',
-                          color: 'rgba(255, 255, 255, 0.5)',
-                          cursor: 'grab',
-                          '&:active': {
-                            cursor: 'grabbing',
-                          }
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                      >
-                        <DragIndicatorIcon sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
-                      </Box>
-                    )}
+                    <Box
+                      sx={{
+                        mr: { xs: 1, sm: 2 },
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        cursor: 'grab',
+                        '&:active': {
+                          cursor: 'grabbing',
+                        }
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      <DragIndicatorIcon sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+                    </Box>
                     <ListItemAvatar sx={{ mr: { xs: 2, sm: 3 }, mb: { xs: 1, sm: 0 } }}>
                       <Box sx={{ position: 'relative' }}>
                         <Avatar
