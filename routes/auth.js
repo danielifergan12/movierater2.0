@@ -22,8 +22,16 @@ router.post('/register', [
     const { username, email, password } = req.body;
 
     // Normalize email to lowercase (since database stores emails in lowercase)
+    // Note: express-validator's normalizeEmail() already normalized it, but we'll do it again to be safe
     const normalizedEmail = email.toLowerCase().trim();
     const normalizedUsername = username.trim();
+
+    console.log('Registration check:', {
+      originalEmail: email,
+      normalizedEmail: normalizedEmail,
+      originalUsername: username,
+      normalizedUsername: normalizedUsername
+    });
 
     // Check if user already exists (using normalized values)
     const existingUser = await User.findOne({
@@ -34,10 +42,17 @@ router.post('/register', [
     });
 
     if (existingUser) {
+      console.log('Found existing user match:', {
+        existingEmail: existingUser.email,
+        existingUsername: existingUser.username,
+        existingId: existingUser._id
+      });
       return res.status(400).json({
         message: 'User with this email or username already exists'
       });
     }
+
+    console.log('No existing user found, proceeding with registration');
 
     // Create new user (email will be lowercased by schema, but use normalized values)
     const user = new User({ 
