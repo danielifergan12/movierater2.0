@@ -13,15 +13,22 @@ import {
   Rating,
   CircularProgress,
   Tabs,
-  Tab
+  Tab,
+  IconButton
 } from '@mui/material';
+import { Refresh as RefreshIcon, Star as StarIcon } from '@mui/icons-material';
 import { useMovies } from '../contexts/MovieContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useRatings } from '../hooks/useRatings';
+import RatingModal from '../components/RatingModal';
 
 const Home = () => {
   const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
   const { isAuthenticated } = useAuth();
+  const { rawRatings } = useRatings();
   const [activeTab, setActiveTab] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [ratingMovie, setRatingMovie] = useState(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -31,11 +38,44 @@ const Home = () => {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (isAuthenticated && activeTab === 1 && recommendedMovies.length === 0) {
+    if (isAuthenticated && activeTab === 1) {
       getPersonalRecommendations();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, isAuthenticated]);
+  }, [activeTab, isAuthenticated, refreshKey]);
+
+  // Refresh recommendations when a movie is rated
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 1 && rawRatings.length > 0) {
+      // Small delay to ensure server has updated ratings
+      const timer = setTimeout(() => {
+        getPersonalRecommendations();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawRatings.length, isAuthenticated, activeTab]);
+
+  const handleRatingComplete = () => {
+    setRatingMovie(null);
+    // Refresh recommendations after rating
+    if (activeTab === 1) {
+      setTimeout(() => {
+        getPersonalRecommendations();
+      }, 500);
+    }
+  };
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+    getPersonalRecommendations();
+  };
+
+  // Filter out already-rated movies from recommendations
+  const ratedMovieIds = new Set(rawRatings.map(r => r.id?.toString()).filter(Boolean));
+  const filteredRecommendedMovies = recommendedMovies.filter(movie => 
+    movie && movie.id && !ratedMovieIds.has(movie.id.toString())
+  );
 
   
 
@@ -137,7 +177,36 @@ const Home = () => {
           {movie.overview}
         </Typography>
       </CardContent>
-      <CardActions sx={{ p: { xs: 2, sm: 3 }, pt: 0 }}>
+      <CardActions sx={{ p: { xs: 2, sm: 3 }, pt: 0, gap: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
+        {activeTab === 1 && (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<StarIcon />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setRatingMovie({
+                id: movie.id,
+                title: movie.title,
+                posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'
+              });
+            }}
+            fullWidth
+            sx={{
+              borderColor: '#00d4ff',
+              color: '#00d4ff',
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              py: { xs: 0.75, sm: 1 },
+              '&:hover': {
+                borderColor: '#66e0ff',
+                backgroundColor: 'rgba(0, 212, 255, 0.1)',
+              },
+            }}
+          >
+            Rate
+          </Button>
+        )}
         <Button
           size="small"
           component={Link}
@@ -242,7 +311,7 @@ const Home = () => {
             </Box>
 
             <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4, overflowX: 'auto' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 4, gap: 2 }}>
                 <Tabs
                   value={activeTab}
                   onChange={(e, newValue) => setActiveTab(newValue)}
@@ -269,6 +338,24 @@ const Home = () => {
                   <Tab label="Trending This Week" />
                   <Tab label="Suggested for You" />
                 </Tabs>
+                {activeTab === 1 && (
+                  <IconButton
+                    onClick={handleRefresh}
+                    disabled={loading}
+                    sx={{
+                      color: '#00d4ff',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                      },
+                      '&.Mui-disabled': {
+                        color: 'rgba(255, 255, 255, 0.3)',
+                      },
+                    }}
+                    title="Refresh recommendations"
+                  >
+                    <RefreshIcon />
+                  </IconButton>
+                )}
               </Box>
 
               {loading ? (
@@ -277,27 +364,33 @@ const Home = () => {
                 </Box>
               ) : (
                 <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
-                  {(activeTab === 0 ? trendingMovies : recommendedMovies)
+                  {(activeTab === 0 ? trendingMovies : filteredRecommendedMovies)
                     .slice(0, 8)
                     .map((movie) => (
                       <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
                         <MovieCard movie={movie} />
                       </Grid>
                     ))}
-                  {activeTab === 1 && recommendedMovies.length === 0 && (
+                  {activeTab === 1 && filteredRecommendedMovies.length === 0 && (
                     <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
                       <Typography variant="h6" sx={{ 
                         color: 'rgba(255, 255, 255, 0.7)', 
                         mb: 2,
                         fontSize: { xs: '1rem', sm: '1.25rem' }
                       }}>
-                        Rate some movies to get personalized recommendations!
+                        {recommendedMovies.length > 0 
+                          ? "You've rated all the recommended movies! Click refresh to get new suggestions."
+                          : "Rate some movies to get personalized recommendations!"
+                        }
                       </Typography>
                       <Typography variant="body2" sx={{ 
                         color: 'rgba(255, 255, 255, 0.5)',
                         fontSize: { xs: '0.875rem', sm: '1rem' }
                       }}>
-                        Start rating movies and we'll suggest similar ones you might enjoy.
+                        {recommendedMovies.length > 0
+                          ? "Keep rating movies to discover more great films!"
+                          : "Start rating movies and we'll suggest similar ones you might enjoy."
+                        }
                       </Typography>
                     </Box>
                   )}
@@ -307,6 +400,15 @@ const Home = () => {
           </>
         )}
       </Container>
+
+      {ratingMovie && (
+        <RatingModal
+          open={!!ratingMovie}
+          movie={ratingMovie}
+          onClose={() => setRatingMovie(null)}
+          onComplete={handleRatingComplete}
+        />
+      )}
     </Box>
   );
 };
