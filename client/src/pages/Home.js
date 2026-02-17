@@ -68,13 +68,19 @@ const Home = () => {
       // Get recently shown movies to exclude
       const recentlyShown = getRecentlyShownMovies();
       getPersonalRecommendations(false, recentlyShown).then((result) => {
-        // Track initially loaded movies too (but only if not from a refresh)
-        if (result && result.results && refreshKey === 0) {
+        // Track all movies that are shown (from initial load or refresh)
+        // This ensures they won't appear again for at least 15 refreshes
+        if (result && result.results && result.results.length > 0) {
           const newMovieIds = result.results
             .slice(0, 8)
             .map(movie => movie.id)
             .filter(Boolean);
-          addToRecentlyShown(newMovieIds);
+          // Only add if we have new movies (avoid duplicates)
+          const current = getRecentlyShownMovies();
+          const newIds = newMovieIds.filter(id => !current.includes(id.toString()));
+          if (newIds.length > 0) {
+            addToRecentlyShown(newIds);
+          }
         }
       });
     }
