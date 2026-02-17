@@ -83,8 +83,8 @@ const userSchema = new mongoose.Schema({
   shareCode: {
     type: String,
     unique: true,
-    sparse: true,
-    default: null
+    sparse: true
+    // No default - field will be undefined (not null) if not set, which works better with sparse indexes
   },
   shareCodeCreatedAt: {
     type: Date,
