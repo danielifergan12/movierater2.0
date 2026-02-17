@@ -144,27 +144,37 @@ const AnimatedMovieBackground = () => {
         }
       }}
     >
-      {rows.map((row, rowIndex) => (
-        <Box
-          key={rowIndex}
-          sx={{
-            position: 'absolute',
-            top: `${rowIndex * 25}%`,
-            left: 0,
-            width: '200%',
-            height: '25%',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 3,
-            animation: 'slideContinuous 20s linear infinite',
-            '@keyframes slideContinuous': {
-              '0%': { transform: 'translateX(0)' },
-              '100%': { transform: 'translateX(-50%)' },
-            },
-          }}
-        >
-          {/* Render row twice for seamless infinite loop - when one set exits, the other enters */}
-          {[...row, ...row].map((movie, index) => (
+      {rows.map((row, rowIndex) => {
+        // Alternate direction: even rows (0, 2) go left to right, odd rows (1, 3) go right to left
+        const isLeftToRight = rowIndex % 2 === 0;
+        
+        return (
+          <Box
+            key={rowIndex}
+            sx={{
+              position: 'absolute',
+              top: `${rowIndex * 25}%`,
+              left: 0,
+              width: '200%',
+              height: '25%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              animation: isLeftToRight 
+                ? 'slideLeftToRight 20s linear infinite'
+                : 'slideRightToLeft 20s linear infinite',
+              '@keyframes slideLeftToRight': {
+                '0%': { transform: 'translateX(0)' },
+                '100%': { transform: 'translateX(-50%)' },
+              },
+              '@keyframes slideRightToLeft': {
+                '0%': { transform: 'translateX(-50%)' },
+                '100%': { transform: 'translateX(0)' },
+              },
+            }}
+          >
+            {/* Render row twice for seamless infinite loop - when one set exits, the other enters */}
+            {[...row, ...row].map((movie, index) => (
             <Box
               key={`${movie.id}-${index}`}
               sx={{
@@ -195,8 +205,9 @@ const AnimatedMovieBackground = () => {
               />
             </Box>
           ))}
-        </Box>
-      ))}
+          </Box>
+        );
+      })}
     </Box>
   );
 };
