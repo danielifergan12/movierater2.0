@@ -30,6 +30,33 @@ const Home = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [ratingMovie, setRatingMovie] = useState(null);
 
+  // Helper functions to manage recently shown movies in localStorage
+  const getRecentlyShownMovies = () => {
+    try {
+      const stored = localStorage.getItem('recentlyShownMovies');
+      if (stored) {
+        const data = JSON.parse(stored);
+        // Return array of movie IDs (keep only last 15 refreshes = 120 movies max)
+        return data.slice(-120);
+      }
+    } catch (error) {
+      console.error('Error reading recently shown movies:', error);
+    }
+    return [];
+  };
+
+  const addToRecentlyShown = (movieIds) => {
+    try {
+      const current = getRecentlyShownMovies();
+      const updated = [...current, ...movieIds];
+      // Keep only last 15 refreshes (15 * 8 = 120 movies)
+      const trimmed = updated.slice(-120);
+      localStorage.setItem('recentlyShownMovies', JSON.stringify(trimmed));
+    } catch (error) {
+      console.error('Error saving recently shown movies:', error);
+    }
+  };
+
   useEffect(() => {
     // Always load trending movies, regardless of authentication
     getTrendingMovies();
@@ -38,7 +65,9 @@ const Home = () => {
 
   useEffect(() => {
     if (isAuthenticated && activeTab === 1) {
-      getPersonalRecommendations();
+      // Get recently shown movies to exclude
+      const recentlyShown = getRecentlyShownMovies();
+      getPersonalRecommendations(false, recentlyShown);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isAuthenticated, refreshKey]);
@@ -65,16 +94,33 @@ const Home = () => {
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     // Get current movie IDs to exclude from new recommendations
     const currentMovieIds = filteredRecommendedMovies
       .slice(0, 8)
       .map(movie => movie.id)
       .filter(Boolean);
     
+    // Get recently shown movies to exclude (from last 15 refreshes)
+    const recentlyShown = getRecentlyShownMovies();
+    
+    // Combine current and recently shown movies
+    const allExcludeIds = [...currentMovieIds, ...recentlyShown];
+    
     // Clear current recommendations and fetch completely fresh ones
     setRefreshKey(prev => prev + 1);
-    getPersonalRecommendations(true, currentMovieIds); // Pass true to force refresh and exclude current IDs
+    
+    // Fetch new recommendations
+    const result = await getPersonalRecommendations(true, allExcludeIds);
+    
+    // After getting new recommendations, add them to recently shown list
+    if (result && result.results) {
+      const newMovieIds = result.results
+        .slice(0, 8)
+        .map(movie => movie.id)
+        .filter(Boolean);
+      addToRecentlyShown(newMovieIds);
+    }
   };
 
   // Filter out already-rated movies from recommendations
