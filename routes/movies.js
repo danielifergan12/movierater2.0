@@ -249,6 +249,42 @@ router.get('/recommendations/personal', auth, async (req, res) => {
     
     if (ratings.length === 0) {
       // If no ratings, return top-rated movies
+      try {
+        const response = await axios.get(
+          `https://api.themoviedb.org/3/movie/top_rated`,
+          {
+            params: {
+              api_key: process.env.TMDB_API_KEY,
+              language: 'en-US',
+              page: 1
+            },
+            timeout: 5000 // 5 second timeout
+          }
+        );
+        return res.json({
+          results: (response.data?.results || []).slice(0, 20),
+          total_results: 20,
+          page: 1,
+          total_pages: 1
+        });
+      } catch (error) {
+        console.error('Error fetching top-rated movies:', error.message);
+        return res.json({
+          results: [],
+          total_results: 0,
+          page: 1,
+          total_pages: 1
+        });
+      }
+    }
+
+    // Get top 10-15 highest-rated movies (these are at the top of the ratings array)
+    const topRatedMovies = ratings
+      .filter(r => r && r.id) // Filter out invalid ratings
+      .slice(0, Math.min(15, ratings.length));
+    
+    if (topRatedMovies.length === 0) {
+      // Fallback if no valid ratings
       const response = await axios.get(
         `https://api.themoviedb.org/3/movie/top_rated`,
         {
@@ -266,16 +302,16 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         total_pages: 1
       });
     }
-
-    // Get top 10-15 highest-rated movies (these are at the top of the ratings array)
-    const topRatedMovies = ratings.slice(0, Math.min(15, ratings.length));
-    const ratedMovieIds = new Set(ratings.map(r => r.id.toString()));
+    
+    const ratedMovieIds = new Set(ratings.map(r => r.id?.toString()).filter(Boolean));
     
     // Map to store recommendations with scores
     const recommendationMap = new Map();
     
     // Strategy 1: Get similar movies for each top-rated movie
     for (const ratedMovie of topRatedMovies) {
+      if (!ratedMovie || !ratedMovie.id) continue;
+      
       try {
         // Get similar movies
         const similarResponse = await axios.get(
@@ -285,15 +321,19 @@ router.get('/recommendations/personal', auth, async (req, res) => {
               api_key: process.env.TMDB_API_KEY,
               language: 'en-US',
               page: 1
-            }
+            },
+            timeout: 5000 // 5 second timeout
           }
         );
         
-        const similarMovies = similarResponse.data.results || [];
+        const similarMovies = (similarResponse.data?.results || []).filter(m => m && m.id);
         
         // Score and add similar movies
         similarMovies.forEach((movie, index) => {
-          if (!ratedMovieIds.has(movie.id.toString()) && movie.vote_average >= 6.5 && movie.vote_count >= 100) {
+          if (movie.id && 
+              !ratedMovieIds.has(movie.id.toString()) && 
+              movie.vote_average >= 6.5 && 
+              movie.vote_count >= 100) {
             const score = recommendationMap.get(movie.id) || 0;
             // Higher score for movies similar to higher-ranked movies
             const positionWeight = (topRatedMovies.length - topRatedMovies.indexOf(ratedMovie)) / topRatedMovies.length;
@@ -302,6 +342,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         });
       } catch (error) {
         console.log(`Error fetching similar movies for ${ratedMovie.id}:`, error.message);
+        // Continue to next movie
       }
       
       // Strategy 2: Get movie details to extract director and genres
@@ -313,50 +354,68 @@ router.get('/recommendations/personal', auth, async (req, res) => {
               api_key: process.env.TMDB_API_KEY,
               language: 'en-US',
               append_to_response: 'credits,keywords'
-            }
+            },
+            timeout: 5000 // 5 second timeout
           }
         );
         
         const movieDetails = movieDetailsResponse.data;
+        if (!movieDetails) continue;
+        
         const positionWeight = (topRatedMovies.length - topRatedMovies.indexOf(ratedMovie)) / topRatedMovies.length;
         
         // Strategy 3: Get movies by same director
         const directors = (movieDetails.credits?.crew || [])
-          .filter(person => person.job === 'Director')
+          .filter(person => person && person.job === 'Director' && person.id)
           .slice(0, 2); // Top 2 directors
         
         for (const director of directors) {
+          if (!director || !director.id) continue;
+          
           try {
+            // Use person's movie credits endpoint instead of discover
             const directorMoviesResponse = await axios.get(
-              `https://api.themoviedb.org/3/discover/movie`,
+              `https://api.themoviedb.org/3/person/${director.id}/movie_credits`,
               {
                 params: {
                   api_key: process.env.TMDB_API_KEY,
-                  language: 'en-US',
-                  with_people: director.id,
-                  sort_by: 'vote_average.desc',
-                  'vote_count.gte': 100,
-                  'vote_average.gte': 7.0,
-                  page: 1
-                }
+                  language: 'en-US'
+                },
+                timeout: 5000 // 5 second timeout
               }
             );
             
-            const directorMovies = directorMoviesResponse.data.results || [];
+            // Filter for director role and quality movies
+            const directorMovies = (directorMoviesResponse.data?.crew || [])
+              .filter(movie => 
+                movie && 
+                movie.id &&
+                movie.job === 'Director' && 
+                movie.vote_average >= 7.0 && 
+                movie.vote_count >= 100 &&
+                !ratedMovieIds.has(movie.id.toString())
+              )
+              .sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))
+              .slice(0, 10); // Top 10 movies by this director
+            
             directorMovies.forEach((movie, index) => {
-              if (!ratedMovieIds.has(movie.id.toString())) {
+              if (movie && movie.id) {
                 const score = recommendationMap.get(movie.id) || 0;
                 // High score for same director
                 recommendationMap.set(movie.id, score + (15 * positionWeight) + (3 / (index + 1)));
               }
             });
           } catch (error) {
-            console.log(`Error fetching director movies:`, error.message);
+            console.log(`Error fetching director movies for ${director.id}:`, error.message);
+            // Continue to next director
           }
         }
         
         // Strategy 4: Get movies with same genres (highly-rated)
-        const genreIds = (movieDetails.genres || []).map(g => g.id).join(',');
+        const genreIds = (movieDetails.genres || [])
+          .filter(g => g && g.id)
+          .map(g => g.id)
+          .join(',');
         if (genreIds) {
           try {
             const genreMoviesResponse = await axios.get(
@@ -370,65 +429,105 @@ router.get('/recommendations/personal', auth, async (req, res) => {
                   'vote_count.gte': 500,
                   'vote_average.gte': 7.5,
                   page: 1
-                }
+                },
+                timeout: 5000 // 5 second timeout
               }
             );
             
-            const genreMovies = genreMoviesResponse.data.results || [];
+            const genreMovies = (genreMoviesResponse.data?.results || []).filter(m => m && m.id);
             genreMovies.forEach((movie, index) => {
-              if (!ratedMovieIds.has(movie.id.toString())) {
+              if (movie.id && !ratedMovieIds.has(movie.id.toString())) {
                 const score = recommendationMap.get(movie.id) || 0;
                 recommendationMap.set(movie.id, score + (8 * positionWeight) + (2 / (index + 1)));
               }
             });
           } catch (error) {
             console.log(`Error fetching genre movies:`, error.message);
+            // Continue processing
           }
         }
         
         // Strategy 5: Use keywords for thematic recommendations
-        const keywords = movieDetails.keywords?.keywords || [];
+        const keywords = (movieDetails.keywords?.keywords || [])
+          .filter(k => k && k.id)
+          .slice(0, 3);
         if (keywords.length > 0) {
-          const keywordIds = keywords.slice(0, 3).map(k => k.id).join(',');
+          const keywordIds = keywords.map(k => k.id).join(',');
           try {
             const keywordMoviesResponse = await axios.get(
-              `https://api.themoviedb.org/3/discover/movie`,
-              {
-                params: {
-                  api_key: process.env.TMDB_API_KEY,
-                  language: 'en-US',
+      `https://api.themoviedb.org/3/discover/movie`,
+      {
+        params: {
+          api_key: process.env.TMDB_API_KEY,
+          language: 'en-US',
                   with_keywords: keywordIds,
                   sort_by: 'vote_average.desc',
                   'vote_count.gte': 200,
                   'vote_average.gte': 7.0,
                   page: 1
-                }
+                },
+                timeout: 5000 // 5 second timeout
               }
             );
             
-            const keywordMovies = keywordMoviesResponse.data.results || [];
+            const keywordMovies = (keywordMoviesResponse.data?.results || []).filter(m => m && m.id);
             keywordMovies.forEach((movie, index) => {
-              if (!ratedMovieIds.has(movie.id.toString())) {
+              if (movie.id && !ratedMovieIds.has(movie.id.toString())) {
                 const score = recommendationMap.get(movie.id) || 0;
                 recommendationMap.set(movie.id, score + (5 * positionWeight) + (1 / (index + 1)));
               }
             });
           } catch (error) {
             console.log(`Error fetching keyword movies:`, error.message);
+            // Continue processing
           }
         }
       } catch (error) {
         console.log(`Error fetching movie details for ${ratedMovie.id}:`, error.message);
+        // Continue to next movie
       }
     }
     
     // Convert map to array and sort by score
     const recommendations = Array.from(recommendationMap.entries())
+      .filter(([id, score]) => id && !isNaN(parseInt(id)) && score > 0)
       .map(([id, score]) => ({ id: parseInt(id), score }))
       .sort((a, b) => b.score - a.score);
     
+    // If no recommendations found, fallback to top-rated
+    if (recommendations.length === 0) {
+      const response = await axios.get(
+        `https://api.themoviedb.org/3/movie/top_rated`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: 'en-US',
+            page: 1
+          }
+        }
+      );
+      return res.json({
+        results: (response.data.results || []).slice(0, 20),
+        total_results: 20,
+        page: 1,
+        total_pages: 1
+      });
+    }
+    
     // Fetch full movie details for top recommendations
-    const topRecommendationIds = recommendations.slice(0, 30).map(r => r.id);
+    const topRecommendationIds = recommendations
+      .slice(0, 30)
+      .map(r => r.id)
+      .filter(id => id && !isNaN(id));
+    
+    if (topRecommendationIds.length === 0) {
+      return res.json({
+        results: [],
+        total_results: 0,
+        page: 1,
+        total_pages: 1
+      });
+    }
     
     // Fetch movies in batches (TMDB allows multiple IDs)
     const movieDetailsPromises = topRecommendationIds.map(id =>
@@ -438,25 +537,26 @@ router.get('/recommendations/personal', auth, async (req, res) => {
           params: {
             api_key: process.env.TMDB_API_KEY,
             language: 'en-US'
-          }
+          },
+          timeout: 5000 // 5 second timeout
         }
       ).catch(() => null)
     );
     
     const movieDetailsResults = await Promise.all(movieDetailsPromises);
     const recommendedMovies = movieDetailsResults
-      .filter(result => result && result.data)
+      .filter(result => result && result.data && result.data.id)
       .map(result => ({
         id: result.data.id,
-        title: result.data.title,
-        overview: result.data.overview,
-        release_date: result.data.release_date,
-        poster_path: result.data.poster_path,
-        backdrop_path: result.data.backdrop_path,
-        vote_average: result.data.vote_average,
-        vote_count: result.data.vote_count,
-        popularity: result.data.popularity,
-        genres: result.data.genres
+        title: result.data.title || 'Unknown',
+        overview: result.data.overview || '',
+        release_date: result.data.release_date || '',
+        poster_path: result.data.poster_path || '',
+        backdrop_path: result.data.backdrop_path || '',
+        vote_average: result.data.vote_average || 0,
+        vote_count: result.data.vote_count || 0,
+        popularity: result.data.popularity || 0,
+        genres: result.data.genres || []
       }))
       .filter(movie => movie.vote_average >= 6.5 && movie.vote_count >= 100)
       .slice(0, 20);
@@ -479,17 +579,25 @@ router.get('/recommendations/personal', auth, async (req, res) => {
             api_key: process.env.TMDB_API_KEY,
             language: 'en-US',
             page: 1
-          }
+          },
+          timeout: 5000 // 5 second timeout
         }
       );
       return res.json({
-        results: response.data.results.slice(0, 20),
+        results: (response.data?.results || []).slice(0, 20),
         total_results: 20,
         page: 1,
         total_pages: 1
       });
     } catch (fallbackError) {
-      res.status(500).json({ message: 'Error fetching recommendations' });
+      console.error('Fallback also failed:', fallbackError.message);
+      res.status(500).json({ 
+        message: 'Error fetching recommendations',
+        results: [],
+        total_results: 0,
+        page: 1,
+        total_pages: 1
+      });
     }
   }
 });
