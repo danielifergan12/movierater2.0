@@ -791,29 +791,10 @@ const MyRankings = () => {
                     </Box>
                   )}
                   <ListItem 
-                    draggable={true}
                     data-ranking-index={originalIndex}
                     onMouseDown={(e) => {
                       handleMouseDown(e, originalIndex);
                     }}
-                    onDragStart={(e) => {
-                      const result = handleDragStart(e, originalIndex);
-                      if (result === false) {
-                        e.preventDefault();
-                        return false;
-                      }
-                    }}
-                    onDragEnter={(e) => {
-                      handleDragEnter(e, originalIndex);
-                    }}
-                    onDragOver={(e) => {
-                      handleDragOver(e, originalIndex);
-                    }}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => {
-                      handleDrop(e, originalIndex);
-                    }}
-                    onDragEnd={handleDragEnd}
                     sx={{ 
                       py: { xs: 2, sm: 3 },
                       px: { xs: 2, sm: 4 },
