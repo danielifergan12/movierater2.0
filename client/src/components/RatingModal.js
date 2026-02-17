@@ -2,15 +2,16 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, Box, Typography, Button, Card, CardMedia, CardContent } from '@mui/material';
 import { useRatings } from '../hooks/useRatings';
 
-// Props: { movie: { id, title, posterUrl }, open, onClose, onComplete }
-const RatingModal = ({ movie, open, onClose, onComplete }) => {
-  const { rawRatings, upsertAtIndex } = useRatings();
+// Props: { movie: { id, title, posterUrl }, open, onClose, onComplete, allowRerate }
+const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) => {
+  const { rawRatings, upsertAtIndex, setRatingsArray } = useRatings();
 
   const [low, setLow] = useState(0);
   const [high, setHigh] = useState(0);
   const [mid, setMid] = useState(null);
   const [firstTime, setFirstTime] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isRerating, setIsRerating] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -19,34 +20,56 @@ const RatingModal = ({ movie, open, onClose, onComplete }) => {
       setMid(null);
       setLow(0);
       setHigh(0);
+      setIsRerating(false);
       return;
     }
     
     // Check if this movie is already rated
-    const alreadyRated = rawRatings.some(r => r.id === movie.id);
-    if (alreadyRated) {
-      // Movie already rated, close modal
+    const alreadyRatedIndex = rawRatings.findIndex(r => r.id === movie.id);
+    const alreadyRated = alreadyRatedIndex !== -1;
+    
+    if (alreadyRated && !allowRerate) {
+      // Movie already rated and re-rating not allowed, close modal
       onClose && onClose();
       return;
     }
+    
+    // If re-rating, remove the movie from ratings first
+    if (alreadyRated && allowRerate) {
+      setIsRerating(true);
+      const updatedRatings = rawRatings.filter(r => r.id !== movie.id);
+      setRatingsArray(updatedRatings);
+    }
 
-    // Determine if it's first time based on ratings length
-    // Only set firstTime if we truly have no ratings
-    if (rawRatings.length === 0) {
+    // Determine if it's first time based on ratings length (after potential removal)
+    const currentRatingsLength = alreadyRated && allowRerate 
+      ? rawRatings.length - 1 
+      : rawRatings.length;
+      
+    if (currentRatingsLength === 0) {
       setFirstTime(true);
       setIsInitialized(true);
     } else {
       setFirstTime(false);
       setLow(0);
-      setHigh(rawRatings.length - 1);
+      setHigh(currentRatingsLength - 1);
       setIsInitialized(true);
     }
-  }, [open, rawRatings, movie.id, onClose]);
+  }, [open, rawRatings, movie.id, onClose, allowRerate, setRatingsArray]);
 
   useEffect(() => {
-    if (!open || !isInitialized || rawRatings.length === 0 || firstTime) return;
+    if (!open || !isInitialized || firstTime) return;
+    
+    // Get current ratings (exclude the movie being re-rated if applicable)
+    const currentRatings = isRerating 
+      ? rawRatings.filter(r => r.id !== movie.id)
+      : rawRatings;
+    
+    if (currentRatings.length === 0) return;
+    
     if (low > high) {
       const insertAt = low;
+      // If re-rating, the movie is already removed, so we can just insert
       const updated = upsertAtIndex(movie, insertAt);
       onComplete && onComplete(updated);
       onClose && onClose();
@@ -54,12 +77,16 @@ const RatingModal = ({ movie, open, onClose, onComplete }) => {
     }
     const nextMid = Math.floor((low + high) / 2);
     setMid(nextMid);
-  }, [low, high, open, isInitialized, rawRatings.length, firstTime, movie, upsertAtIndex, onComplete, onClose]);
+  }, [low, high, open, isInitialized, rawRatings.length, firstTime, movie, upsertAtIndex, onComplete, onClose, isRerating]);
 
   const compareTarget = useMemo(() => {
     if (mid == null) return null;
-    return rawRatings[mid] || null;
-  }, [mid, rawRatings]);
+    // Get current ratings (may have been modified for re-rating)
+    const currentRatings = isRerating 
+      ? rawRatings.filter(r => r.id !== movie.id)
+      : rawRatings;
+    return currentRatings[mid] || null;
+  }, [mid, rawRatings, isRerating, movie.id]);
 
   if (!open || !movie || !isInitialized) {
     return null;
@@ -130,10 +157,13 @@ const RatingModal = ({ movie, open, onClose, onComplete }) => {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}>
-                Which do you prefer?
+                {isRerating ? 'Rerate: Which do you prefer?' : 'Which do you prefer?'}
               </Typography>
               <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                Click on the movie you like better
+                {isRerating 
+                  ? 'Click on the movie you like better to update your rating'
+                  : 'Click on the movie you like better'
+                }
               </Typography>
             </Box>
 

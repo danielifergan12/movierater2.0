@@ -9,17 +9,32 @@ import {
   Box,
   Button,
   CircularProgress,
+  Chip,
 } from '@mui/material';
 import { Star } from '@mui/icons-material';
 import { useMovies } from '../contexts/MovieContext';
+import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
 
 const MovieDetail = () => {
   const { movieId } = useParams();
   const { getMovieDetails } = useMovies();
+  const { ratings, rawRatings, computeScore } = useRatings();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  
+  // Check if movie is already rated (handle both number and string IDs)
+  const movieIdNum = parseInt(movieId);
+  const movieRating = rawRatings.find(r => {
+    const rId = typeof r.id === 'string' ? parseInt(r.id) : r.id;
+    return rId === movieIdNum || r.id?.toString() === movieId?.toString();
+  });
+  const ratingIndex = rawRatings.findIndex(r => {
+    const rId = typeof r.id === 'string' ? parseInt(r.id) : r.id;
+    return rId === movieIdNum || r.id?.toString() === movieId?.toString();
+  });
+  const currentScore = ratingIndex >= 0 ? computeScore(ratingIndex, rawRatings.length) : null;
 
   useEffect(() => {
     fetchMovieDetails();
@@ -148,25 +163,74 @@ const MovieDetail = () => {
               {movie.overview}
             </Typography>
 
-            <Button
-              variant="contained"
-              startIcon={<Star />}
-              size="large"
-              onClick={() => setShowRatingModal(true)}
-              sx={{
-                background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                px: { xs: 3, sm: 4 },
-                py: { xs: 1.25, sm: 1.5 },
-                fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
-                fontWeight: 600,
-                width: { xs: '100%', sm: 'auto' },
-                '&:hover': {
-                  background: 'linear-gradient(45deg, #00a8cc, #e64a19)',
-                },
-              }}
-            >
-              Rate This Movie
-            </Button>
+            {movieRating && currentScore !== null ? (
+              <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+                  <Chip
+                    label={`Your Rating: ${currentScore.toFixed(1)}/10`}
+                    sx={{
+                      background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                      color: '#ffffff',
+                      fontWeight: 600,
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                      px: 2,
+                      py: 2.5,
+                    }}
+                  />
+                  <Chip
+                    label={`Rank: #${ratingIndex + 1}`}
+                    sx={{
+                      backgroundColor: 'rgba(0, 212, 255, 0.2)',
+                      color: '#00d4ff',
+                      border: '1px solid rgba(0, 212, 255, 0.5)',
+                      fontWeight: 600,
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                    }}
+                  />
+                </Box>
+                <Button
+                  variant="outlined"
+                  startIcon={<Star />}
+                  size="large"
+                  onClick={() => setShowRatingModal(true)}
+                  sx={{
+                    borderColor: '#00d4ff',
+                    color: '#00d4ff',
+                    px: { xs: 3, sm: 4 },
+                    py: { xs: 1.25, sm: 1.5 },
+                    fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
+                    fontWeight: 600,
+                    width: { xs: '100%', sm: 'auto' },
+                    '&:hover': {
+                      borderColor: '#66e0ff',
+                      backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    },
+                  }}
+                >
+                  Rerate This Movie
+                </Button>
+              </Box>
+            ) : (
+              <Button
+                variant="contained"
+                startIcon={<Star />}
+                size="large"
+                onClick={() => setShowRatingModal(true)}
+                sx={{
+                  background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                  px: { xs: 3, sm: 4 },
+                  py: { xs: 1.25, sm: 1.5 },
+                  fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
+                  fontWeight: 600,
+                  width: { xs: '100%', sm: 'auto' },
+                  '&:hover': {
+                    background: 'linear-gradient(45deg, #00a8cc, #e64a19)',
+                  },
+                }}
+              >
+                Rate This Movie
+              </Button>
+            )}
           </Grid>
         </Grid>
 
@@ -180,6 +244,7 @@ const MovieDetail = () => {
             }}
             onClose={() => setShowRatingModal(false)}
             onComplete={handleRatingComplete}
+            allowRerate={!!movieRating}
           />
         )}
       </Container>
