@@ -74,16 +74,23 @@ export const MovieProvider = ({ children }) => {
     }
   };
 
-  const getPersonalRecommendations = async (forceRefresh = false) => {
+  const getPersonalRecommendations = async (forceRefresh = false, excludeIds = []) => {
     setLoading(true);
     try {
       // Clear recommendations first if forcing refresh
       if (forceRefresh) {
         setRecommendedMovies([]);
       }
-      // Pass forceRefresh parameter to backend
-      const forceRefreshParam = forceRefresh ? '?forceRefresh=true' : '';
-      const response = await api.get(`/api/movies/recommendations/personal${forceRefreshParam}`);
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (forceRefresh) {
+        params.append('forceRefresh', 'true');
+      }
+      if (excludeIds && excludeIds.length > 0) {
+        params.append('excludeIds', excludeIds.join(','));
+      }
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const response = await api.get(`/api/movies/recommendations/personal${queryString}`);
       setRecommendedMovies(response.data.results || []);
       return response.data;
     } catch (error) {

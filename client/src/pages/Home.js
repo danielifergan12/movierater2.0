@@ -66,9 +66,15 @@ const Home = () => {
   };
 
   const handleRefresh = () => {
+    // Get current movie IDs to exclude from new recommendations
+    const currentMovieIds = filteredRecommendedMovies
+      .slice(0, 8)
+      .map(movie => movie.id)
+      .filter(Boolean);
+    
     // Clear current recommendations and fetch completely fresh ones
     setRefreshKey(prev => prev + 1);
-    getPersonalRecommendations(true); // Pass true to force refresh
+    getPersonalRecommendations(true, currentMovieIds); // Pass true to force refresh and exclude current IDs
   };
 
   // Filter out already-rated movies from recommendations

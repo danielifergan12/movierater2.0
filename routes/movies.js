@@ -323,6 +323,16 @@ router.get('/recommendations/personal', auth, async (req, res) => {
     const ratings = user.ratings || [];
     const forceRefresh = req.query.forceRefresh === 'true';
     
+    // Get excludeIds from query parameter (comma-separated movie IDs to exclude)
+    const excludeIdsParam = req.query.excludeIds || '';
+    const excludeIds = new Set(
+      excludeIdsParam
+        .split(',')
+        .map(id => id.trim())
+        .filter(id => id && !isNaN(parseInt(id)))
+        .map(id => id.toString())
+    );
+    
     if (ratings.length === 0) {
       // If no ratings, return top-rated movies
       // Use different page if forceRefresh to get different movies
@@ -340,9 +350,37 @@ router.get('/recommendations/personal', auth, async (req, res) => {
           }
         );
         
+        // Filter out excluded movies
+        let results = (response.data?.results || [])
+          .filter(m => m && m.id && !excludeIds.has(m.id.toString()));
+        
+        // If we need more movies and have excludeIds, try additional pages
+        if (results.length < 8 && excludeIds.size > 0) {
+          for (let page = pageToUse + 1; page <= pageToUse + 5 && results.length < 8; page++) {
+            try {
+              const additionalResponse = await axios.get(
+                `https://api.themoviedb.org/3/movie/top_rated`,
+                {
+                  params: {
+                    api_key: process.env.TMDB_API_KEY,
+                    language: 'en-US',
+                    page: page
+                  },
+                  timeout: 3000
+                }
+              );
+              const additionalResults = (additionalResponse.data?.results || [])
+                .filter(m => m && m.id && !excludeIds.has(m.id.toString()));
+              results = [...results, ...additionalResults];
+            } catch (err) {
+              // Continue to next page
+            }
+          }
+        }
+        
         return res.json({
-          results: (response.data?.results || []).slice(0, 20),
-          total_results: 20,
+          results: results.slice(0, 20),
+          total_results: results.length,
           page: 1,
           total_pages: 1
         });
@@ -375,9 +413,38 @@ router.get('/recommendations/personal', auth, async (req, res) => {
           }
         }
       );
+      
+      // Filter out excluded movies
+      let results = (response.data.results || [])
+        .filter(m => m && m.id && !excludeIds.has(m.id.toString()));
+      
+      // If we need more movies and have excludeIds, try additional pages
+      if (results.length < 8 && excludeIds.size > 0) {
+        for (let page = pageToUse + 1; page <= pageToUse + 5 && results.length < 8; page++) {
+          try {
+            const additionalResponse = await axios.get(
+              `https://api.themoviedb.org/3/movie/top_rated`,
+              {
+                params: {
+                  api_key: process.env.TMDB_API_KEY,
+                  language: 'en-US',
+                  page: page
+                },
+                timeout: 3000
+              }
+            );
+            const additionalResults = (additionalResponse.data?.results || [])
+              .filter(m => m && m.id && !excludeIds.has(m.id.toString()));
+            results = [...results, ...additionalResults];
+          } catch (err) {
+            // Continue to next page
+          }
+        }
+      }
+      
       return res.json({
-        results: response.data.results.slice(0, 20),
-        total_results: 20,
+        results: results.slice(0, 20),
+        total_results: results.length,
         page: 1,
         total_pages: 1
       });
@@ -416,6 +483,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         similarMovies.forEach((movie, index) => {
           if (movie.id && 
               !ratedMovieIds.has(movie.id.toString()) &&
+              !excludeIds.has(movie.id.toString()) &&
               movie.vote_average >= 6.5 && 
               movie.vote_count >= 100) {
             const score = recommendationMap.get(movie.id) || 0;
@@ -483,7 +551,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
               .slice(0, 10); // Top 10 movies by this director
             
             directorMovies.forEach((movie, index) => {
-              if (movie && movie.id) {
+              if (movie && movie.id && !excludeIds.has(movie.id.toString())) {
                 const score = recommendationMap.get(movie.id) || 0;
                 // High score for same director
                 recommendationMap.set(movie.id, score + (15 * positionWeight) + (3 / (index + 1)));
@@ -523,7 +591,9 @@ router.get('/recommendations/personal', auth, async (req, res) => {
             
             const genreMovies = (genreMoviesResponse.data?.results || []).filter(m => m && m.id);
             genreMovies.forEach((movie, index) => {
-              if (movie.id && !ratedMovieIds.has(movie.id.toString())) {
+              if (movie.id && 
+                  !ratedMovieIds.has(movie.id.toString()) && 
+                  !excludeIds.has(movie.id.toString())) {
                 const score = recommendationMap.get(movie.id) || 0;
                 recommendationMap.set(movie.id, score + (8 * positionWeight) + (2 / (index + 1)));
               }
@@ -559,7 +629,9 @@ router.get('/recommendations/personal', auth, async (req, res) => {
             
             const keywordMovies = (keywordMoviesResponse.data?.results || []).filter(m => m && m.id);
             keywordMovies.forEach((movie, index) => {
-              if (movie.id && !ratedMovieIds.has(movie.id.toString())) {
+              if (movie.id && 
+                  !ratedMovieIds.has(movie.id.toString()) && 
+                  !excludeIds.has(movie.id.toString())) {
                 const score = recommendationMap.get(movie.id) || 0;
                 recommendationMap.set(movie.id, score + (5 * positionWeight) + (1 / (index + 1)));
               }
@@ -595,9 +667,37 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         }
       );
       
+      // Filter out excluded movies
+      let results = (response.data.results || [])
+        .filter(m => m && m.id && !excludeIds.has(m.id.toString()));
+      
+      // If we need more movies and have excludeIds, try additional pages
+      if (results.length < 8 && excludeIds.size > 0) {
+        for (let page = fallbackPage + 1; page <= fallbackPage + 5 && results.length < 8; page++) {
+          try {
+            const additionalResponse = await axios.get(
+              `https://api.themoviedb.org/3/movie/top_rated`,
+              {
+                params: {
+                  api_key: process.env.TMDB_API_KEY,
+                  language: 'en-US',
+                  page: page
+                },
+                timeout: 3000
+              }
+            );
+            const additionalResults = (additionalResponse.data?.results || [])
+              .filter(m => m && m.id && !excludeIds.has(m.id.toString()));
+            results = [...results, ...additionalResults];
+          } catch (err) {
+            // Continue to next page
+          }
+        }
+      }
+      
       return res.json({
-        results: (response.data.results || []).slice(0, 20),
-        total_results: 20,
+        results: results.slice(0, 20),
+        total_results: results.length,
         page: 1,
         total_pages: 1
       });
@@ -633,7 +733,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
     );
     
     const movieDetailsResults = await Promise.all(movieDetailsPromises);
-    const recommendedMovies = movieDetailsResults
+    let recommendedMovies = movieDetailsResults
       .filter(result => result && result.data && result.data.id)
       .map(result => ({
         id: result.data.id,
@@ -649,12 +749,59 @@ router.get('/recommendations/personal', auth, async (req, res) => {
       }))
       .filter(movie => 
         movie.vote_average >= 6.5 && 
-        movie.vote_count >= 100
-      )
-      .slice(0, 20);
+        movie.vote_count >= 100 &&
+        !excludeIds.has(movie.id.toString())
+      );
+    
+    // If we don't have enough movies and have excludeIds, fetch more from additional pages
+    if (recommendedMovies.length < 8 && excludeIds.size > 0) {
+      // Get more recommendations from the sorted list
+      const additionalIds = recommendations
+        .slice(30, 60)
+        .map(r => r.id)
+        .filter(id => id && !isNaN(id) && !excludeIds.has(id.toString()));
+      
+      if (additionalIds.length > 0) {
+        const additionalPromises = additionalIds.slice(0, 20).map(id =>
+          axios.get(
+            `https://api.themoviedb.org/3/movie/${id}`,
+            {
+              params: {
+                api_key: process.env.TMDB_API_KEY,
+                language: 'en-US'
+              },
+              timeout: 3000
+            }
+          ).catch(() => null)
+        );
+        
+        const additionalResults = await Promise.all(additionalPromises);
+        const additionalMovies = additionalResults
+          .filter(result => result && result.data && result.data.id)
+          .map(result => ({
+            id: result.data.id,
+            title: result.data.title || 'Unknown',
+            overview: result.data.overview || '',
+            release_date: result.data.release_date || '',
+            poster_path: result.data.poster_path || '',
+            backdrop_path: result.data.backdrop_path || '',
+            vote_average: result.data.vote_average || 0,
+            vote_count: result.data.vote_count || 0,
+            popularity: result.data.popularity || 0,
+            genres: result.data.genres || []
+          }))
+          .filter(movie => 
+            movie.vote_average >= 6.5 && 
+            movie.vote_count >= 100 &&
+            !excludeIds.has(movie.id.toString())
+          );
+        
+        recommendedMovies = [...recommendedMovies, ...additionalMovies];
+      }
+    }
     
     return res.json({
-      results: recommendedMovies,
+      results: recommendedMovies.slice(0, 20),
       total_results: recommendedMovies.length,
       page: 1,
       total_pages: 1
@@ -677,9 +824,37 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         }
       );
       
+      // Filter out excluded movies
+      let results = (response.data?.results || [])
+        .filter(m => m && m.id && !excludeIds.has(m.id.toString()));
+      
+      // If we need more movies and have excludeIds, try additional pages
+      if (results.length < 8 && excludeIds.size > 0) {
+        for (let page = fallbackPage + 1; page <= fallbackPage + 5 && results.length < 8; page++) {
+          try {
+            const additionalResponse = await axios.get(
+              `https://api.themoviedb.org/3/movie/top_rated`,
+              {
+                params: {
+                  api_key: process.env.TMDB_API_KEY,
+                  language: 'en-US',
+                  page: page
+                },
+                timeout: 3000
+              }
+            );
+            const additionalResults = (additionalResponse.data?.results || [])
+              .filter(m => m && m.id && !excludeIds.has(m.id.toString()));
+            results = [...results, ...additionalResults];
+          } catch (err) {
+            // Continue to next page
+          }
+        }
+      }
+      
       return res.json({
-        results: (response.data?.results || []).slice(0, 20),
-        total_results: 20,
+        results: results.slice(0, 20),
+        total_results: results.length,
         page: 1,
         total_pages: 1
       });
