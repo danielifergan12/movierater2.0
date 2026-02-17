@@ -34,7 +34,22 @@ const ForgotPassword = () => {
       }
     } catch (error) {
       console.error('Forgot password error:', error);
-      setError(error.response?.data?.message || 'Failed to send reset email. Please try again.');
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL
+      });
+
+      // Handle validation errors (array format)
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        const errorMessages = error.response.data.errors.map(err => err.msg || err.message).join(', ');
+        setError(errorMessages || 'Validation failed');
+      } else {
+        // Handle message format
+        setError(error.response?.data?.message || error.message || 'Failed to send reset email. Please check your backend connection.');
+      }
     } finally {
       setLoading(false);
     }

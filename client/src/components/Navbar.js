@@ -40,12 +40,14 @@ const Navbar = () => {
           </Box>
         </Link>
 
-        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', maxWidth: 600 }}>
-          <AutocompleteSearch 
-            onMovieSelect={handleMovieSelect}
-            placeholder="Search movies"
-          />
-        </Box>
+        {isAuthenticated && (
+          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', maxWidth: 600 }}>
+            <AutocompleteSearch 
+              onMovieSelect={handleMovieSelect}
+              placeholder="Search movies"
+            />
+          </Box>
+        )}
 
         <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
           {isAuthenticated ? (
