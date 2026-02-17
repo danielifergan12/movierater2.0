@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, Box, Typography, Button, Card, CardMedia, CardContent, useMediaQuery, useTheme } from '@mui/material';
 import { useRatings } from '../hooks/useRatings';
+import { useAuth } from '../contexts/AuthContext';
 
 // Props: { movie: { id, title, posterUrl }, open, onClose, onComplete, allowRerate }
 const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) => {
   const { rawRatings, upsertAtIndex, setRatingsArray } = useRatings();
+  const { isAuthenticated } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -23,6 +25,14 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       setLow(0);
       setHigh(0);
       setIsRerating(false);
+      return;
+    }
+    
+    // If not authenticated, redirect to login and close modal
+    if (!isAuthenticated) {
+      const currentUrl = window.location.pathname + window.location.search;
+      window.location.href = `/login?redirect=${encodeURIComponent(currentUrl)}`;
+      onClose && onClose();
       return;
     }
     

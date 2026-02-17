@@ -21,9 +21,11 @@ import { Search as SearchIcon, Star as StarIcon } from '@mui/icons-material';
 import api from '../config/axios';
 import RatingModal from './RatingModal';
 import { useRatings } from '../hooks/useRatings';
+import { useAuth } from '../contexts/AuthContext';
 
 const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." }) => {
   const { rawRatings } = useRatings();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -294,6 +296,11 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
                                 startIcon={<StarIcon sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }} />}
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  if (!isAuthenticated) {
+                                    const currentUrl = window.location.pathname + window.location.search;
+                                    window.location.href = `/login?redirect=${encodeURIComponent(currentUrl)}`;
+                                    return;
+                                  }
                                   if (!isAlreadyRated) {
                                     setRatingMovie({
                                       id: movie.id,
