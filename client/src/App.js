@@ -1,10 +1,11 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from './contexts/AuthContext';
 import { MovieProvider } from './contexts/MovieContext';
 import Navbar from './components/Navbar';
+import AnimatedMovieBackground from './components/AnimatedMovieBackground';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -148,16 +149,15 @@ const theme = createTheme({
   },
 });
 
-function App() {
+function AppContent() {
+  const location = useLocation();
+  const showBackground = ['/', '/login', '/register'].includes(location.pathname);
+
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AuthProvider>
-        <MovieProvider>
-          <Router>
-            <div className="App">
-              <Navbar />
-              <Routes>
+    <div className="App" style={{ position: 'relative' }}>
+      {showBackground && <AnimatedMovieBackground />}
+      <Navbar />
+      <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
@@ -194,8 +194,19 @@ function App() {
                     <AdminUsers />
                   </ProtectedRoute>
                 } />
-              </Routes>
-            </div>
+      </Routes>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AuthProvider>
+        <MovieProvider>
+          <Router>
+            <AppContent />
           </Router>
         </MovieProvider>
       </AuthProvider>

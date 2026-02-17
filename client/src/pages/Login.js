@@ -11,7 +11,6 @@ import {
   CircularProgress
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
-import AnimatedMovieBackground from '../components/AnimatedMovieBackground';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -77,7 +76,6 @@ const Login = () => {
         pointerEvents: 'none',
       }
     }}>
-      <AnimatedMovieBackground />
       <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 2, px: { xs: 2, sm: 3 } }}>
         <Paper elevation={0} sx={{ 
           p: { xs: 3, sm: 4, md: 6 },

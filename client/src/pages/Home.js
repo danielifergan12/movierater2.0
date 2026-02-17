@@ -21,7 +21,6 @@ import { useMovies } from '../contexts/MovieContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
-import AnimatedMovieBackground from '../components/AnimatedMovieBackground';
 
 const Home = () => {
   const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
@@ -245,7 +244,6 @@ const Home = () => {
         zIndex: 1,
       }
     }}>
-      {!isAuthenticated && <AnimatedMovieBackground />}
       <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 2 }}>
         {!isAuthenticated ? (
           <Box sx={{ 
