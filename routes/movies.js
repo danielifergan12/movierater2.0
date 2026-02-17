@@ -340,6 +340,7 @@ router.get('/genre/:genreId/highly-rated', async (req, res) => {
   try {
     const { genreId } = req.params;
     const { page = 1 } = req.query;
+    const genreIdNum = parseInt(genreId);
     
     const response = await axios.get(
       `https://api.themoviedb.org/3/discover/movie`,
@@ -356,7 +357,22 @@ router.get('/genre/:genreId/highly-rated', async (req, res) => {
       }
     );
 
-    res.json(response.data);
+    // Filter results to ensure the genre is actually in the movie's genre_ids
+    // This prevents movies with the genre as a secondary/tangential genre from appearing
+    const filteredResults = (response.data.results || []).filter(movie => {
+      if (!movie.genre_ids || !Array.isArray(movie.genre_ids)) {
+        return false;
+      }
+      // Ensure the requested genre is actually in the movie's genre list
+      return movie.genre_ids.includes(genreIdNum);
+    });
+
+    // Return the filtered results
+    // Note: total_results and total_pages are approximate since we're filtering
+    res.json({
+      ...response.data,
+      results: filteredResults
+    });
   } catch (error) {
     console.error('Get popular movies by genre error:', error);
     res.status(500).json({ message: 'Error fetching popular movies by genre' });
