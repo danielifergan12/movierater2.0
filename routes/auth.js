@@ -81,6 +81,12 @@ router.post('/register', [
   } catch (error) {
     // Handle duplicate key (unique email/username)
     if (error && error.code === 11000) {
+      console.log('MongoDB duplicate key error:', {
+        errorCode: error.code,
+        errorMessage: error.message,
+        keyPattern: error.keyPattern,
+        keyValue: error.keyValue
+      });
       return res.status(400).json({ message: 'User with this email or username already exists' });
     }
     // Handle mongoose validation errors explicitly
