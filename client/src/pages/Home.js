@@ -26,6 +26,7 @@ import api from '../config/axios';
 
 const Home = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
   const { isAuthenticated, user } = useAuth();
   const { rawRatings } = useRatings();
