@@ -33,7 +33,8 @@ import {
   Movie as MovieIcon,
   Share as ShareIcon,
   ContentCopy as CopyIcon,
-  DragIndicator as DragIndicatorIcon
+  DragIndicator as DragIndicatorIcon,
+  Undo as UndoIcon
 } from '@mui/icons-material';
 import { useRatings } from '../hooks/useRatings';
 import { useAuth } from '../contexts/AuthContext';
@@ -67,6 +68,9 @@ const MyRankings = () => {
   const [mouseDownY, setMouseDownY] = useState(0);
   const lastHoveredIndexRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
+  // Undo functionality
+  const [ratingsHistory, setRatingsHistory] = useState([]);
+  const maxHistorySize = 10;
 
   useEffect(() => {
     if (location.state?.message) {
@@ -79,7 +83,27 @@ const MyRankings = () => {
     setDeleteDialog({ open: true, movieId });
   };
 
+  // Save current state to history before making changes
+  const saveToHistory = (currentRatings) => {
+    setRatingsHistory(prev => {
+      const newHistory = [...prev, JSON.parse(JSON.stringify(currentRatings))];
+      // Keep only last maxHistorySize entries
+      return newHistory.slice(-maxHistorySize);
+    });
+  };
+
+  // Undo function
+  const handleUndo = () => {
+    if (ratingsHistory.length > 0) {
+      const previousState = ratingsHistory[ratingsHistory.length - 1];
+      setRatingsArray(previousState);
+      setRatingsHistory(prev => prev.slice(0, -1));
+      setSnack({ open: true, message: 'Changes undone' });
+    }
+  };
+
   const confirmDelete = () => {
+    saveToHistory(rawRatings);
     const updatedRankings = rawRatings.filter(ranking => ranking.id !== deleteDialog.movieId);
     setRatingsArray(updatedRankings);
     setDeleteDialog({ open: false, movieId: null });
@@ -199,6 +223,9 @@ const MyRankings = () => {
       }
       
       if (dropIndex !== null && dropIndex !== mouseDownIndex) {
+        // Save current state to history before making changes
+        saveToHistory(rawRatings);
+        
         // Reorder the ratings array
         const newRatings = [...rawRatings];
         const draggedItem = newRatings[mouseDownIndex];
@@ -298,6 +325,9 @@ const MyRankings = () => {
       setDragOverIndex(null);
       return;
     }
+
+    // Save current state to history before making changes
+    saveToHistory(rawRatings);
 
     // Reorder the ratings array using original indices
     const newRatings = [...rawRatings];
@@ -729,6 +759,23 @@ const MyRankings = () => {
               My Movie Rankings
             </Typography>
             <IconButton
+              onClick={handleUndo}
+              disabled={ratingsHistory.length === 0}
+              sx={{
+                color: ratingsHistory.length === 0 ? 'rgba(255, 255, 255, 0.3)' : '#00d4ff',
+                '&:hover': {
+                  backgroundColor: ratingsHistory.length === 0 ? 'transparent' : 'rgba(0, 212, 255, 0.1)',
+                },
+                '&.Mui-disabled': {
+                  color: 'rgba(255, 255, 255, 0.3)',
+                },
+              }}
+              size="large"
+              title="Undo last change"
+            >
+              <UndoIcon sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }} />
+            </IconButton>
+            <IconButton
               onClick={handleShareClick}
               sx={{
                 color: '#00d4ff',
@@ -807,50 +854,27 @@ const MyRankings = () => {
                 const isDragOver = dragOverIndex === originalIndex;
                 const isSourcePosition = draggedIndex === originalIndex && draggedIndex !== null;
                 
-                // Determine if this item should move up or down to make space
-                // When dragging down (e.g., from 2 to 5), items 3-5 should move up
-                // When dragging up (e.g., from 5 to 2), items 2-4 should move down
+                // Determine if this item should move up to make space for the drop zone
+                // Items above the drop zone should move up
                 let shouldMoveUp = false;
-                let shouldMoveDown = false;
                 
                 if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== originalIndex && !isDragging) {
+                  // If dragging down (e.g., from 2 to 5), items between dragged and drop should move up
+                  // If dragging up (e.g., from 5 to 2), items at and above drop should move up
                   if (draggedIndex < dragOverIndex) {
                     // Dragging down: items between dragged and drop should move up
                     shouldMoveUp = originalIndex > draggedIndex && originalIndex <= dragOverIndex;
                   } else {
-                    // Dragging up: items between drop and dragged should move down
-                    shouldMoveDown = originalIndex >= dragOverIndex && originalIndex < draggedIndex;
+                    // Dragging up: items at and above drop should move up
+                    shouldMoveUp = originalIndex >= dragOverIndex && originalIndex < draggedIndex;
                   }
                 }
                 
+                // Show drop zone below this item if it's being hovered over
+                const showDropZone = isDragOver && draggedIndex !== null && draggedIndex !== originalIndex;
+                
                 return (
                 <React.Fragment key={ranking.id}>
-                  {/* Drop zone placeholder - shown above the item being replaced */}
-                  {isDragOver && draggedIndex !== null && draggedIndex !== originalIndex && (
-                    <Box
-                      sx={{
-                        height: { xs: 140, sm: 180 },
-                        border: '3px dashed #00d4ff',
-                        borderRadius: 2,
-                        backgroundColor: 'rgba(0, 212, 255, 0.2)',
-                        margin: { xs: '8px 16px', sm: '12px 32px' },
-                        boxShadow: '0 0 20px rgba(0, 212, 255, 0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'all 0.2s ease',
-                        animation: 'pulse 2s ease-in-out infinite',
-                        '@keyframes pulse': {
-                          '0%, 100%': { opacity: 0.8 },
-                          '50%': { opacity: 1 },
-                        },
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ color: '#00d4ff', fontWeight: 600 }}>
-                        Drop here
-                      </Typography>
-                    </Box>
-                  )}
                   <ListItem 
                     data-ranking-index={originalIndex}
                     onMouseDown={(e) => {
@@ -866,7 +890,7 @@ const MyRankings = () => {
                       opacity: isDragging ? 0.95 : (isSourcePosition ? 0.3 : 1),
                       transform: isDragging 
                         ? 'scale(1.05) translateZ(0)' 
-                        : (shouldMoveUp ? 'translateY(-100%)' : shouldMoveDown ? 'translateY(100%)' : 'translateY(0)'),
+                        : (shouldMoveUp ? 'translateY(-100%)' : 'translateY(0)'),
                       boxShadow: isDragging 
                         ? '0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 212, 255, 0.3)' 
                         : 'none',
@@ -1039,7 +1063,33 @@ const MyRankings = () => {
                       </IconButton>
                     </Box>
                   </ListItem>
-                    {displayIndex < filteredAndSortedRatings.length - 1 && (
+                  {/* Drop zone placeholder - shown BELOW the item being hovered over */}
+                  {showDropZone && (
+                    <Box
+                      sx={{
+                        height: { xs: 140, sm: 180 },
+                        border: '3px dashed #00d4ff',
+                        borderRadius: 2,
+                        backgroundColor: 'rgba(0, 212, 255, 0.2)',
+                        margin: { xs: '8px 16px', sm: '12px 32px' },
+                        boxShadow: '0 0 20px rgba(0, 212, 255, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease',
+                        animation: 'pulse 2s ease-in-out infinite',
+                        '@keyframes pulse': {
+                          '0%, 100%': { opacity: 0.8 },
+                          '50%': { opacity: 1 },
+                        },
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ color: '#00d4ff', fontWeight: 600 }}>
+                        Drop here
+                      </Typography>
+                    </Box>
+                  )}
+                  {displayIndex < filteredAndSortedRatings.length - 1 && !showDropZone && (
                     <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)' }} />
                   )}
                 </React.Fragment>
