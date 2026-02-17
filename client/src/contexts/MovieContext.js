@@ -15,7 +15,6 @@ export const MovieProvider = ({ children }) => {
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [popularMovies, setPopularMovies] = useState([]);
   const [recommendedMovies, setRecommendedMovies] = useState([]);
-  const [newReleases, setNewReleases] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -103,22 +102,10 @@ export const MovieProvider = ({ children }) => {
     }
   };
 
-  const getNewReleases = async (page = 1) => {
-    try {
-      const response = await api.get(`/api/movies/new-releases?page=${page}`);
-      setNewReleases(response.data.results || []);
-      return response.data;
-    } catch (error) {
-      console.error('Get new releases error:', error);
-      return { results: [] };
-    }
-  };
-
   const value = {
     trendingMovies,
     popularMovies,
     recommendedMovies,
-    newReleases,
     searchResults,
     loading,
     searchMovies,
@@ -126,8 +113,7 @@ export const MovieProvider = ({ children }) => {
     getTrendingMovies,
     getPopularMovies,
     getMoviesByGenre,
-    getPersonalRecommendations,
-    getNewReleases
+    getPersonalRecommendations
   };
 
   return (
