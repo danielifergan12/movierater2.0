@@ -434,9 +434,14 @@ const Home = () => {
 
   return (
     <Box sx={{ 
-      minHeight: '100vh',
+      height: !isAuthenticated ? '100vh' : 'auto',
+      minHeight: isAuthenticated ? '100vh' : '100vh',
+      maxHeight: !isAuthenticated ? '100vh' : 'none',
+      overflow: !isAuthenticated ? 'hidden' : 'visible',
       background: isAuthenticated ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)' : 'transparent',
       position: 'relative',
+      display: 'flex',
+      flexDirection: 'column',
       '&::before': isAuthenticated ? {
         content: '""',
         position: 'absolute',
@@ -449,23 +454,44 @@ const Home = () => {
         zIndex: 1,
       } : {},
     }}>
-      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 2 }}>
-        <Box sx={{ mb: { xs: 4, sm: 6 }, textAlign: 'center' }}>
+      <Container 
+        maxWidth="lg" 
+        sx={{ 
+          py: !isAuthenticated ? { xs: 2, sm: 3 } : { xs: 4, sm: 6, md: 8 }, 
+          px: { xs: 2, sm: 3 }, 
+          position: 'relative', 
+          zIndex: 2,
+          height: !isAuthenticated ? '100%' : 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: !isAuthenticated ? 'center' : 'flex-start',
+          overflow: !isAuthenticated ? 'hidden' : 'visible',
+        }}
+      >
+        <Box sx={{ 
+          mb: !isAuthenticated ? { xs: 2, sm: 3 } : { xs: 4, sm: 6 }, 
+          textAlign: 'center',
+          flexShrink: 0,
+        }}>
           <Typography variant="h1" component="h1" gutterBottom sx={{
             background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            mb: 2,
-            fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
+            mb: !isAuthenticated ? 1 : 2,
+            fontSize: !isAuthenticated 
+              ? { xs: '1.75rem', sm: '2.5rem', md: '3rem' }
+              : { xs: '2rem', sm: '3rem', md: '4rem' },
           }}>
             Welcome to ReelList
           </Typography>
           <Typography variant="h5" align="center" sx={{ 
             color: 'rgba(255, 255, 255, 0.8)',
-            mb: 2,
+            mb: !isAuthenticated ? 1 : 2,
             fontWeight: 300,
-            fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
+            fontSize: !isAuthenticated 
+              ? { xs: '0.875rem', sm: '1rem', md: '1.25rem' }
+              : { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
             px: { xs: 2, sm: 0 }
           }}>
             Discover, rate, and share your favorite movies with friends
@@ -473,8 +499,8 @@ const Home = () => {
           {totalRankings > 0 && (
             <Typography variant="body1" align="center" sx={{ 
               color: 'rgba(255, 255, 255, 0.6)',
-              mb: 4,
-              fontSize: { xs: '0.875rem', sm: '1rem' },
+              mb: !isAuthenticated ? 2 : 4,
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
               px: { xs: 2, sm: 0 }
             }}>
               {totalRankings.toLocaleString()} movies ranked by our community
@@ -482,8 +508,14 @@ const Home = () => {
           )}
         </Box>
 
-        <Box sx={{ mb: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 4, gap: 2 }}>
+        <Box sx={{ 
+          mb: !isAuthenticated ? 2 : 3,
+          flex: !isAuthenticated ? '1 1 auto' : '0 0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+        }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: !isAuthenticated ? 2 : 4, gap: 2 }}>
             <Tabs
               value={activeTab}
               onChange={(e, newValue) => setActiveTab(newValue)}
