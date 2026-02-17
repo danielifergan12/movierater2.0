@@ -45,7 +45,10 @@ const Register = () => {
     const result = await register(formData.username, formData.email, formData.password);
     
     if (result.success) {
-      navigate('/');
+      // Small delay to ensure auth state is updated before navigation
+      setTimeout(() => {
+        navigate('/');
+      }, 100);
     } else {
       setError(result.message);
     }
