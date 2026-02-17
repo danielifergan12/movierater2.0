@@ -34,17 +34,56 @@ const Navbar = () => {
   };
 
   return (
-    <AppBar position="sticky" sx={{ 
-      background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(255, 107, 53, 0.1))',
-      backdropFilter: 'blur(20px)',
-      borderBottom: '1px solid rgba(0, 212, 255, 0.2)',
-    }}>
-      <Toolbar sx={{ 
-        flexDirection: { xs: 'column', sm: 'row' },
-        py: { xs: 1.5, sm: 0 },
-        gap: { xs: 1.5, sm: 0 },
-        minHeight: { xs: 'auto', sm: 64 }
+    <>
+      {/* Admin Button - Fixed position in top left, below navbar */}
+      {isAuthenticated && user?.username && user.username.toLowerCase() === 'danielifergan' && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: { xs: 80, sm: 64 },
+            left: { xs: 8, sm: 16 },
+            zIndex: 1100,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: 1
+          }}
+        >
+          <Button
+            variant="contained"
+            startIcon={<AdminIcon />}
+            onClick={() => handleNavigation('/admin/users')}
+            size="small"
+            sx={{
+              background: 'linear-gradient(45deg, #ff6b35, #e64a19)',
+              color: '#ffffff',
+              fontSize: '0.75rem',
+              px: 2,
+              py: 0.75,
+              minHeight: 32,
+              boxShadow: '0 2px 8px rgba(255, 107, 53, 0.4)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #e64a19, #cc3d0f)',
+                boxShadow: '0 4px 12px rgba(255, 107, 53, 0.6)',
+              },
+            }}
+          >
+            Admin
+          </Button>
+        </Box>
+      )}
+
+      <AppBar position="sticky" sx={{ 
+        background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(255, 107, 53, 0.1))',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(0, 212, 255, 0.2)',
       }}>
+        <Toolbar sx={{ 
+          flexDirection: { xs: 'column', sm: 'row' },
+          py: { xs: 1.5, sm: 0 },
+          gap: { xs: 1.5, sm: 0 },
+          minHeight: { xs: 'auto', sm: 64 }
+        }}>
           <Box
             onClick={() => handleNavigation('/')}
             sx={{
@@ -241,29 +280,6 @@ const Navbar = () => {
                   Follow
                 </Box>
               </Button>
-              {user?.username && user.username.toLowerCase() === 'danielifergan' && (
-                <Button
-                  color="inherit"
-                  startIcon={<AdminIcon />}
-                  onClick={() => handleNavigation('/admin/users')}
-                  sx={{ 
-                    mr: { xs: 0.5, sm: 1 },
-                    fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                    px: { xs: 2, sm: 2 },
-                    py: { xs: 1.25, sm: 1 },
-                    minHeight: { xs: 44, sm: 36 },
-                    minWidth: { xs: 44, sm: 'auto' },
-                    color: '#ff6b35'
-                  }}
-                >
-                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                    Admin
-                  </Box>
-                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
-                    Admin
-                  </Box>
-                </Button>
-              )}
               <Button 
                 color="inherit" 
                 onClick={() => { logout(); navigate('/'); }}
@@ -312,6 +328,7 @@ const Navbar = () => {
         </Box>
       </Toolbar>
     </AppBar>
+    </>
   );
 };
 
