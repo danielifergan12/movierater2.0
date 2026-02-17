@@ -114,6 +114,7 @@ const AnimatedMovieBackground = () => {
         overflow: 'hidden',
         zIndex: 0,
         pointerEvents: 'none',
+        background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
         '&::before': {
           content: '""',
           position: 'absolute',
