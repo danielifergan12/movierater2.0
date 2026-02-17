@@ -160,6 +160,19 @@ const MyRankings = () => {
           hoveredIndex = parseInt(el.getAttribute('data-ranking-index'));
           break;
         }
+        // Check if we're over a drop zone - find the list item it belongs to
+        if (el.hasAttribute && el.hasAttribute('data-drop-zone')) {
+          // Find the previous sibling list item
+          let sibling = el.previousElementSibling;
+          while (sibling) {
+            if (sibling.hasAttribute && sibling.hasAttribute('data-ranking-index')) {
+              hoveredIndex = parseInt(sibling.getAttribute('data-ranking-index'));
+              break;
+            }
+            sibling = sibling.previousElementSibling;
+          }
+          if (hoveredIndex !== null) break;
+        }
         // Otherwise, find the closest parent with the attribute
         const listItem = el.closest('[data-ranking-index]');
         if (listItem) {
@@ -168,32 +181,26 @@ const MyRankings = () => {
         }
       }
       
+      // Clear any pending timeout when mouse moves
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+        hoverTimeoutRef.current = null;
+      }
+      
       // Only update if we're hovering over a different item than before
       // This prevents flickering when moving over child elements
       if (hoveredIndex !== null && hoveredIndex !== mouseDownIndex) {
-        // Clear any pending timeout
-        if (hoverTimeoutRef.current) {
-          clearTimeout(hoverTimeoutRef.current);
-          hoverTimeoutRef.current = null;
-        }
-        
         // Only update if it's actually different from the last hovered index
         if (hoveredIndex !== lastHoveredIndexRef.current) {
           lastHoveredIndexRef.current = hoveredIndex;
           setDragOverIndex(hoveredIndex);
         }
-      } else if (hoveredIndex === null) {
-        // Clear drag over if not over any item, but with a small delay to prevent flicker
-        if (hoverTimeoutRef.current) {
-          clearTimeout(hoverTimeoutRef.current);
-        }
-        hoverTimeoutRef.current = setTimeout(() => {
-          if (lastHoveredIndexRef.current !== null) {
-            lastHoveredIndexRef.current = null;
-            setDragOverIndex(null);
-          }
-          hoverTimeoutRef.current = null;
-        }, 50); // Small delay to prevent rapid clearing
+      } else if (hoveredIndex === null && lastHoveredIndexRef.current !== null) {
+        // Check if we're over the drop zone or still in the drag area
+        // If hoveredIndex is null, we might be over the drop zone box or a child element
+        // Only clear if we're truly outside the drag area
+        // Don't clear immediately - keep the current dragOverIndex if we're still in the general area
+        // The dragOverIndex will be cleared on mouseup or when we enter a different item
       }
     };
 
@@ -1066,6 +1073,7 @@ const MyRankings = () => {
                   {/* Drop zone placeholder - shown BELOW the item being hovered over */}
                   {showDropZone && (
                     <Box
+                      data-drop-zone="true"
                       sx={{
                         height: { xs: 140, sm: 180 },
                         border: '3px dashed #00d4ff',
@@ -1078,6 +1086,7 @@ const MyRankings = () => {
                         justifyContent: 'center',
                         transition: 'all 0.2s ease',
                         animation: 'pulse 2s ease-in-out infinite',
+                        pointerEvents: 'none',
                         '@keyframes pulse': {
                           '0%, 100%': { opacity: 0.8 },
                           '50%': { opacity: 1 },

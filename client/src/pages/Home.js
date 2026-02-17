@@ -26,7 +26,7 @@ import api from '../config/axios';
 const Home = () => {
   const location = useLocation();
   const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { rawRatings } = useRatings();
   const [activeTab, setActiveTab] = useState(1);
   const [ratingMovie, setRatingMovie] = useState(null);
@@ -34,6 +34,8 @@ const Home = () => {
   const [displayMovies, setDisplayMovies] = useState([]);
   const [totalRankings, setTotalRankings] = useState(0);
   const hasInitialLoad = useRef(false);
+  const prevUserIdRef = useRef(null);
+  const STORAGE_KEY = 'homeDisplayMovies';
 
   // Ensure component responds to route changes for proper navigation
   const [, setRouteUpdate] = useState(0);
@@ -70,9 +72,49 @@ const Home = () => {
     }
   };
 
+  // Load persisted display movies from localStorage
+  const loadPersistedMovies = () => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const movies = JSON.parse(stored);
+        // Check if movies are still valid (have required fields)
+        if (Array.isArray(movies) && movies.length > 0 && movies[0].id) {
+          return movies;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading persisted movies:', error);
+    }
+    return null;
+  };
+
+  // Save display movies to localStorage
+  const savePersistedMovies = (movies) => {
+    try {
+      if (movies && movies.length > 0) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(movies));
+      }
+    } catch (error) {
+      console.error('Error saving persisted movies:', error);
+    }
+  };
+
 
   // Don't fetch popular movies for guests - they should see empty state instead
   
+  // Clear persisted movies when user logs out or changes
+  useEffect(() => {
+    const currentUserId = user?._id || null;
+    if (prevUserIdRef.current !== null && prevUserIdRef.current !== currentUserId) {
+      // User changed or logged out - clear persisted movies
+      localStorage.removeItem(STORAGE_KEY);
+      setDisplayMovies([]);
+      hasInitialLoad.current = false;
+    }
+    prevUserIdRef.current = currentUserId;
+  }, [user?._id]);
+
   // Fetch total rankings count
   useEffect(() => {
     const fetchTotalRankings = async () => {
@@ -86,29 +128,47 @@ const Home = () => {
     fetchTotalRankings();
   }, []);
 
-  // Only fetch recommendations on initial mount if we don't have data
+  // Load persisted movies on mount, or fetch if none exist
   useEffect(() => {
-    if (isAuthenticated && activeTab === 1 && !hasInitialLoad.current && 
-        displayMovies.length === 0 && recommendedMovies.length === 0 && !loading) {
+    if (isAuthenticated && activeTab === 1 && !hasInitialLoad.current) {
       hasInitialLoad.current = true;
-      // Get recently shown movies to exclude
-      const recentlyShown = getRecentlyShownMovies();
-      getPersonalRecommendations(false, recentlyShown).then((result) => {
-        // Track all movies that are shown (from initial load or refresh)
-        // This ensures they won't appear again for at least 15 refreshes
-        if (result && result.results && result.results.length > 0) {
-          const newMovieIds = result.results
-            .slice(0, 8)
-            .map(movie => movie.id)
-            .filter(Boolean);
-          // Only add if we have new movies (avoid duplicates)
-          const current = getRecentlyShownMovies();
-          const newIds = newMovieIds.filter(id => !current.includes(id.toString()));
-          if (newIds.length > 0) {
-            addToRecentlyShown(newIds);
-          }
+      
+      // First, try to load persisted movies
+      const persistedMovies = loadPersistedMovies();
+      if (persistedMovies && persistedMovies.length > 0) {
+        // Filter out already-rated movies from persisted list
+        const ratedIds = new Set(rawRatings.map(r => r.id?.toString()).filter(Boolean));
+        const filteredPersisted = persistedMovies.filter(movie => 
+          movie && movie.id && !ratedIds.has(movie.id.toString())
+        );
+        
+        if (filteredPersisted.length > 0) {
+          setDisplayMovies(filteredPersisted.slice(0, 8));
+          return; // Don't fetch new recommendations if we have persisted movies
         }
-      });
+      }
+      
+      // No persisted movies or all were rated - fetch new recommendations
+      if (displayMovies.length === 0 && recommendedMovies.length === 0 && !loading) {
+        // Get recently shown movies to exclude
+        const recentlyShown = getRecentlyShownMovies();
+        getPersonalRecommendations(false, recentlyShown).then((result) => {
+          // Track all movies that are shown (from initial load or refresh)
+          // This ensures they won't appear again for at least 15 refreshes
+          if (result && result.results && result.results.length > 0) {
+            const newMovieIds = result.results
+              .slice(0, 8)
+              .map(movie => movie.id)
+              .filter(Boolean);
+            // Only add if we have new movies (avoid duplicates)
+            const current = getRecentlyShownMovies();
+            const newIds = newMovieIds.filter(id => !current.includes(id.toString()));
+            if (newIds.length > 0) {
+              addToRecentlyShown(newIds);
+            }
+          }
+        });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
@@ -116,11 +176,26 @@ const Home = () => {
   // Refresh recommendations when a movie is rated
   useEffect(() => {
     if (isAuthenticated && activeTab === 1 && rawRatings.length > 0) {
-      // Small delay to ensure server has updated ratings
-      const timer = setTimeout(() => {
-        getPersonalRecommendations();
-      }, 1000);
-      return () => clearTimeout(timer);
+      // Filter out rated movies from current display
+      const ratedIds = new Set(rawRatings.map(r => r.id?.toString()).filter(Boolean));
+      const filteredDisplay = displayMovies.filter(movie => 
+        movie && movie.id && !ratedIds.has(movie.id.toString())
+      );
+      
+      // If all displayed movies are now rated, clear persisted movies and fetch new ones
+      if (filteredDisplay.length === 0 && displayMovies.length > 0) {
+        localStorage.removeItem(STORAGE_KEY);
+        setDisplayMovies([]);
+        // Small delay to ensure server has updated ratings
+        const timer = setTimeout(() => {
+          getPersonalRecommendations();
+        }, 1000);
+        return () => clearTimeout(timer);
+      } else if (filteredDisplay.length < displayMovies.length) {
+        // Some movies were rated, update display and persist
+        setDisplayMovies(filteredDisplay);
+        savePersistedMovies(filteredDisplay);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawRatings.length, isAuthenticated, activeTab]);
@@ -184,7 +259,10 @@ const Home = () => {
         );
         // Only update if we have new movies, otherwise keep current displayMovies
         if (newFiltered.length > 0) {
-          setDisplayMovies(newFiltered.slice(0, 8));
+          const moviesToDisplay = newFiltered.slice(0, 8);
+          setDisplayMovies(moviesToDisplay);
+          // Persist the new movies
+          savePersistedMovies(moviesToDisplay);
         }
       }
       // Mark that we've done an initial load so it won't auto-fetch again
@@ -208,16 +286,16 @@ const Home = () => {
     if (activeTab === 1) {
       // Only update displayMovies when not refreshing (smooth transition)
       // During refresh, keep showing old movies until new ones are ready
-      if (!isRefreshing && filteredRecommendedMovies.length > 0) {
-        // Only update if the movies have actually changed (by comparing IDs)
-        const currentIds = displayMovies.map(m => m.id).sort().join(',');
-        const newIds = filteredRecommendedMovies.slice(0, 8).map(m => m.id).sort().join(',');
-        if (currentIds !== newIds) {
-          setDisplayMovies(filteredRecommendedMovies.slice(0, 8));
+      if (!isRefreshing && filteredRecommendedMovies.length > 0 && displayMovies.length === 0) {
+        // Only set if we don't have persisted movies (they were loaded in the other effect)
+        // This handles the case where recommendations come in but we want to use persisted movies
+        const persistedMovies = loadPersistedMovies();
+        if (!persistedMovies || persistedMovies.length === 0) {
+          // No persisted movies, use the recommendations and persist them
+          const moviesToDisplay = filteredRecommendedMovies.slice(0, 8);
+          setDisplayMovies(moviesToDisplay);
+          savePersistedMovies(moviesToDisplay);
         }
-      } else if (filteredRecommendedMovies.length > 0 && displayMovies.length === 0 && !loading) {
-        // Initial load - set display movies only when loading is complete
-        setDisplayMovies(filteredRecommendedMovies.slice(0, 8));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
