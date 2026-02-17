@@ -15,7 +15,6 @@ import {
 } from '@mui/material';
 import api from '../config/axios';
 import RatingModal from '../components/RatingModal';
-import { useRatings } from '../hooks/useRatings';
 
 const Rate = () => {
   const [movies, setMovies] = useState([]);

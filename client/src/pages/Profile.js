@@ -49,7 +49,7 @@ const Profile = () => {
       ]);
 
       setProfileUser(profileResponse.data.user);
-      setReviews(profileResponse.data.recentReviews);
+      setReviews(reviewsResponse.data.reviews || profileResponse.data.recentReviews || []);
       setIsFollowing(profileResponse.data.user.followers?.some(f => f._id === currentUser?._id));
     } catch (error) {
       console.error('Error fetching profile:', error);
