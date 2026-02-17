@@ -335,23 +335,69 @@ router.get('/genre/:genreId', async (req, res) => {
   }
 });
 
-// Get new releases (now playing movies)
+// Get new releases (now playing + upcoming movies)
 router.get('/new-releases', async (req, res) => {
   try {
     const { page = 1 } = req.query;
     
-    const response = await axios.get(
-      `https://api.themoviedb.org/3/movie/now_playing`,
-      {
-        params: {
-          api_key: process.env.TMDB_API_KEY,
-          page,
-          language: 'en-US'
+    // Fetch both now playing and upcoming movies
+    const [nowPlayingResponse, upcomingResponse] = await Promise.all([
+      axios.get(
+        `https://api.themoviedb.org/3/movie/now_playing`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            page: 1,
+            language: 'en-US'
+          }
         }
-      }
-    );
+      ),
+      axios.get(
+        `https://api.themoviedb.org/3/movie/upcoming`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            page: 1,
+            language: 'en-US'
+          }
+        }
+      )
+    ]);
 
-    res.json(response.data);
+    // Combine results and remove duplicates
+    const nowPlayingMovies = nowPlayingResponse.data.results || [];
+    const upcomingMovies = upcomingResponse.data.results || [];
+    
+    // Create a map to track unique movies by ID
+    const movieMap = new Map();
+    
+    // Add now playing movies first (they take priority)
+    nowPlayingMovies.forEach(movie => {
+      if (movie && movie.id) {
+        movieMap.set(movie.id, movie);
+      }
+    });
+    
+    // Add upcoming movies (won't overwrite if already exists)
+    upcomingMovies.forEach(movie => {
+      if (movie && movie.id && !movieMap.has(movie.id)) {
+        movieMap.set(movie.id, movie);
+      }
+    });
+    
+    // Convert map to array and sort by release date (newest first)
+    const allNewReleases = Array.from(movieMap.values()).sort((a, b) => {
+      const dateA = new Date(a.release_date || 0);
+      const dateB = new Date(b.release_date || 0);
+      return dateB - dateA; // Descending order (newest first)
+    });
+
+    res.json({
+      results: allNewReleases,
+      page: 1,
+      total_pages: 1,
+      total_results: allNewReleases.length
+    });
   } catch (error) {
     console.error('Get new releases error:', error);
     res.status(500).json({ message: 'Error fetching new releases' });
