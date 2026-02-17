@@ -93,10 +93,8 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
   useEffect(() => {
     if (!open || !isInitialized || firstTime) return;
     
-    // Get current ratings (exclude the movie being re-rated if applicable)
-    const currentRatings = isRerating 
-      ? rawRatings.filter(r => r.id !== movie.id)
-      : rawRatings;
+    // Get current ratings - always filter out the movie being reranked to prevent self-comparison
+    const currentRatings = rawRatings.filter(r => r.id !== movie.id);
     
     if (currentRatings.length === 0) return;
     
@@ -111,41 +109,101 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     
     const nextMid = Math.floor((low + high) / 2);
     
-    // Safety check: ensure we're not comparing against the same movie
-    // This can happen when rerating a movie that was in the middle of the list
-    if (currentRatings[nextMid] && currentRatings[nextMid].id === movie.id) {
-      // Skip this position, move to next available position
-      if (nextMid + 1 < currentRatings.length) {
-        setMid(nextMid + 1);
-      } else if (nextMid - 1 >= 0) {
-        setMid(nextMid - 1);
-      } else {
+    // Robust safety check: ensure we're not comparing against the same movie
+    // Find the next valid comparison target if nextMid points to the same movie
+    let validMid = nextMid;
+    
+    // If the calculated mid points to the same movie, find the nearest valid position
+    if (currentRatings[validMid] && currentRatings[validMid].id === movie.id) {
+      // Try to find a valid position by searching nearby positions
+      let found = false;
+      const maxSearch = Math.max(currentRatings.length, 10); // Search up to array length or 10 positions
+      
+      // First, try positions after nextMid
+      for (let i = nextMid + 1; i < currentRatings.length && i < nextMid + maxSearch; i++) {
+        if (currentRatings[i] && currentRatings[i].id !== movie.id) {
+          validMid = i;
+          found = true;
+          break;
+        }
+      }
+      
+      // If not found, try positions before nextMid
+      if (!found) {
+        for (let i = nextMid - 1; i >= 0 && i > nextMid - maxSearch; i--) {
+          if (currentRatings[i] && currentRatings[i].id !== movie.id) {
+            validMid = i;
+            found = true;
+            break;
+          }
+        }
+      }
+      
+      // If still no valid position found, search the entire array
+      if (!found) {
+        for (let i = 0; i < currentRatings.length; i++) {
+          if (currentRatings[i] && currentRatings[i].id !== movie.id) {
+            validMid = i;
+            found = true;
+            break;
+          }
+        }
+      }
+      
+      // If no valid comparison target exists (shouldn't happen, but handle gracefully)
+      if (!found) {
         // No other movies to compare, just insert at this position
         const updated = upsertAtIndex(movie, nextMid);
         onComplete && onComplete(updated);
         onClose && onClose();
+        return;
       }
-      return;
     }
     
-    setMid(nextMid);
+    // Final safety check: ensure validMid is within bounds and doesn't match the movie
+    if (validMid >= 0 && validMid < currentRatings.length && 
+        currentRatings[validMid] && currentRatings[validMid].id !== movie.id) {
+      setMid(validMid);
+    } else {
+      // Fallback: if somehow we still have an invalid mid, just complete the rating
+      const updated = upsertAtIndex(movie, Math.min(nextMid, currentRatings.length));
+      onComplete && onComplete(updated);
+      onClose && onClose();
+    }
   }, [low, high, open, isInitialized, rawRatings, firstTime, movie, upsertAtIndex, onComplete, onClose, isRerating]);
 
   const compareTarget = useMemo(() => {
     if (mid == null) return null;
-    // Get current ratings (may have been modified for re-rating)
-    const currentRatings = isRerating 
-      ? rawRatings.filter(r => r.id !== movie.id)
-      : rawRatings;
     
-    const target = currentRatings[mid];
+    // Get current ratings (always filter out the movie being reranked to prevent self-comparison)
+    const currentRatings = rawRatings.filter(r => r.id !== movie.id);
     
-    // Double-check: if somehow the target is the same movie, return null to avoid comparison
-    if (target && target.id === movie.id) {
+    // Ensure mid is within valid bounds
+    if (mid < 0 || mid >= currentRatings.length) {
       return null;
     }
     
-    return target || null;
+    const target = currentRatings[mid];
+    
+    // Multiple safety checks: ensure target exists and is not the same movie
+    if (!target) {
+      return null;
+    }
+    
+    // Critical check: if somehow the target is the same movie, return null to avoid comparison
+    if (target.id === movie.id) {
+      return null;
+    }
+    
+    // Additional defensive check: verify the target is actually different
+    // This handles edge cases where IDs might be compared incorrectly
+    const movieIdStr = String(movie.id);
+    const targetIdStr = String(target.id);
+    if (movieIdStr === targetIdStr) {
+      return null;
+    }
+    
+    return target;
   }, [mid, rawRatings, isRerating, movie.id]);
 
   if (!open || !movie || !isInitialized) {
@@ -301,6 +359,10 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                   border: '2px solid transparent',
                 }}
                 onClick={() => {
+                  // Safety check: ensure we have a valid comparison target
+                  if (!compareTarget || compareTarget.id === movie.id) {
+                    return;
+                  }
                   // Save to history before making choice
                   saveToHistory(compareTarget);
                   // New movie is better (higher in ranking)
@@ -343,6 +405,10 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                   border: '2px solid transparent',
                 }}
                 onClick={() => {
+                  // Safety check: ensure we have a valid comparison target
+                  if (!compareTarget || compareTarget.id === movie.id) {
+                    return;
+                  }
                   // Save to history before making choice
                   saveToHistory(compareTarget);
                   // Compare target is better (lower in ranking)
