@@ -18,6 +18,8 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isRerating, setIsRerating] = useState(false);
   const [comparisonHistory, setComparisonHistory] = useState([]);
+  // Store filtered ratings when rerating to ensure movie is always excluded
+  const [filteredRatings, setFilteredRatings] = useState(null);
 
   // Helper function to save current state to history
   const saveToHistory = (currentCompareTarget) => {
@@ -46,6 +48,7 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       setHigh(0);
       setIsRerating(false);
       setComparisonHistory([]);
+      setFilteredRatings(null);
       return;
     }
     
@@ -80,8 +83,13 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
         const rIdStr = String(r.id);
         return rIdStr !== movieIdStr;
       });
+      // Store filtered ratings locally to ensure we always use them
+      setFilteredRatings(updatedRatings);
       setRatingsArray(updatedRatings);
       ratingsToUse = updatedRatings; // Use filtered array for calculations
+    } else {
+      // Not rerating, clear filtered ratings
+      setFilteredRatings(null);
     }
 
     // Determine if it's first time based on ratings length (after potential removal)
@@ -103,11 +111,14 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     
     // Get current ratings - always filter out the movie being reranked to prevent self-comparison
     // Use robust ID comparison to handle string/number mismatches
+    // When rerating, use the filtered ratings we stored; otherwise filter on the fly
     const movieIdStr = String(movie.id);
-    const currentRatings = rawRatings.filter(r => {
-      const rIdStr = String(r.id);
-      return rIdStr !== movieIdStr;
-    });
+    const currentRatings = isRerating && filteredRatings 
+      ? filteredRatings  // Use pre-filtered ratings when rerating
+      : rawRatings.filter(r => {
+          const rIdStr = String(r.id);
+          return rIdStr !== movieIdStr;
+        });
     
     if (currentRatings.length === 0) {
       // No other movies to compare against, just insert at position 0
@@ -230,11 +241,14 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     
     // Get current ratings (always filter out the movie being reranked to prevent self-comparison)
     // Use robust string comparison to handle ID type mismatches
+    // When rerating, use the filtered ratings we stored; otherwise filter on the fly
     const movieIdStr = String(movie.id);
-    const currentRatings = rawRatings.filter(r => {
-      const rIdStr = String(r.id);
-      return rIdStr !== movieIdStr;
-    });
+    const currentRatings = isRerating && filteredRatings 
+      ? filteredRatings  // Use pre-filtered ratings when rerating
+      : rawRatings.filter(r => {
+          const rIdStr = String(r.id);
+          return rIdStr !== movieIdStr;
+        });
     
     // Ensure mid is within valid bounds
     if (mid < 0 || mid >= currentRatings.length) {
@@ -256,7 +270,7 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     }
     
     return target;
-  }, [mid, rawRatings, isRerating, movie.id]);
+  }, [mid, rawRatings, filteredRatings, isRerating, movie.id]);
 
   // Effect to handle when compareTarget becomes null - find a new valid target or complete
   // Use a ref to prevent infinite loops
@@ -273,10 +287,12 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       handlingNullTargetRef.current = true;
       
       const movieIdStr = String(movie.id);
-      const currentRatings = rawRatings.filter(r => {
-        const rIdStr = String(r.id);
-        return rIdStr !== movieIdStr;
-      });
+      const currentRatings = isRerating && filteredRatings 
+        ? filteredRatings  // Use pre-filtered ratings when rerating
+        : rawRatings.filter(r => {
+            const rIdStr = String(r.id);
+            return rIdStr !== movieIdStr;
+          });
       
       if (currentRatings.length === 0) {
         // No other movies, just insert at position 0
@@ -308,7 +324,7 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       // Reset the ref when we have a valid target
       handlingNullTargetRef.current = false;
     }
-  }, [compareTarget, open, isInitialized, firstTime, mid, rawRatings, movie, upsertAtIndex, onComplete, onClose]);
+  }, [compareTarget, open, isInitialized, firstTime, mid, rawRatings, filteredRatings, isRerating, movie, upsertAtIndex, onComplete, onClose]);
 
   if (!open || !movie || !isInitialized) {
     return null;
@@ -474,7 +490,9 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                   if (!compareTarget) {
                     // If no valid target, try to complete the rating
                     const movieIdStr = String(movie.id);
-                    const currentRatings = rawRatings.filter(r => String(r.id) !== movieIdStr);
+                    const currentRatings = isRerating && filteredRatings 
+                      ? filteredRatings
+                      : rawRatings.filter(r => String(r.id) !== movieIdStr);
                     const insertAt = mid != null && mid >= 0 ? mid : 0;
                     const updated = upsertAtIndex(movie, Math.min(insertAt, currentRatings.length));
                     onComplete && onComplete(updated);
@@ -487,7 +505,9 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                   const targetIdStr = String(compareTarget.id);
                   if (movieIdStr === targetIdStr) {
                     // Same movie - find a different one or complete
-                    const currentRatings = rawRatings.filter(r => String(r.id) !== movieIdStr);
+                    const currentRatings = isRerating && filteredRatings 
+                      ? filteredRatings
+                      : rawRatings.filter(r => String(r.id) !== movieIdStr);
                     if (currentRatings.length === 0) {
                       const updated = upsertAtIndex(movie, 0);
                       onComplete && onComplete(updated);
@@ -548,7 +568,9 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                   if (!compareTarget) {
                     // If no valid target, try to complete the rating
                     const movieIdStr = String(movie.id);
-                    const currentRatings = rawRatings.filter(r => String(r.id) !== movieIdStr);
+                    const currentRatings = isRerating && filteredRatings 
+                      ? filteredRatings
+                      : rawRatings.filter(r => String(r.id) !== movieIdStr);
                     const insertAt = mid != null && mid >= 0 ? mid : 0;
                     const updated = upsertAtIndex(movie, Math.min(insertAt, currentRatings.length));
                     onComplete && onComplete(updated);
@@ -561,7 +583,9 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                   const targetIdStr = String(compareTarget.id);
                   if (movieIdStr === targetIdStr) {
                     // Same movie - find a different one or complete
-                    const currentRatings = rawRatings.filter(r => String(r.id) !== movieIdStr);
+                    const currentRatings = isRerating && filteredRatings 
+                      ? filteredRatings
+                      : rawRatings.filter(r => String(r.id) !== movieIdStr);
                     if (currentRatings.length === 0) {
                       const updated = upsertAtIndex(movie, 0);
                       onComplete && onComplete(updated);
@@ -606,11 +630,8 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                 onClick={() => {
                   // Skip current comparison - treat as equal and place at current mid position
                   // This effectively skips to the next step in the binary search
-                  const currentRatings = isRerating 
-                    ? (() => {
-                        const movieIdStr = String(movie.id);
-                        return rawRatings.filter(r => String(r.id) !== movieIdStr);
-                      })()
+                  const currentRatings = isRerating && filteredRatings 
+                    ? filteredRatings
                     : rawRatings;
                   
                   if (low > high) {
