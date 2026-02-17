@@ -263,44 +263,64 @@ router.get('/recommendations/personal', auth, async (req, res) => {
       return res.json(response.data);
     }
 
-    // Get top 5-10 highly rated movies (top of the list = highest rated)
-    const topRatedMovies = ratings.slice(0, Math.min(10, ratings.length));
+    // Get top 5 highly rated movies (top of the list = highest rated)
+    const topRatedMovies = ratings.slice(0, Math.min(5, ratings.length));
     const movieIds = topRatedMovies.map(r => r.id);
+    const ratedMovieIds = new Set(movieIds.map(id => id.toString()));
 
-    // Fetch genre information for top-rated movies
-    const genreCounts = {};
-    const ratedMovieIds = new Set(movieIds);
-
-    // Fetch movie details to get genres
-    for (const movieId of movieIds.slice(0, 5)) { // Limit to 5 to avoid too many API calls
+    // Get similar movies for each top-rated movie
+    const allRecommendations = new Map(); // Use Map to track movies and their popularity scores
+    
+    for (const movieId of movieIds) {
       try {
-        const movieResponse = await axios.get(
-          `https://api.themoviedb.org/3/movie/${movieId}`,
+        // Get similar movies for this movie
+        const similarResponse = await axios.get(
+          `https://api.themoviedb.org/3/movie/${movieId}/similar`,
           {
             params: {
               api_key: process.env.TMDB_API_KEY,
-              language: 'en-US'
+              language: 'en-US',
+              page: 1
             }
           }
         );
+
+        const similarMovies = similarResponse.data.results || [];
         
-        const genres = movieResponse.data.genres || [];
-        genres.forEach(genre => {
-          genreCounts[genre.id] = (genreCounts[genre.id] || 0) + 1;
+        // Add each similar movie to our collection, weighted by popularity
+        similarMovies.forEach(movie => {
+          const movieIdStr = movie.id.toString();
+          if (!ratedMovieIds.has(movieIdStr)) {
+            // Store the movie object and accumulate popularity score
+            const existing = allRecommendations.get(movieIdStr);
+            if (existing) {
+              // If movie appears multiple times (from different rated movies), increase its score
+              existing.popularity = (existing.popularity || 0) + (movie.popularity || 0);
+            } else {
+              // First time seeing this movie, store it
+              allRecommendations.set(movieIdStr, { ...movie });
+            }
+          }
         });
       } catch (error) {
-        console.log(`Could not fetch movie ${movieId}:`, error.message);
+        console.log(`Could not fetch similar movies for ${movieId}:`, error.message);
       }
     }
 
-    // Get top 3 most common genres
-    const topGenres = Object.entries(genreCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([genreId]) => genreId);
+    // Convert to array, sort by popularity, and return
+    const recommendations = Array.from(allRecommendations.values())
+      .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+      .slice(0, 20); // Get top 20 by popularity
 
-    if (topGenres.length === 0) {
-      // Fallback to popular movies if no genres found
+    if (recommendations.length > 0) {
+      return res.json({
+        results: recommendations,
+        total_results: recommendations.length,
+        page: 1,
+        total_pages: 1
+      });
+    } else {
+      // Fallback to popular movies if no similar movies found
       const response = await axios.get(
         `https://api.themoviedb.org/3/movie/popular`,
         {
@@ -312,29 +332,6 @@ router.get('/recommendations/personal', auth, async (req, res) => {
       );
       return res.json(response.data);
     }
-
-    // Get recommendations based on top genres
-    const response = await axios.get(
-      `https://api.themoviedb.org/3/discover/movie`,
-      {
-        params: {
-          api_key: process.env.TMDB_API_KEY,
-          with_genres: topGenres.join(','),
-          language: 'en-US',
-          sort_by: 'popularity.desc'
-        }
-      }
-    );
-
-    // Filter out already rated movies from results
-    const filteredResults = (response.data.results || []).filter(
-      movie => !ratedMovieIds.has(movie.id.toString())
-    );
-
-    res.json({
-      ...response.data,
-      results: filteredResults
-    });
   } catch (error) {
     console.error('Get recommendations error:', error);
     // Fallback to popular movies on error
