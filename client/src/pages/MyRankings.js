@@ -61,6 +61,7 @@ const MyRankings = () => {
   const [movieDetailsCache, setMovieDetailsCache] = useState({});
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   useEffect(() => {
     if (location.state?.message) {
@@ -85,13 +86,25 @@ const MyRankings = () => {
     e.dataTransfer.setData('text/html', e.target);
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e, dropOriginalIndex) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    
+    if (draggedIndex !== null && draggedIndex !== dropOriginalIndex) {
+      setDragOverIndex(dropOriginalIndex);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    // Only clear if we're actually leaving the list item (not just moving to a child)
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOverIndex(null);
+    }
   };
 
   const handleDrop = (e, dropOriginalIndex) => {
     e.preventDefault();
+    setDragOverIndex(null);
     
     if (draggedIndex === null || draggedIndex === dropOriginalIndex) {
       setDraggedIndex(null);
@@ -120,6 +133,7 @@ const MyRankings = () => {
 
   const handleDragEnd = () => {
     setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   const handleShareClick = async () => {
@@ -601,8 +615,57 @@ const MyRankings = () => {
                 const originalIndex = ranking.originalIndex;
                 const score = ranking.computedScore || computeEvenScore(originalIndex, rawRatings.length);
                 const isDragging = draggedIndex === originalIndex;
+                const isDragOver = dragOverIndex === originalIndex;
+                
+                // Determine if this item should move up or down to make space
+                // When dragging down (e.g., from 2 to 5), items 3-5 should move up
+                // When dragging up (e.g., from 5 to 2), items 2-4 should move down
+                let shouldMoveUp = false;
+                let shouldMoveDown = false;
+                
+                if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== originalIndex) {
+                  if (draggedIndex < dragOverIndex) {
+                    // Dragging down: items between dragged and drop should move up
+                    shouldMoveUp = originalIndex > draggedIndex && originalIndex <= dragOverIndex;
+                  } else {
+                    // Dragging up: items between drop and dragged should move down
+                    shouldMoveDown = originalIndex >= dragOverIndex && originalIndex < draggedIndex;
+                  }
+                }
+                
                 return (
                 <React.Fragment key={ranking.id}>
+                  {/* Drop zone placeholder - shown above the item being replaced */}
+                  {isDragOver && draggedIndex !== null && draggedIndex !== originalIndex && (
+                    <Box
+                      sx={{
+                        minHeight: { xs: 140, sm: 180 },
+                        border: '2px dashed #00d4ff',
+                        borderRadius: 2,
+                        backgroundColor: 'rgba(0, 212, 255, 0.15)',
+                        margin: { xs: '8px 16px', sm: '12px 32px' },
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease',
+                        animation: 'pulse 1.5s ease-in-out infinite',
+                        '@keyframes pulse': {
+                          '0%, 100%': {
+                            opacity: 0.7,
+                            borderColor: '#00d4ff',
+                          },
+                          '50%': {
+                            opacity: 1,
+                            borderColor: '#66e0ff',
+                          },
+                        },
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ color: '#00d4ff', fontWeight: 600 }}>
+                        Drop here
+                      </Typography>
+                    </Box>
+                  )}
                   <ListItem 
                     draggable={filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length}
                     onDragStart={(e) => {
@@ -612,7 +675,14 @@ const MyRankings = () => {
                         e.preventDefault();
                       }
                     }}
-                    onDragOver={handleDragOver}
+                    onDragOver={(e) => {
+                      if (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) {
+                        handleDragOver(e, originalIndex);
+                      } else {
+                        e.preventDefault();
+                      }
+                    }}
+                    onDragLeave={handleDragLeave}
                     onDrop={(e) => {
                       if (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) {
                         handleDrop(e, originalIndex);
@@ -627,10 +697,15 @@ const MyRankings = () => {
                       flexDirection: { xs: 'column', sm: 'row' },
                       alignItems: { xs: 'flex-start', sm: 'center' },
                       cursor: (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) ? 'grab' : 'default',
-                      opacity: isDragging ? 0.5 : 1,
-                      transition: 'all 0.2s ease',
+                      opacity: isDragging ? 0.3 : (isDragOver ? 0.8 : 1),
+                      transform: shouldMoveUp ? 'translateY(-100%)' : shouldMoveDown ? 'translateY(100%)' : 'translateY(0)',
+                      transition: draggedIndex !== null ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease' : 'all 0.2s ease',
+                      backgroundColor: isDragOver ? 'rgba(0, 212, 255, 0.08)' : 'transparent',
+                      border: isDragOver ? '2px solid rgba(0, 212, 255, 0.4)' : '2px solid transparent',
+                      position: 'relative',
+                      zIndex: isDragging ? 10 : (isDragOver ? 5 : 1),
                       '&:hover': {
-                        backgroundColor: 'rgba(0, 212, 255, 0.05)',
+                        backgroundColor: draggedIndex === null ? 'rgba(0, 212, 255, 0.05)' : (isDragOver ? 'rgba(0, 212, 255, 0.08)' : 'transparent'),
                       },
                       '&:active': {
                         cursor: (filters.sortBy === 'rating' && filteredAndSortedRatings.length === rawRatings.length) ? 'grabbing' : 'default',

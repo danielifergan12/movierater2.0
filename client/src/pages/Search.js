@@ -458,13 +458,13 @@ const Search = () => {
               </Typography>
             </Box>
           ) : (
-            <Grid container spacing={{ xs: 2, sm: 3 }}>
+          <Grid container spacing={{ xs: 2, sm: 3 }}>
               {filteredAndSortedResults.map((movie) => (
-                <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
-                  <MovieCard movie={movie} />
-                </Grid>
-              ))}
-            </Grid>
+              <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
+                <MovieCard movie={movie} />
+              </Grid>
+            ))}
+          </Grid>
           )}
 
           {/* Only show pagination when not filtering (filters apply to current page results) */}
