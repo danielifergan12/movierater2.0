@@ -5,11 +5,13 @@ import {
   Grid,
   Card,
   CardMedia,
+  CardContent,
   Typography,
   Box,
   Button,
   CircularProgress,
   Chip,
+  Rating,
 } from '@mui/material';
 import { Star, Bookmark, BookmarkBorder, Edit as EditIcon, Person as PersonIcon } from '@mui/icons-material';
 import { useMovies } from '../contexts/MovieContext';

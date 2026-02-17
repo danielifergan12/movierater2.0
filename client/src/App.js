@@ -27,6 +27,9 @@ import Followers from './pages/Followers';
 import Following from './pages/Following';
 import GenreMovies from './pages/GenreMovies';
 import Watchlist from './pages/Watchlist';
+import Lists from './pages/Lists';
+import CreateList from './pages/CreateList';
+import ListDetail from './pages/ListDetail';
 
 const theme = createTheme({
   palette: {
@@ -209,7 +212,7 @@ function AppContent() {
             <CreateList />
           </ProtectedRoute>
         } />
-        <Route path="/list/:listId" element={<Lists />} />
+        <Route path="/list/:listId" element={<ListDetail />} />
         <Route path="/discover" element={<DiscoverUsers />} />
         <Route path="/following" element={
           <ProtectedRoute>
