@@ -241,97 +241,38 @@ router.get('/genre/:genreId', async (req, res) => {
   }
 });
 
-// Get movie recommendations for user based on their highly rated movies
+// Get movie recommendations - highest rated movies
 router.get('/recommendations/personal', auth, async (req, res) => {
   try {
     const user = req.user;
     
-    // Get user's ratings (top 10 highest rated)
+    // Get user's rated movie IDs to filter them out
     const ratings = user.ratings || [];
-    
-    if (ratings.length === 0) {
-      // Return popular movies if user has no ratings
-      const response = await axios.get(
-        `https://api.themoviedb.org/3/movie/popular`,
-        {
-          params: {
-            api_key: process.env.TMDB_API_KEY,
-            language: 'en-US'
-          }
+    const ratedMovieIds = new Set(ratings.map(r => r.id.toString()));
+
+    // Fetch top-rated movies from TMDB
+    const response = await axios.get(
+      `https://api.themoviedb.org/3/movie/top_rated`,
+      {
+        params: {
+          api_key: process.env.TMDB_API_KEY,
+          language: 'en-US',
+          page: 1
         }
-      );
-      return res.json(response.data);
-    }
-
-    // Get top 5 highly rated movies (top of the list = highest rated)
-    const topRatedMovies = ratings.slice(0, Math.min(5, ratings.length));
-    const movieIds = topRatedMovies.map(r => r.id);
-    const ratedMovieIds = new Set(movieIds.map(id => id.toString()));
-
-    // Get similar movies for each top-rated movie
-    const allRecommendations = new Map(); // Use Map to track movies and their popularity scores
-    
-    for (const movieId of movieIds) {
-      try {
-        // Get similar movies for this movie
-        const similarResponse = await axios.get(
-          `https://api.themoviedb.org/3/movie/${movieId}/similar`,
-          {
-            params: {
-              api_key: process.env.TMDB_API_KEY,
-              language: 'en-US',
-              page: 1
-            }
-          }
-        );
-
-        const similarMovies = similarResponse.data.results || [];
-        
-        // Add each similar movie to our collection, weighted by popularity
-        similarMovies.forEach(movie => {
-          const movieIdStr = movie.id.toString();
-          if (!ratedMovieIds.has(movieIdStr)) {
-            // Store the movie object and accumulate popularity score
-            const existing = allRecommendations.get(movieIdStr);
-            if (existing) {
-              // If movie appears multiple times (from different rated movies), increase its score
-              existing.popularity = (existing.popularity || 0) + (movie.popularity || 0);
-            } else {
-              // First time seeing this movie, store it
-              allRecommendations.set(movieIdStr, { ...movie });
-            }
-          }
-        });
-      } catch (error) {
-        console.log(`Could not fetch similar movies for ${movieId}:`, error.message);
       }
-    }
+    );
 
-    // Convert to array, sort by popularity, and return
-    const recommendations = Array.from(allRecommendations.values())
-      .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-      .slice(0, 20); // Get top 20 by popularity
+    // Filter out movies the user has already rated
+    const topRatedMovies = (response.data.results || [])
+      .filter(movie => !ratedMovieIds.has(movie.id.toString()))
+      .slice(0, 20); // Get top 20 highest rated movies
 
-    if (recommendations.length > 0) {
-      return res.json({
-        results: recommendations,
-        total_results: recommendations.length,
-        page: 1,
-        total_pages: 1
-      });
-    } else {
-      // Fallback to popular movies if no similar movies found
-      const response = await axios.get(
-        `https://api.themoviedb.org/3/movie/popular`,
-        {
-          params: {
-            api_key: process.env.TMDB_API_KEY,
-            language: 'en-US'
-          }
-        }
-      );
-      return res.json(response.data);
-    }
+    return res.json({
+      results: topRatedMovies,
+      total_results: topRatedMovies.length,
+      page: 1,
+      total_pages: 1
+    });
   } catch (error) {
     console.error('Get recommendations error:', error);
     // Fallback to popular movies on error
