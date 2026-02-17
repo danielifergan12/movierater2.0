@@ -127,12 +127,20 @@ const Navbar = () => {
                   <Chip
                     label={`${user.followers.length} followers`}
                     size="small"
+                    onClick={() => handleNavigation(`/profile/${user._id}/followers`)}
                     sx={{
                       backgroundColor: 'rgba(0, 212, 255, 0.1)',
                       color: '#00d4ff',
                       border: '1px solid rgba(0, 212, 255, 0.3)',
                       fontSize: '0.7rem',
-                      height: 22
+                      height: 22,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 212, 255, 0.2)',
+                        border: '1px solid rgba(0, 212, 255, 0.5)',
+                        transform: 'scale(1.05)'
+                      }
                     }}
                   />
                 )}
