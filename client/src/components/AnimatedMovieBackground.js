@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box } from '@mui/material';
 import api from '../config/axios';
 
-// Famous movies with their TMDB IDs - expanded list (40 movies)
+// Famous movies with their TMDB IDs - 56 movies for 14 per row across 4 rows
 const FAMOUS_MOVIES = [
   { id: 157336, title: 'Interstellar' },
   { id: 27205, title: 'Inception' },
@@ -45,6 +45,22 @@ const FAMOUS_MOVIES = [
   { id: 62, title: '2001: A Space Odyssey' },
   { id: 694, title: 'The Shining' },
   { id: 539, title: 'Psycho' },
+  { id: 98, title: 'Gladiator' },
+  { id: 857, title: 'Saving Private Ryan' },
+  { id: 2062, title: 'Ratatouille' },
+  { id: 24428, title: 'The Avengers' },
+  { id: 315162, title: 'Puss in Boots: The Last Wish' },
+  { id: 10681, title: 'WALL-E' },
+  { id: 18, title: 'The Fifth Element' },
+  { id: 19995, title: 'Avatar' },
+  { id: 49051, title: 'The Hobbit: An Unexpected Journey' },
+  { id: 10138, title: 'Iron Man' },
+  { id: 284054, title: 'Black Panther' },
+  { id: 335983, title: 'Venom' },
+  { id: 284053, title: 'Thor: Ragnarok' },
+  { id: 283995, title: 'Guardians of the Galaxy Vol. 2' },
+  { id: 335984, title: 'Blade Runner 2049' },
+  { id: 335984, title: 'Blade Runner 2049' },
 ];
 
 const AnimatedMovieBackground = () => {
@@ -86,13 +102,13 @@ const AnimatedMovieBackground = () => {
     fetchPosters();
   }, []);
 
-  // Create multiple rows of movies (4 rows to fill the screen)
-  const moviesPerRow = Math.ceil(FAMOUS_MOVIES.length / 4);
+  // Create 4 rows with exactly 14 movies each (56 total movies)
+  const moviesPerRow = 14;
   const rows = [
     FAMOUS_MOVIES.slice(0, moviesPerRow),
     FAMOUS_MOVIES.slice(moviesPerRow, moviesPerRow * 2),
     FAMOUS_MOVIES.slice(moviesPerRow * 2, moviesPerRow * 3),
-    FAMOUS_MOVIES.slice(moviesPerRow * 3),
+    FAMOUS_MOVIES.slice(moviesPerRow * 3, moviesPerRow * 4),
   ];
 
   const getPosterUrl = (movieId) => {
@@ -135,24 +151,20 @@ const AnimatedMovieBackground = () => {
             position: 'absolute',
             top: `${rowIndex * 25}%`,
             left: 0,
-            width: `${(row.length * 3) * 100}%`,
+            width: '200%',
             height: '25%',
             display: 'flex',
             alignItems: 'center',
             gap: 3,
-            animation: `slide${rowIndex % 2} ${15 + rowIndex * 3}s linear infinite`,
-            '@keyframes slide0': {
+            animation: 'slideContinuous 20s linear infinite',
+            '@keyframes slideContinuous': {
               '0%': { transform: 'translateX(0)' },
-              '100%': { transform: `translateX(-${100 / 3}%)` },
-            },
-            '@keyframes slide1': {
-              '0%': { transform: `translateX(-${100 / 3}%)` },
-              '100%': { transform: 'translateX(0)' },
+              '100%': { transform: 'translateX(-50%)' },
             },
           }}
         >
-          {/* Render row multiple times for seamless infinite loop */}
-          {[...row, ...row, ...row].map((movie, index) => (
+          {/* Render row twice for seamless infinite loop - when one set exits, the other enters */}
+          {[...row, ...row].map((movie, index) => (
             <Box
               key={`${movie.id}-${index}`}
               sx={{
