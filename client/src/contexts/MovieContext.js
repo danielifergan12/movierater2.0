@@ -77,10 +77,6 @@ export const MovieProvider = ({ children }) => {
   const getPersonalRecommendations = async (forceRefresh = false, excludeIds = []) => {
     setLoading(true);
     try {
-      // Clear recommendations first if forcing refresh
-      if (forceRefresh) {
-        setRecommendedMovies([]);
-      }
       // Build query parameters
       const params = new URLSearchParams();
       if (forceRefresh) {
@@ -91,11 +87,15 @@ export const MovieProvider = ({ children }) => {
       }
       const queryString = params.toString() ? `?${params.toString()}` : '';
       const response = await api.get(`/api/movies/recommendations/personal${queryString}`);
+      // Update movies atomically to prevent flickering
       setRecommendedMovies(response.data.results || []);
       return response.data;
     } catch (error) {
       console.error('Get recommendations error:', error);
-      setRecommendedMovies([]);
+      // Only clear on error if we don't have existing movies
+      if (recommendedMovies.length === 0) {
+        setRecommendedMovies([]);
+      }
       return { results: [] };
     } finally {
       setLoading(false);

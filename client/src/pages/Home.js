@@ -29,6 +29,7 @@ const Home = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
   const [ratingMovie, setRatingMovie] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Helper functions to manage recently shown movies in localStorage
   const getRecentlyShownMovies = () => {
@@ -64,7 +65,7 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated && activeTab === 1) {
+    if (isAuthenticated && activeTab === 1 && !isRefreshing) {
       // Get recently shown movies to exclude
       const recentlyShown = getRecentlyShownMovies();
       getPersonalRecommendations(false, recentlyShown).then((result) => {
@@ -110,31 +111,42 @@ const Home = () => {
   };
 
   const handleRefresh = async () => {
-    // Get current movie IDs to exclude from new recommendations
-    const currentMovieIds = filteredRecommendedMovies
-      .slice(0, 8)
-      .map(movie => movie.id)
-      .filter(Boolean);
+    // Prevent multiple simultaneous refreshes
+    if (isRefreshing || loading) return;
     
-    // Get recently shown movies to exclude (from last 15 refreshes)
-    const recentlyShown = getRecentlyShownMovies();
+    setIsRefreshing(true);
     
-    // Combine current and recently shown movies
-    const allExcludeIds = [...currentMovieIds, ...recentlyShown];
-    
-    // Clear current recommendations and fetch completely fresh ones
-    setRefreshKey(prev => prev + 1);
-    
-    // Fetch new recommendations
-    const result = await getPersonalRecommendations(true, allExcludeIds);
-    
-    // After getting new recommendations, add them to recently shown list
-    if (result && result.results) {
-      const newMovieIds = result.results
+    try {
+      // Get current movie IDs to exclude from new recommendations
+      const currentMovieIds = filteredRecommendedMovies
         .slice(0, 8)
         .map(movie => movie.id)
         .filter(Boolean);
-      addToRecentlyShown(newMovieIds);
+      
+      // Get recently shown movies to exclude (from last 15 refreshes)
+      const recentlyShown = getRecentlyShownMovies();
+      
+      // Combine current and recently shown movies
+      const allExcludeIds = [...currentMovieIds, ...recentlyShown];
+      
+      // Fetch new recommendations with forceRefresh to get fresh data, but without clearing UI first (smoother transition)
+      const result = await getPersonalRecommendations(true, allExcludeIds);
+      
+      // After getting new recommendations, add them to recently shown list
+      if (result && result.results) {
+        const newMovieIds = result.results
+          .slice(0, 8)
+          .map(movie => movie.id)
+          .filter(Boolean);
+        addToRecentlyShown(newMovieIds);
+      }
+      
+      // Update refresh key after successful refresh to trigger useEffect cleanup
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Error refreshing recommendations:', error);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -473,7 +485,7 @@ const Home = () => {
                 {activeTab === 1 && (
                   <IconButton
                     onClick={handleRefresh}
-                    disabled={loading}
+                    disabled={loading || isRefreshing}
                     sx={{
                       color: '#00d4ff',
                       '&:hover': {
@@ -482,6 +494,13 @@ const Home = () => {
                       '&.Mui-disabled': {
                         color: 'rgba(255, 255, 255, 0.3)',
                       },
+                      ...(isRefreshing && {
+                        animation: 'spin 1s linear infinite',
+                        '@keyframes spin': {
+                          '0%': { transform: 'rotate(0deg)' },
+                          '100%': { transform: 'rotate(360deg)' },
+                        },
+                      }),
                     }}
                     title="Refresh recommendations"
                   >
