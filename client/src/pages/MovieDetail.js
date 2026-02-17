@@ -212,23 +212,30 @@ const MovieDetail = () => {
               </Box>
             ) : (
               <Button
-                variant="contained"
+                variant={movieRating ? "outlined" : "contained"}
                 startIcon={<Star />}
                 size="large"
-                onClick={() => setShowRatingModal(true)}
+                onClick={() => !movieRating && setShowRatingModal(true)}
+                disabled={!!movieRating}
                 sx={{
-                  background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                  ...(movieRating ? {
+                    borderColor: 'rgba(0, 212, 255, 0.3)',
+                    color: 'rgba(0, 212, 255, 0.5)',
+                    cursor: 'not-allowed',
+                  } : {
+                    background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #00a8cc, #e64a19)',
+                    },
+                  }),
                   px: { xs: 3, sm: 4 },
                   py: { xs: 1.25, sm: 1.5 },
                   fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
                   fontWeight: 600,
                   width: { xs: '100%', sm: 'auto' },
-                  '&:hover': {
-                    background: 'linear-gradient(45deg, #00a8cc, #e64a19)',
-                  },
                 }}
               >
-                Rate This Movie
+                {movieRating ? 'Already Rated' : 'Rate This Movie'}
               </Button>
             )}
           </Grid>
@@ -244,7 +251,7 @@ const MovieDetail = () => {
             }}
             onClose={() => setShowRatingModal(false)}
             onComplete={handleRatingComplete}
-            allowRerate={!!movieRating}
+            allowRerate={false}
           />
         )}
       </Container>

@@ -245,35 +245,57 @@ const Home = () => {
         </Typography>
       </CardContent>
       <CardActions sx={{ p: { xs: 2, sm: 3 }, pt: 0, gap: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
-        {activeTab === 1 && (
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<StarIcon />}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setRatingMovie({
-                id: movie.id,
-                title: movie.title,
-                posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'
-              });
-            }}
-            fullWidth
-            sx={{
-              borderColor: '#00d4ff',
-              color: '#00d4ff',
-              fontSize: { xs: '0.75rem', sm: '0.875rem' },
-              py: { xs: 0.75, sm: 1 },
-              '&:hover': {
-                borderColor: '#66e0ff',
-                backgroundColor: 'rgba(0, 212, 255, 0.1)',
-              },
-            }}
-          >
-            Rate
-          </Button>
-        )}
+        {activeTab === 1 && (() => {
+          // Check if movie is already rated
+          const isAlreadyRated = rawRatings.some(r => r.id?.toString() === movie.id?.toString());
+          
+          return isAlreadyRated ? (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<StarIcon />}
+              disabled
+              fullWidth
+              sx={{
+                borderColor: 'rgba(0, 212, 255, 0.3)',
+                color: 'rgba(0, 212, 255, 0.5)',
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                py: { xs: 0.75, sm: 1 },
+                cursor: 'not-allowed',
+              }}
+            >
+              Already Rated
+            </Button>
+          ) : (
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<StarIcon />}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setRatingMovie({
+                  id: movie.id,
+                  title: movie.title,
+                  posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'
+                });
+              }}
+              fullWidth
+              sx={{
+                borderColor: '#00d4ff',
+                color: '#00d4ff',
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                py: { xs: 0.75, sm: 1 },
+                '&:hover': {
+                  borderColor: '#66e0ff',
+                  backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                },
+              }}
+            >
+              Rate
+            </Button>
+          );
+        })()}
         <Button
           size="small"
           component={Link}

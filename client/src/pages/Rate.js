@@ -15,8 +15,10 @@ import {
 } from '@mui/material';
 import api from '../config/axios';
 import RatingModal from '../components/RatingModal';
+import { useRatings } from '../hooks/useRatings';
 
 const Rate = () => {
+  const { rawRatings } = useRatings();
   const [movies, setMovies] = useState([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -108,17 +110,28 @@ const Rate = () => {
                   </Box>
                 </CardContent>
                 <CardActions sx={{ p: { xs: 1.5, sm: 2 }, pt: 0 }}>
-                  <Button 
-                    fullWidth 
-                    variant="contained" 
-                    onClick={() => openRate(movie)}
-                    sx={{
-                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                      py: { xs: 0.75, sm: 1 }
-                    }}
-                  >
-                    Rate
-                  </Button>
+                  {(() => {
+                    const isAlreadyRated = rawRatings.some(r => r.id?.toString() === movie.id?.toString());
+                    return (
+                      <Button 
+                        fullWidth 
+                        variant={isAlreadyRated ? "outlined" : "contained"}
+                        onClick={() => !isAlreadyRated && openRate(movie)}
+                        disabled={isAlreadyRated}
+                        sx={{
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                          py: { xs: 0.75, sm: 1 },
+                          ...(isAlreadyRated && {
+                            borderColor: 'rgba(0, 212, 255, 0.3)',
+                            color: 'rgba(0, 212, 255, 0.5)',
+                            cursor: 'not-allowed',
+                          })
+                        }}
+                      >
+                        {isAlreadyRated ? 'Already Rated' : 'Rate'}
+                      </Button>
+                    );
+                  })()}
                 </CardActions>
               </Card>
             </Grid>

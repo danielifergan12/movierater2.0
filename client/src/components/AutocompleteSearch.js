@@ -18,8 +18,10 @@ import {
 import { Search as SearchIcon, Star as StarIcon } from '@mui/icons-material';
 import api from '../config/axios';
 import RatingModal from './RatingModal';
+import { useRatings } from '../hooks/useRatings';
 
 const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." }) => {
+  const { rawRatings } = useRatings();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -255,29 +257,43 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
                           >
                             ⭐ {movie.vote_average.toFixed(1)}
                           </Typography>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            startIcon={<StarIcon sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }} />}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRatingMovie({
-                                id: movie.id,
-                                title: movie.title,
-                                posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'
-                              });
-                              setShowSuggestions(false);
-                            }}
-                            sx={{
-                              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                              fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                              py: { xs: 0.25, sm: 0.5 },
-                              px: { xs: 1, sm: 1.5 },
-                              minWidth: 'auto',
-                            }}
-                          >
-                            Rate
-                          </Button>
+                          {(() => {
+                            const isAlreadyRated = rawRatings.some(r => r.id?.toString() === movie.id?.toString());
+                            return (
+                              <Button
+                                size="small"
+                                variant={isAlreadyRated ? "outlined" : "contained"}
+                                startIcon={<StarIcon sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }} />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!isAlreadyRated) {
+                                    setRatingMovie({
+                                      id: movie.id,
+                                      title: movie.title,
+                                      posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'
+                                    });
+                                    setShowSuggestions(false);
+                                  }
+                                }}
+                                disabled={isAlreadyRated}
+                                sx={{
+                                  ...(isAlreadyRated ? {
+                                    borderColor: 'rgba(0, 212, 255, 0.3)',
+                                    color: 'rgba(0, 212, 255, 0.5)',
+                                    cursor: 'not-allowed',
+                                  } : {
+                                    background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                                  }),
+                                  fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                                  py: { xs: 0.25, sm: 0.5 },
+                                  px: { xs: 1, sm: 1.5 },
+                                  minWidth: 'auto',
+                                }}
+                              >
+                                {isAlreadyRated ? 'Rated' : 'Rate'}
+                              </Button>
+                            );
+                          })()}
                         </Box>
                       </Box>
                     }

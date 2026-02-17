@@ -37,9 +37,20 @@ router.put('/', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    user.ratings = ratings.map(r => ({ id: r.id, title: r.title, posterUrl: r.posterUrl }));
+    // Remove duplicates by movie ID (keep first occurrence)
+    const seenIds = new Set();
+    const uniqueRatings = [];
+    for (const r of ratings) {
+      const movieId = r.id?.toString();
+      if (movieId && !seenIds.has(movieId)) {
+        seenIds.add(movieId);
+        uniqueRatings.push({ id: r.id, title: r.title, posterUrl: r.posterUrl });
+      }
+    }
+    
+    user.ratings = uniqueRatings;
     await user.save();
-    console.log(`[RATINGS PUT] Successfully saved ${user.ratings.length} ratings for user ${userId}`);
+    console.log(`[RATINGS PUT] Successfully saved ${user.ratings.length} unique ratings for user ${userId}`);
     return res.json({ success: true });
   } catch (err) {
     console.error('[RATINGS PUT] Error:', err);
