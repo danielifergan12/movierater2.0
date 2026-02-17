@@ -241,16 +241,16 @@ router.get('/genre/:genreId', async (req, res) => {
   }
 });
 
-// Get movie recommendations for user
+// Get movie recommendations for user based on their highly rated movies
 router.get('/recommendations/personal', auth, async (req, res) => {
   try {
     const user = req.user;
     
-    // Get user's favorite genres
-    const favoriteGenres = user.preferences.favoriteGenres || [];
+    // Get user's ratings (top 10 highest rated)
+    const ratings = user.ratings || [];
     
-    if (favoriteGenres.length === 0) {
-      // Return popular movies if no preferences
+    if (ratings.length === 0) {
+      // Return popular movies if user has no ratings
       const response = await axios.get(
         `https://api.themoviedb.org/3/movie/popular`,
         {
@@ -263,36 +263,95 @@ router.get('/recommendations/personal', auth, async (req, res) => {
       return res.json(response.data);
     }
 
-    // Get recommendations based on favorite genres
-    const genreIds = favoriteGenres.map(genre => {
-      const genreMap = {
-        'Action': 28,
-        'Comedy': 35,
-        'Drama': 18,
-        'Horror': 27,
-        'Romance': 10749,
-        'Sci-Fi': 878,
-        'Thriller': 53
-      };
-      return genreMap[genre] || 28;
-    });
+    // Get top 5-10 highly rated movies (top of the list = highest rated)
+    const topRatedMovies = ratings.slice(0, Math.min(10, ratings.length));
+    const movieIds = topRatedMovies.map(r => r.id);
 
+    // Fetch genre information for top-rated movies
+    const genreCounts = {};
+    const ratedMovieIds = new Set(movieIds);
+
+    // Fetch movie details to get genres
+    for (const movieId of movieIds.slice(0, 5)) { // Limit to 5 to avoid too many API calls
+      try {
+        const movieResponse = await axios.get(
+          `https://api.themoviedb.org/3/movie/${movieId}`,
+          {
+            params: {
+              api_key: process.env.TMDB_API_KEY,
+              language: 'en-US'
+            }
+          }
+        );
+        
+        const genres = movieResponse.data.genres || [];
+        genres.forEach(genre => {
+          genreCounts[genre.id] = (genreCounts[genre.id] || 0) + 1;
+        });
+      } catch (error) {
+        console.log(`Could not fetch movie ${movieId}:`, error.message);
+      }
+    }
+
+    // Get top 3 most common genres
+    const topGenres = Object.entries(genreCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([genreId]) => genreId);
+
+    if (topGenres.length === 0) {
+      // Fallback to popular movies if no genres found
+      const response = await axios.get(
+        `https://api.themoviedb.org/3/movie/popular`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: 'en-US'
+          }
+        }
+      );
+      return res.json(response.data);
+    }
+
+    // Get recommendations based on top genres
     const response = await axios.get(
       `https://api.themoviedb.org/3/discover/movie`,
       {
         params: {
           api_key: process.env.TMDB_API_KEY,
-          with_genres: genreIds.join(','),
+          with_genres: topGenres.join(','),
           language: 'en-US',
           sort_by: 'popularity.desc'
         }
       }
     );
 
-    res.json(response.data);
+    // Filter out already rated movies from results
+    const filteredResults = (response.data.results || []).filter(
+      movie => !ratedMovieIds.has(movie.id.toString())
+    );
+
+    res.json({
+      ...response.data,
+      results: filteredResults
+    });
   } catch (error) {
     console.error('Get recommendations error:', error);
-    res.status(500).json({ message: 'Error fetching recommendations' });
+    // Fallback to popular movies on error
+    try {
+      const response = await axios.get(
+        `https://api.themoviedb.org/3/movie/popular`,
+        {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            language: 'en-US'
+          }
+        }
+      );
+      return res.json(response.data);
+    } catch (fallbackError) {
+      res.status(500).json({ message: 'Error fetching recommendations' });
+    }
   }
 });
 

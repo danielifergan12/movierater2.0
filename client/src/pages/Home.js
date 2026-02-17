@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Container,
@@ -12,14 +12,17 @@ import {
   Box,
   Chip,
   Rating,
-  CircularProgress
+  CircularProgress,
+  Tabs,
+  Tab
 } from '@mui/material';
 import { useMovies } from '../contexts/MovieContext';
 import { useAuth } from '../contexts/AuthContext';
 
 const Home = () => {
-  const { trendingMovies, getTrendingMovies, loading } = useMovies();
+  const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
   const { isAuthenticated } = useAuth();
+  const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -27,6 +30,13 @@ const Home = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 1 && recommendedMovies.length === 0) {
+      getPersonalRecommendations();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, isAuthenticated]);
 
   
 
@@ -223,18 +233,29 @@ const Home = () => {
 
             <Box sx={{ mb: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
-                <Chip
-                  label="Trending This Week"
-                  sx={{ 
-                    px: 3,
-                    py: 1,
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                    color: '#000',
-                    border: 'none'
+                <Tabs
+                  value={activeTab}
+                  onChange={(e, newValue) => setActiveTab(newValue)}
+                  sx={{
+                    '& .MuiTab-root': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      textTransform: 'none',
+                      minWidth: 200,
+                      '&.Mui-selected': {
+                        color: '#00d4ff',
+                      },
+                    },
+                    '& .MuiTabs-indicator': {
+                      background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                      height: 3,
+                    },
                   }}
-                />
+                >
+                  <Tab label="Trending This Week" />
+                  <Tab label="Suggested for You" />
+                </Tabs>
               </Box>
 
               {loading ? (
@@ -243,13 +264,23 @@ const Home = () => {
                 </Box>
               ) : (
                 <Grid container spacing={3} justifyContent="center">
-                  {trendingMovies
+                  {(activeTab === 0 ? trendingMovies : recommendedMovies)
                     .slice(0, 8)
                     .map((movie) => (
                       <Grid item xs={6} sm={6} md={3} lg={3} key={movie.id}>
                         <MovieCard movie={movie} />
                       </Grid>
                     ))}
+                  {activeTab === 1 && recommendedMovies.length === 0 && (
+                    <Box sx={{ textAlign: 'center', py: 8, width: '100%' }}>
+                      <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
+                        Rate some movies to get personalized recommendations!
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+                        Start rating movies and we'll suggest similar ones you might enjoy.
+                      </Typography>
+                    </Box>
+                  )}
                 </Grid>
               )}
             </Box>
