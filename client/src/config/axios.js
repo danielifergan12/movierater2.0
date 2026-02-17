@@ -5,6 +5,11 @@ import axios from 'axios';
 // In production, set REACT_APP_API_URL to your backend URL (e.g., https://your-backend.railway.app)
 const API_URL = process.env.REACT_APP_API_URL || '';
 
+// Log API URL for debugging (remove in production)
+if (process.env.NODE_ENV === 'production') {
+  console.log('[API Config] Using API URL:', API_URL || 'No API URL set - using relative paths');
+}
+
 // Create axios instance with base URL
 const api = axios.create({
   baseURL: API_URL,
