@@ -159,7 +159,7 @@ const AnimatedMovieBackground = () => {
               height: '25%',
               display: 'flex',
               alignItems: 'center',
-              gap: 3,
+              gap: { xs: 1, sm: 2, md: 3 },
               animation: isLeftToRight 
                 ? 'slideLeftToRight 20s linear infinite'
                 : 'slideRightToLeft 20s linear infinite',
@@ -179,8 +179,9 @@ const AnimatedMovieBackground = () => {
               key={`${movie.id}-${index}`}
               sx={{
                 flexShrink: 0,
-                width: { xs: 80, sm: 120, md: 150 },
-                height: { xs: 120, sm: 180, md: 225 },
+                width: { xs: 60, sm: 100, md: 120, lg: 150 },
+                height: { xs: 90, sm: 150, md: 180, lg: 225 },
+                minWidth: { xs: 60, sm: 100, md: 120, lg: 150 },
                 borderRadius: 2,
                 overflow: 'hidden',
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
