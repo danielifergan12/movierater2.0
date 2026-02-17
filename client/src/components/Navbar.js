@@ -9,6 +9,14 @@ const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
+  // Debug: Log user info to help troubleshoot admin button visibility
+  React.useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('Navbar - Current user:', user.username);
+      console.log('Navbar - Is admin?', user?.username && user.username.toLowerCase() === 'danielifergan');
+    }
+  }, [user, isAuthenticated]);
+
   const handleMovieSelect = (movie) => {
     navigate(`/movie/${movie.id}`);
   };
