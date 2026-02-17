@@ -20,6 +20,7 @@ import ResetPassword from './pages/ResetPassword';
 import GoogleCallback from './pages/GoogleCallback';
 import SharedRankings from './pages/SharedRankings';
 import DiscoverUsers from './pages/DiscoverUsers';
+import FollowingRankings from './pages/FollowingRankings';
 
 const theme = createTheme({
   palette: {
@@ -179,6 +180,11 @@ function App() {
                 } />
                 <Route path="/rankings" element={<MyRankings />} />
                 <Route path="/discover" element={<DiscoverUsers />} />
+                <Route path="/following" element={
+                  <ProtectedRoute>
+                    <FollowingRankings />
+                  </ProtectedRoute>
+                } />
                 <Route path="/share/:shareCode" element={<SharedRankings />} />
                 <Route path="/profile/:userId" element={<Profile />} />
                 <Route path="/movie/:movieId" element={<MovieDetail />} />

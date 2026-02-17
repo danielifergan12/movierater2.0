@@ -183,6 +183,41 @@ router.get('/search/:query', async (req, res) => {
   }
 });
 
+// Get rankings from all users you follow (protected)
+router.get('/following/rankings', auth, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.userId).select('following');
+    
+    if (!currentUser || !currentUser.following || currentUser.following.length === 0) {
+      return res.json({
+        rankings: []
+      });
+    }
+
+    // Get all followed users with their rankings
+    const followedUsers = await User.find({
+      _id: { $in: currentUser.following }
+    }).select('username profilePicture ratings');
+
+    // Format response with user info and their rankings
+    const rankings = followedUsers
+      .filter(user => user.ratings && user.ratings.length > 0)
+      .map(user => ({
+        userId: user._id,
+        username: user.username || 'Anonymous',
+        profilePicture: user.profilePicture || '',
+        ratings: user.ratings || []
+      }));
+
+    res.json({
+      rankings: rankings
+    });
+  } catch (error) {
+    console.error('Get following rankings error:', error);
+    res.status(500).json({ message: 'Error fetching following rankings' });
+  }
+});
+
 // Get user's public rankings
 router.get('/:userId/rankings', async (req, res) => {
   try {
