@@ -138,26 +138,62 @@ const Home = () => {
       setGenresLoading(true);
       try {
         const response = await api.get('/api/movies/genres');
-        console.log('Genres API response:', response.data);
-        if (response.data) {
-          // Handle both response.data.genres and response.data directly
-          const genresList = response.data.genres || response.data;
-          if (Array.isArray(genresList) && genresList.length > 0) {
+        console.log('Genres API response:', response);
+        console.log('Genres API response.data:', response.data);
+        
+        if (response && response.data) {
+          // TMDB returns { genres: [...] }
+          let genresList = null;
+          
+          if (response.data.genres && Array.isArray(response.data.genres)) {
+            genresList = response.data.genres;
+          } else if (Array.isArray(response.data)) {
+            genresList = response.data;
+          }
+          
+          if (genresList && genresList.length > 0) {
             // Show ALL genres, sorted alphabetically
             const sorted = [...genresList].sort((a, b) => a.name.localeCompare(b.name));
-            console.log('All genres loaded:', sorted);
+            console.log('All genres loaded:', sorted.length, 'genres');
             setGenres(sorted);
           } else {
-            console.warn('Genres list is empty or not an array:', genresList);
+            console.warn('Genres list is empty or not an array. Response structure:', {
+              hasGenres: !!response.data.genres,
+              isArray: Array.isArray(response.data),
+              data: response.data
+            });
             setGenres([]);
           }
         } else {
-          console.warn('No genres found in API response:', response.data);
+          console.warn('No data in API response:', response);
           setGenres([]);
         }
       } catch (error) {
         console.error('Error fetching genres:', error);
-        setGenres([]);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          url: error.config?.url
+        });
+        
+        // Fallback: Use common genres if API fails
+        const fallbackGenres = [
+          { id: 28, name: 'Action' },
+          { id: 35, name: 'Comedy' },
+          { id: 18, name: 'Drama' },
+          { id: 27, name: 'Horror' },
+          { id: 10749, name: 'Romance' },
+          { id: 878, name: 'Science Fiction' },
+          { id: 53, name: 'Thriller' },
+          { id: 12, name: 'Adventure' },
+          { id: 16, name: 'Animation' },
+          { id: 80, name: 'Crime' },
+          { id: 14, name: 'Fantasy' },
+          { id: 9648, name: 'Mystery' }
+        ];
+        console.warn('Using fallback genres due to API error');
+        setGenres(fallbackGenres);
       } finally {
         setGenresLoading(false);
       }
