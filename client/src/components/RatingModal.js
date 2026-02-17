@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Dialog, DialogContent, Box, Typography, Button, Card, CardMedia, CardContent, useMediaQuery, useTheme, IconButton } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useRatings } from '../hooks/useRatings';
@@ -258,6 +258,58 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     return target;
   }, [mid, rawRatings, isRerating, movie.id]);
 
+  // Effect to handle when compareTarget becomes null - find a new valid target or complete
+  // Use a ref to prevent infinite loops
+  const handlingNullTargetRef = useRef(false);
+  
+  useEffect(() => {
+    if (!open || !isInitialized || firstTime || mid == null) {
+      handlingNullTargetRef.current = false;
+      return;
+    }
+    
+    // If compareTarget is null and we haven't already handled it, find a valid comparison or complete
+    if (!compareTarget && !handlingNullTargetRef.current) {
+      handlingNullTargetRef.current = true;
+      
+      const movieIdStr = String(movie.id);
+      const currentRatings = rawRatings.filter(r => {
+        const rIdStr = String(r.id);
+        return rIdStr !== movieIdStr;
+      });
+      
+      if (currentRatings.length === 0) {
+        // No other movies, just insert at position 0
+        const updated = upsertAtIndex(movie, 0);
+        onComplete && onComplete(updated);
+        onClose && onClose();
+        return;
+      }
+      
+      // Try to find a valid comparison target
+      // Search for any movie that's not the same
+      const validIndex = currentRatings.findIndex(r => String(r.id) !== movieIdStr);
+      
+      if (validIndex >= 0) {
+        // Found a valid target, update mid to point to it
+        setMid(validIndex);
+        // Reset the ref after a short delay to allow state to update
+        setTimeout(() => {
+          handlingNullTargetRef.current = false;
+        }, 100);
+      } else {
+        // No valid comparison target found, complete the rating
+        const insertAt = Math.min(mid, currentRatings.length);
+        const updated = upsertAtIndex(movie, insertAt);
+        onComplete && onComplete(updated);
+        onClose && onClose();
+      }
+    } else if (compareTarget) {
+      // Reset the ref when we have a valid target
+      handlingNullTargetRef.current = false;
+    }
+  }, [compareTarget, open, isInitialized, firstTime, mid, rawRatings, movie, upsertAtIndex, onComplete, onClose]);
+
   if (!open || !movie || !isInitialized) {
     return null;
   }
@@ -365,6 +417,13 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
               </Button>
             </Box>
           </>
+        ) : !compareTarget ? (
+          // Loading state while finding a valid comparison target
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+              Finding a comparison...
+            </Typography>
+          </Box>
         ) : (
           <>
             <Box sx={{ textAlign: 'center', mb: 3 }}>
@@ -412,9 +471,37 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                 }}
                 onClick={() => {
                   // Safety check: ensure we have a valid comparison target
-                  if (!compareTarget || compareTarget.id === movie.id) {
+                  if (!compareTarget) {
+                    // If no valid target, try to complete the rating
+                    const movieIdStr = String(movie.id);
+                    const currentRatings = rawRatings.filter(r => String(r.id) !== movieIdStr);
+                    const insertAt = mid != null && mid >= 0 ? mid : 0;
+                    const updated = upsertAtIndex(movie, Math.min(insertAt, currentRatings.length));
+                    onComplete && onComplete(updated);
+                    onClose && onClose();
                     return;
                   }
+                  
+                  // Additional check: ensure it's not the same movie
+                  const movieIdStr = String(movie.id);
+                  const targetIdStr = String(compareTarget.id);
+                  if (movieIdStr === targetIdStr) {
+                    // Same movie - find a different one or complete
+                    const currentRatings = rawRatings.filter(r => String(r.id) !== movieIdStr);
+                    if (currentRatings.length === 0) {
+                      const updated = upsertAtIndex(movie, 0);
+                      onComplete && onComplete(updated);
+                      onClose && onClose();
+                    } else {
+                      // Find a different comparison target
+                      const validIndex = currentRatings.findIndex(r => String(r.id) !== movieIdStr);
+                      if (validIndex >= 0) {
+                        setMid(validIndex);
+                      }
+                    }
+                    return;
+                  }
+                  
                   // Save to history before making choice
                   saveToHistory(compareTarget);
                   // New movie is better (higher in ranking)
@@ -458,9 +545,37 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                 }}
                 onClick={() => {
                   // Safety check: ensure we have a valid comparison target
-                  if (!compareTarget || compareTarget.id === movie.id) {
+                  if (!compareTarget) {
+                    // If no valid target, try to complete the rating
+                    const movieIdStr = String(movie.id);
+                    const currentRatings = rawRatings.filter(r => String(r.id) !== movieIdStr);
+                    const insertAt = mid != null && mid >= 0 ? mid : 0;
+                    const updated = upsertAtIndex(movie, Math.min(insertAt, currentRatings.length));
+                    onComplete && onComplete(updated);
+                    onClose && onClose();
                     return;
                   }
+                  
+                  // Additional check: ensure it's not the same movie
+                  const movieIdStr = String(movie.id);
+                  const targetIdStr = String(compareTarget.id);
+                  if (movieIdStr === targetIdStr) {
+                    // Same movie - find a different one or complete
+                    const currentRatings = rawRatings.filter(r => String(r.id) !== movieIdStr);
+                    if (currentRatings.length === 0) {
+                      const updated = upsertAtIndex(movie, 0);
+                      onComplete && onComplete(updated);
+                      onClose && onClose();
+                    } else {
+                      // Find a different comparison target
+                      const validIndex = currentRatings.findIndex(r => String(r.id) !== movieIdStr);
+                      if (validIndex >= 0) {
+                        setMid(validIndex);
+                      }
+                    }
+                    return;
+                  }
+                  
                   // Save to history before making choice
                   saveToHistory(compareTarget);
                   // Compare target is better (lower in ranking)
