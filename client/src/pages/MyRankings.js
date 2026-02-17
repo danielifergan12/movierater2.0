@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -65,6 +65,8 @@ const MyRankings = () => {
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [mouseDownIndex, setMouseDownIndex] = useState(null);
   const [mouseDownY, setMouseDownY] = useState(0);
+  const lastHoveredIndexRef = useRef(null);
+  const hoverTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (location.state?.message) {
@@ -91,12 +93,19 @@ const MyRankings = () => {
       return;
     }
     
+    // Clear any pending timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    
     // Start drag immediately for visual feedback
     setDraggedIndex(originalIndex);
     setDragOverIndex(null);
     setIsMouseDown(true);
     setMouseDownIndex(originalIndex);
     setMouseDownY(e.clientY);
+    lastHoveredIndexRef.current = null;
     
     // Prevent text selection and default behavior
     e.preventDefault();
@@ -116,11 +125,18 @@ const MyRankings = () => {
       
       // Start dragging immediately (no 5px threshold) for better responsiveness
       
-      // Find which item we're hovering over
+      // Find which item we're hovering over - use a more stable approach
       const elements = document.elementsFromPoint(e.clientX, e.clientY);
       let hoveredIndex = null;
       
+      // Look for the list item element, ignoring child elements like buttons
       for (const el of elements) {
+        // Check if this element itself has the data attribute (the list item)
+        if (el.hasAttribute && el.hasAttribute('data-ranking-index')) {
+          hoveredIndex = parseInt(el.getAttribute('data-ranking-index'));
+          break;
+        }
+        // Otherwise, find the closest parent with the attribute
         const listItem = el.closest('[data-ranking-index]');
         if (listItem) {
           hoveredIndex = parseInt(listItem.getAttribute('data-ranking-index'));
@@ -128,24 +144,57 @@ const MyRankings = () => {
         }
       }
       
+      // Only update if we're hovering over a different item than before
+      // This prevents flickering when moving over child elements
       if (hoveredIndex !== null && hoveredIndex !== mouseDownIndex) {
-        setDragOverIndex(hoveredIndex);
+        // Clear any pending timeout
+        if (hoverTimeoutRef.current) {
+          clearTimeout(hoverTimeoutRef.current);
+          hoverTimeoutRef.current = null;
+        }
+        
+        // Only update if it's actually different from the last hovered index
+        if (hoveredIndex !== lastHoveredIndexRef.current) {
+          lastHoveredIndexRef.current = hoveredIndex;
+          setDragOverIndex(hoveredIndex);
+        }
       } else if (hoveredIndex === null) {
-        // Clear drag over if not over any item
-        setDragOverIndex(null);
+        // Clear drag over if not over any item, but with a small delay to prevent flicker
+        if (hoverTimeoutRef.current) {
+          clearTimeout(hoverTimeoutRef.current);
+        }
+        hoverTimeoutRef.current = setTimeout(() => {
+          if (lastHoveredIndexRef.current !== null) {
+            lastHoveredIndexRef.current = null;
+            setDragOverIndex(null);
+          }
+          hoverTimeoutRef.current = null;
+        }, 50); // Small delay to prevent rapid clearing
       }
     };
 
     const handleMouseUp = (e) => {
-      // Find drop target
-      const elements = document.elementsFromPoint(e.clientX, e.clientY);
-      let dropIndex = null;
+      // Clear any pending timeout
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+        hoverTimeoutRef.current = null;
+      }
       
-      for (const el of elements) {
-        const listItem = el.closest('[data-ranking-index]');
-        if (listItem) {
-          dropIndex = parseInt(listItem.getAttribute('data-ranking-index'));
-          break;
+      // Find drop target - use the last hovered index if available, otherwise check current position
+      let dropIndex = lastHoveredIndexRef.current;
+      
+      if (dropIndex === null) {
+        const elements = document.elementsFromPoint(e.clientX, e.clientY);
+        for (const el of elements) {
+          if (el.hasAttribute && el.hasAttribute('data-ranking-index')) {
+            dropIndex = parseInt(el.getAttribute('data-ranking-index'));
+            break;
+          }
+          const listItem = el.closest('[data-ranking-index]');
+          if (listItem) {
+            dropIndex = parseInt(listItem.getAttribute('data-ranking-index'));
+            break;
+          }
         }
       }
       
@@ -173,6 +222,7 @@ const MyRankings = () => {
       setMouseDownIndex(null);
       setDraggedIndex(null);
       setDragOverIndex(null);
+      lastHoveredIndexRef.current = null;
       
       // Reset cursor
       document.body.style.cursor = '';
@@ -184,6 +234,11 @@ const MyRankings = () => {
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      // Clear any pending timeout on cleanup
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+        hoverTimeoutRef.current = null;
+      }
     };
   }, [isMouseDown, mouseDownIndex, mouseDownY, rawRatings, setRatingsArray]);
 
@@ -210,6 +265,7 @@ const MyRankings = () => {
     // Only update if it's different to prevent unnecessary re-renders
     if (draggedIndex !== null && draggedIndex !== dropOriginalIndex && dragOverIndex !== dropOriginalIndex) {
       setDragOverIndex(dropOriginalIndex);
+      lastHoveredIndexRef.current = dropOriginalIndex;
     }
   };
 
@@ -217,7 +273,12 @@ const MyRankings = () => {
     e.preventDefault();
     e.stopPropagation();
     if (draggedIndex !== null && draggedIndex !== dropOriginalIndex) {
+      // Clear any pending timeout
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
       setDragOverIndex(dropOriginalIndex);
+      lastHoveredIndexRef.current = dropOriginalIndex;
     }
   };
 
@@ -260,8 +321,14 @@ const MyRankings = () => {
   };
 
   const handleDragEnd = () => {
+    // Clear any pending timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
     setDraggedIndex(null);
     setDragOverIndex(null);
+    lastHoveredIndexRef.current = null;
   };
 
   const handleShareClick = async () => {
