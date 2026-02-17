@@ -45,7 +45,7 @@ const Register = () => {
     const result = await register(formData.username, formData.email, formData.password);
     
     if (result.success) {
-      navigate('/');
+      navigate('/rate');
     } else {
       setError(result.message);
     }
