@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -27,6 +27,7 @@ import api from '../config/axios';
 const Home = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
   const { isAuthenticated, user } = useAuth();
   const { rawRatings } = useRatings();
@@ -48,6 +49,17 @@ const Home = () => {
     // This is especially important when activeTab === 0 (Trending) where there are no other state updates
     setRouteUpdate(prev => prev + 1);
   }, [location.pathname]);
+
+  // Read tab parameter from URL and set active tab
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      const tabValue = parseInt(tabParam);
+      if (tabValue === 1 || tabValue === 2) {
+        setActiveTab(tabValue);
+      }
+    }
+  }, [searchParams]);
 
   // Helper functions to manage recently shown movies in localStorage
   const getRecentlyShownMovies = () => {
@@ -669,7 +681,13 @@ const Home = () => {
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: !isAuthenticated ? 2 : 4, gap: 2 }}>
             <Tabs
               value={activeTab}
-              onChange={(e, newValue) => setActiveTab(newValue)}
+              onChange={(e, newValue) => {
+                setActiveTab(newValue);
+                // Update URL to reflect the active tab
+                const newSearchParams = new URLSearchParams(searchParams);
+                newSearchParams.set('tab', newValue.toString());
+                setSearchParams(newSearchParams);
+              }}
               variant="scrollable"
               scrollButtons="auto"
               sx={{

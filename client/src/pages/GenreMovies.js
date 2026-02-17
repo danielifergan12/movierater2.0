@@ -96,7 +96,7 @@ const GenreMovies = () => {
       <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 3, sm: 4 }, gap: 2 }}>
           <IconButton
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/?tab=2')}
             sx={{
               color: '#00d4ff',
               '&:hover': {
