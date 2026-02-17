@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Dialog, DialogContent, Box, Typography, Button, Card, CardMedia, CardContent, useMediaQuery, useTheme } from '@mui/material';
+import { Dialog, DialogContent, Box, Typography, Button, Card, CardMedia, CardContent, useMediaQuery, useTheme, IconButton } from '@mui/material';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useRatings } from '../hooks/useRatings';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -16,6 +17,25 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
   const [firstTime, setFirstTime] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isRerating, setIsRerating] = useState(false);
+  const [comparisonHistory, setComparisonHistory] = useState([]);
+
+  // Helper function to save current state to history
+  const saveToHistory = (currentCompareTarget) => {
+    if (mid != null && currentCompareTarget) {
+      setComparisonHistory(prev => [...prev, { low, high, mid, compareTarget: { ...currentCompareTarget } }]);
+    }
+  };
+
+  // Helper function to restore state from history
+  const restoreFromHistory = () => {
+    if (comparisonHistory.length > 0) {
+      const lastState = comparisonHistory[comparisonHistory.length - 1];
+      setLow(lastState.low);
+      setHigh(lastState.high);
+      setMid(lastState.mid);
+      setComparisonHistory(prev => prev.slice(0, -1));
+    }
+  };
 
   useEffect(() => {
     if (!open) {
@@ -25,6 +45,7 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       setLow(0);
       setHigh(0);
       setIsRerating(false);
+      setComparisonHistory([]);
       return;
     }
     
@@ -150,6 +171,37 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       }}
     >
       <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
+        {/* Go Back Button - only show during comparisons */}
+        {!firstTime && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
+            <IconButton
+              onClick={restoreFromHistory}
+              disabled={comparisonHistory.length === 0}
+              sx={{
+                color: comparisonHistory.length > 0 ? '#00d4ff' : 'rgba(255, 255, 255, 0.3)',
+                '&:hover': {
+                  backgroundColor: comparisonHistory.length > 0 ? 'rgba(0, 212, 255, 0.1)' : 'transparent',
+                },
+                '&.Mui-disabled': {
+                  color: 'rgba(255, 255, 255, 0.3)',
+                },
+              }}
+              title="Go back to previous comparison"
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            {comparisonHistory.length > 0 && (
+              <Typography variant="body2" sx={{ 
+                color: 'rgba(255, 255, 255, 0.6)', 
+                ml: 1,
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                {comparisonHistory.length} step{comparisonHistory.length !== 1 ? 's' : ''} back
+              </Typography>
+            )}
+          </Box>
+        )}
         {firstTime ? (
           <>
             <Box sx={{ textAlign: 'center', mb: 3 }}>
@@ -249,6 +301,8 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                   border: '2px solid transparent',
                 }}
                 onClick={() => {
+                  // Save to history before making choice
+                  saveToHistory(compareTarget);
                   // New movie is better (higher in ranking)
                   setHigh(mid - 1);
                 }}
@@ -289,6 +343,8 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                   border: '2px solid transparent',
                 }}
                 onClick={() => {
+                  // Save to history before making choice
+                  saveToHistory(compareTarget);
                   // Compare target is better (lower in ranking)
                   setLow(mid + 1);
                 }}
@@ -310,6 +366,55 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                   </Typography>
                 </CardContent>
               </Card>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, width: '100%' }}>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  // Skip current comparison - treat as equal and place at current mid position
+                  // This effectively skips to the next step in the binary search
+                  const currentRatings = isRerating 
+                    ? rawRatings.filter(r => r.id !== movie.id)
+                    : rawRatings;
+                  
+                  if (low > high) {
+                    // Already at insertion point, just insert
+                    const insertAt = low;
+                    const updated = upsertAtIndex(movie, insertAt);
+                    onComplete && onComplete(updated);
+                    onClose && onClose();
+                  } else if (mid != null) {
+                    // Place at current mid position (treating as equal)
+                    // This will trigger the next comparison or completion
+                    const insertAt = mid;
+                    const updated = upsertAtIndex(movie, insertAt);
+                    onComplete && onComplete(updated);
+                    onClose && onClose();
+                  } else {
+                    // Fallback: insert at low
+                    const insertAt = low;
+                    const updated = upsertAtIndex(movie, insertAt);
+                    onComplete && onComplete(updated);
+                    onClose && onClose();
+                  }
+                }}
+                sx={{
+                  width: { xs: '100%', sm: 'auto' },
+                  minWidth: { xs: 'auto', sm: 200 },
+                  maxWidth: { xs: '100%', sm: 400 },
+                  py: { xs: 1.5, sm: 1.25 },
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  fontWeight: 500,
+                  '&:hover': {
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  },
+                }}
+              >
+                I Can't Decide
+              </Button>
             </Box>
           </>
         )}
