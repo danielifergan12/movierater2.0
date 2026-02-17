@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, Box, Chip } from '@mui/material';
 import { Movie as MovieIcon, Star as StarIcon, People as PeopleIcon, Favorite as FavoriteIcon, AdminPanelSettings as AdminIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,7 @@ import AutocompleteSearch from './AutocompleteSearch';
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Debug: Log user info to help troubleshoot admin button visibility
   React.useEffect(() => {
@@ -19,6 +20,15 @@ const Navbar = () => {
 
   const handleMovieSelect = (movie) => {
     navigate(`/movie/${movie.id}`);
+  };
+
+  const handleNavigation = (path, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    // Use navigate with replace: false to ensure proper navigation
+    navigate(path, { replace: false });
   };
 
   return (
@@ -35,7 +45,7 @@ const Navbar = () => {
       }}>
         {isAuthenticated && (
           <Box
-            onClick={() => navigate('/')}
+            onClick={(e) => handleNavigation('/', e)}
             sx={{
               textDecoration: 'none',
               color: 'inherit',
@@ -128,7 +138,7 @@ const Navbar = () => {
               <Button
                 color="inherit"
                 startIcon={<StarIcon />}
-                onClick={() => navigate('/rankings')}
+                onClick={(e) => handleNavigation('/rankings', e)}
                 sx={{ 
                   mr: { xs: 0.5, sm: 1 },
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -148,7 +158,7 @@ const Navbar = () => {
               <Button
                 color="inherit"
                 startIcon={<PeopleIcon />}
-                onClick={() => navigate('/discover')}
+                onClick={(e) => handleNavigation('/discover', e)}
                 sx={{ 
                   mr: { xs: 0.5, sm: 1 },
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -168,7 +178,7 @@ const Navbar = () => {
               <Button
                 color="inherit"
                 startIcon={<FavoriteIcon />}
-                onClick={() => navigate('/following')}
+                onClick={(e) => handleNavigation('/following', e)}
                 sx={{ 
                   mr: { xs: 0.5, sm: 1 },
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -189,7 +199,7 @@ const Navbar = () => {
                 <Button
                   color="inherit"
                   startIcon={<AdminIcon />}
-                  onClick={() => navigate('/admin/users')}
+                  onClick={(e) => handleNavigation('/admin/users', e)}
                   sx={{ 
                     mr: { xs: 0.5, sm: 1 },
                     fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -226,7 +236,7 @@ const Navbar = () => {
             <>
               <Button 
                 color="inherit" 
-                onClick={() => navigate('/login')}
+                onClick={(e) => handleNavigation('/login', e)}
                 sx={{ 
                   mr: { xs: 1, sm: 1 },
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -240,7 +250,7 @@ const Navbar = () => {
               </Button>
               <Button 
                 variant="contained" 
-                onClick={() => navigate('/register')}
+                onClick={(e) => handleNavigation('/register', e)}
                 sx={{ 
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
                   px: { xs: 2, sm: 2 },
