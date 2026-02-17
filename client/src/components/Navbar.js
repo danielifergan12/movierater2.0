@@ -23,7 +23,13 @@ const Navbar = () => {
   };
 
   const handleNavigation = (path) => {
-    navigate(path, { replace: false });
+    // Use window.location as fallback if we're on home page to ensure navigation works
+    // This is a workaround for React Router not detecting navigation from Trending tab
+    if (location.pathname === '/' && path !== '/') {
+      window.location.href = path;
+    } else {
+      navigate(path, { replace: false });
+    }
   };
 
   return (

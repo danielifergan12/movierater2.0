@@ -157,7 +157,7 @@ function AppContent() {
     <div className="App" style={{ position: 'relative' }}>
       {showBackground && <AnimatedMovieBackground />}
       <Navbar />
-      <Routes key={`${location.pathname}${location.search}${location.hash}`}>
+      <Routes key={location.key || `${location.pathname}${location.search}${location.hash}`}>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
