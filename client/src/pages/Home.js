@@ -30,6 +30,7 @@ const Home = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [ratingMovie, setRatingMovie] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [displayMovies, setDisplayMovies] = useState([]);
 
   // Helper functions to manage recently shown movies in localStorage
   const getRecentlyShownMovies = () => {
@@ -117,11 +118,10 @@ const Home = () => {
     setIsRefreshing(true);
     
     try {
-      // Get current movie IDs to exclude from new recommendations
-      const currentMovieIds = filteredRecommendedMovies
-        .slice(0, 8)
-        .map(movie => movie.id)
-        .filter(Boolean);
+      // Get current movie IDs to exclude from new recommendations (use displayMovies to avoid stale data)
+      const currentMovieIds = displayMovies.length > 0 
+        ? displayMovies.slice(0, 8).map(movie => movie.id).filter(Boolean)
+        : filteredRecommendedMovies.slice(0, 8).map(movie => movie.id).filter(Boolean);
       
       // Get recently shown movies to exclude (from last 15 refreshes)
       const recentlyShown = getRecentlyShownMovies();
@@ -129,7 +129,7 @@ const Home = () => {
       // Combine current and recently shown movies
       const allExcludeIds = [...currentMovieIds, ...recentlyShown];
       
-      // Fetch new recommendations with forceRefresh to get fresh data, but without clearing UI first (smoother transition)
+      // Fetch new recommendations with forceRefresh to get fresh data
       const result = await getPersonalRecommendations(true, allExcludeIds);
       
       // After getting new recommendations, add them to recently shown list
@@ -139,6 +139,14 @@ const Home = () => {
           .map(movie => movie.id)
           .filter(Boolean);
         addToRecentlyShown(newMovieIds);
+        
+        // Update displayMovies atomically after new data is ready
+        // Filter out already-rated movies before setting
+        const ratedIds = new Set(rawRatings.map(r => r.id?.toString()).filter(Boolean));
+        const newFiltered = result.results.filter(movie => 
+          movie && movie.id && !ratedIds.has(movie.id.toString())
+        );
+        setDisplayMovies(newFiltered.slice(0, 8));
       }
       
       // Update refresh key after successful refresh to trigger useEffect cleanup
@@ -155,6 +163,31 @@ const Home = () => {
   const filteredRecommendedMovies = recommendedMovies.filter(movie => 
     movie && movie.id && !ratedMovieIds.has(movie.id.toString())
   );
+
+  // Use displayMovies to prevent flickering during refresh
+  // Keep old movies visible during refresh, only update when refresh completes
+  useEffect(() => {
+    if (activeTab === 1) {
+      // Only update displayMovies when not refreshing (smooth transition)
+      // During refresh, keep showing old movies until new ones are ready
+      // Also update on initial load when displayMovies is empty
+      if (!isRefreshing && filteredRecommendedMovies.length > 0) {
+        // Only update if the movies have actually changed (by comparing IDs)
+        const currentIds = displayMovies.map(m => m.id).sort().join(',');
+        const newIds = filteredRecommendedMovies.slice(0, 8).map(m => m.id).sort().join(',');
+        if (currentIds !== newIds) {
+          setDisplayMovies(filteredRecommendedMovies.slice(0, 8));
+        }
+      } else if (filteredRecommendedMovies.length > 0 && displayMovies.length === 0) {
+        // Initial load - set display movies
+        setDisplayMovies(filteredRecommendedMovies.slice(0, 8));
+      }
+    } else {
+      // For trending tab, clear displayMovies
+      setDisplayMovies([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredRecommendedMovies, activeTab, isRefreshing]);
 
   
 
@@ -509,19 +542,42 @@ const Home = () => {
                 )}
               </Box>
 
-              {loading ? (
+              {loading && !isRefreshing ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
                   <CircularProgress />
                 </Box>
               ) : (
-                <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
-                  {(activeTab === 0 ? trendingMovies : filteredRecommendedMovies)
-                    .slice(0, 8)
-                    .map((movie) => (
-                      <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
-                        <MovieCard movie={movie} />
-                      </Grid>
-                    ))}
+                <Box
+                  sx={{
+                    opacity: isRefreshing ? 0.5 : 1,
+                    transition: 'opacity 0.3s ease-in-out',
+                    position: 'relative',
+                  }}
+                >
+                  {isRefreshing && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        zIndex: 10,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <CircularProgress size={40} />
+                    </Box>
+                  )}
+                  <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
+                    {(activeTab === 0 ? trendingMovies : (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies))
+                      .slice(0, 8)
+                      .map((movie) => (
+                        <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
+                          <MovieCard movie={movie} />
+                        </Grid>
+                      ))}
                   {activeTab === 1 && filteredRecommendedMovies.length === 0 && (
                     <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
                       <Typography variant="h6" sx={{ 
@@ -545,7 +601,8 @@ const Home = () => {
                       </Typography>
                     </Box>
                   )}
-                </Grid>
+                  </Grid>
+                </Box>
               )}
             </Box>
           </>
