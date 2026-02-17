@@ -708,12 +708,6 @@ const MyRankings = () => {
             }
           </Typography>
 
-          {loadingDetails && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-              <CircularProgress size={24} />
-            </Box>
-          )}
-
           {filteredAndSortedRatings.length === 0 ? (
             <Card sx={{
               background: 'rgba(26, 26, 26, 0.8)',
