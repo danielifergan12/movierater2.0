@@ -34,10 +34,14 @@ const Search = () => {
     }
   }, [searchParams]);
 
-  // Perform search when query or page changes
+  // Perform search when query or page changes (with debounce for typing)
   useEffect(() => {
-    if (query.trim()) {
-      performSearch();
+    if (query.trim().length >= 2) {
+      const debounceTimer = setTimeout(() => {
+        performSearch();
+      }, 500); // 500ms debounce
+      
+      return () => clearTimeout(debounceTimer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, page]);
@@ -49,14 +53,15 @@ const Search = () => {
     }
   };
 
-  const handleSearch = (e) => {
-    if (e.key === 'Enter') {
-      const searchQuery = e.target.value.trim();
-      if (searchQuery) {
-        setQuery(searchQuery);
-        setPage(1);
-        setSearchParams({ q: searchQuery });
-      }
+  const handleSearchChange = (e) => {
+    const searchQuery = e.target.value;
+    setQuery(searchQuery);
+    setPage(1);
+    // Update URL params but don't require minimum length for display
+    if (searchQuery.trim().length >= 2) {
+      setSearchParams({ q: searchQuery.trim() });
+    } else if (searchQuery.length === 0) {
+      setSearchParams({});
     }
   };
 
@@ -208,8 +213,7 @@ const Search = () => {
           fullWidth
           placeholder="Search for movies..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyPress={handleSearch}
+          onChange={handleSearchChange}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">

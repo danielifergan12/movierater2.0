@@ -26,7 +26,26 @@ router.get('/search', async (req, res) => {
       }
     );
 
-    res.json(response.data);
+    // Sort results by popularity to ensure well-known movies come first
+    // Prioritize vote_count (how many people have seen/rated it) as the main indicator of "known"
+    // Then consider popularity and vote_average
+    const sortedResults = response.data.results.sort((a, b) => {
+      // Primary sort: vote_count (indicates how well-known the movie is)
+      if (b.vote_count !== a.vote_count) {
+        return (b.vote_count || 0) - (a.vote_count || 0);
+      }
+      // Secondary sort: popularity (TMDB's popularity metric)
+      if (Math.abs((b.popularity || 0) - (a.popularity || 0)) > 1) {
+        return (b.popularity || 0) - (a.popularity || 0);
+      }
+      // Tertiary sort: vote_average (rating quality)
+      return (b.vote_average || 0) - (a.vote_average || 0);
+    });
+
+    res.json({
+      ...response.data,
+      results: sortedResults
+    });
   } catch (error) {
     console.error('Movie search error:', error);
     res.status(500).json({ message: 'Error searching movies' });

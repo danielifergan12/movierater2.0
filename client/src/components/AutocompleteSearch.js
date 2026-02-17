@@ -81,11 +81,7 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
         }
         break;
       case 'Enter':
-        event.preventDefault();
-        if (query.trim().length >= 2) {
-          // Always navigate to search page to show all results
-          navigateToSearchPage();
-        }
+        // Removed - search happens automatically as user types
         break;
       case 'Escape':
         setShowSuggestions(false);
