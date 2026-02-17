@@ -6,11 +6,9 @@ import {
   Box,
   Card,
   CardContent,
-  CardMedia,
   Rating,
   Chip,
   Button,
-  Grid,
   List,
   ListItem,
   ListItemAvatar,
@@ -69,13 +67,6 @@ const SharedRankings = () => {
     if (total <= 1) return 10.0;
     const raw = 10 - (9 * index) / (total - 1);
     return Math.round(raw * 10) / 10;
-  };
-
-  const getRankingIcon = (position) => {
-    if (position === 0) return '🥇';
-    if (position === 1) return '🥈';
-    if (position === 2) return '🥉';
-    return `#${position + 1}`;
   };
 
   if (loading) {
