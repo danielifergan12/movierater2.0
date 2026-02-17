@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, Box, Chip } from '@mui/material';
-import { Movie as MovieIcon, Star as StarIcon, People as PeopleIcon, Favorite as FavoriteIcon } from '@mui/icons-material';
+import { Movie as MovieIcon, Star as StarIcon, People as PeopleIcon, Favorite as FavoriteIcon, AdminPanelSettings as AdminIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import AutocompleteSearch from './AutocompleteSearch';
 
@@ -153,6 +153,27 @@ const Navbar = () => {
                   Follow
                 </Box>
               </Button>
+              {user?.username === 'danielifergan' && (
+                <Button
+                  color="inherit"
+                  startIcon={<AdminIcon />}
+                  component={Link}
+                  to="/admin/users"
+                  sx={{ 
+                    mr: { xs: 0.5, sm: 1 },
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    px: { xs: 1, sm: 2 },
+                    color: '#ff6b35'
+                  }}
+                >
+                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                    Admin
+                  </Box>
+                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
+                    Admin
+                  </Box>
+                </Button>
+              )}
               <Button 
                 color="inherit" 
                 onClick={() => { logout(); navigate('/'); }}

@@ -21,6 +21,7 @@ import GoogleCallback from './pages/GoogleCallback';
 import SharedRankings from './pages/SharedRankings';
 import DiscoverUsers from './pages/DiscoverUsers';
 import FollowingRankings from './pages/FollowingRankings';
+import AdminUsers from './pages/AdminUsers';
 
 const theme = createTheme({
   palette: {
@@ -188,6 +189,11 @@ function App() {
                 <Route path="/share/:shareCode" element={<SharedRankings />} />
                 <Route path="/profile/:userId" element={<Profile />} />
                 <Route path="/movie/:movieId" element={<MovieDetail />} />
+                <Route path="/admin/users" element={
+                  <ProtectedRoute>
+                    <AdminUsers />
+                  </ProtectedRoute>
+                } />
               </Routes>
             </div>
           </Router>

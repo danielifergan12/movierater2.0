@@ -317,4 +317,36 @@ router.put('/preferences', auth, async (req, res) => {
   }
 });
 
+// Admin route: Get all users (only for danielifergan)
+router.get('/admin/all', auth, async (req, res) => {
+  try {
+    // Check if the current user is danielifergan
+    const currentUser = await User.findById(req.userId).select('username');
+    
+    if (!currentUser || currentUser.username !== 'danielifergan') {
+      return res.status(403).json({ message: 'Access denied. Admin only.' });
+    }
+
+    const { page = 1, limit = 50 } = req.query;
+    
+    const users = await User.find()
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const total = await User.countDocuments();
+
+    res.json({
+      users,
+      totalPages: Math.ceil(total / limit),
+      currentPage: parseInt(page),
+      total
+    });
+  } catch (error) {
+    console.error('Get all users (admin) error:', error);
+    res.status(500).json({ message: 'Error fetching users' });
+  }
+});
+
 module.exports = router;
