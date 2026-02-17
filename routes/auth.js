@@ -33,11 +33,11 @@ router.post('/register', [
       normalizedUsername: normalizedUsername
     });
 
-    // Check if user already exists (using normalized values)
+    // Check if user already exists (case-insensitive check)
     const existingUser = await User.findOne({
       $or: [
-        { email: normalizedEmail },
-        { username: normalizedUsername }
+        { email: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
+        { username: { $regex: new RegExp(`^${normalizedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
       ]
     });
 
