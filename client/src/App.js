@@ -153,25 +153,17 @@ function AppContent() {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
   const showBackground = !isAuthenticated && ['/', '/login', '/register'].includes(location.pathname);
-  const prevPathnameRef = React.useRef(location.pathname);
-  const [routesKey, setRoutesKey] = React.useState(0);
 
-  React.useEffect(() => {
-    // Force Routes to remount when pathname changes to ensure React Router detects navigation
-    // This is critical for navigation from static components like Trending tab
-    if (prevPathnameRef.current !== location.pathname) {
-      prevPathnameRef.current = location.pathname;
-      // Use a combination of timestamp and pathname to ensure unique key
-      setRoutesKey(Date.now());
-    }
-  }, [location.pathname, location.search, location.hash]);
+  // Use location.key as primary key - React Router's unique navigation identifier
+  // This ensures Routes remounts on every navigation, critical for static components like Trending tab
+  const routesKey = location.key || `${location.pathname}-${location.search}-${location.hash}`;
 
   return (
     <div className="App" style={{ position: 'relative' }}>
       {showBackground && <AnimatedMovieBackground />}
       <Navbar />
-      <Routes key={routesKey || location.key || location.pathname}>
-        <Route path="/" element={<Home />} />
+      <Routes key={routesKey}>
+        <Route path="/" element={<Home key={`home-${location.pathname}-${location.key || 'default'}`} />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

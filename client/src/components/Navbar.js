@@ -23,7 +23,14 @@ const Navbar = () => {
   };
 
   const handleNavigation = (path) => {
-    navigate(path, { replace: false });
+    // When navigating from home page, ensure React Router detects the change
+    // by using state to force a remount if needed
+    if (location.pathname === '/' && path !== '/') {
+      // Navigate with state to ensure React Router detects the change
+      navigate(path, { replace: false, state: { fromHome: true, timestamp: Date.now() } });
+    } else {
+      navigate(path, { replace: false });
+    }
   };
 
   return (
