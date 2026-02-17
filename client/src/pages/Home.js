@@ -126,6 +126,18 @@ const Home = () => {
     }
   };
 
+  const handleRateClick = (movie) => {
+    if (!isAuthenticated) {
+      window.location.href = `/login?redirect=${encodeURIComponent('/')}`;
+      return;
+    }
+    setRatingMovie({
+      id: movie.id,
+      title: movie.title,
+      posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'
+    });
+  };
+
   const handleRefresh = async () => {
     // Prevent multiple simultaneous refreshes
     if (isRefreshing || loading) return;
@@ -310,6 +322,37 @@ const Home = () => {
           // Check if movie is already rated
           const isAlreadyRated = rawRatings.some(r => r.id?.toString() === movie.id?.toString());
           
+          // Handle guests
+          if (!isAuthenticated) {
+            return (
+              <Button
+                size="medium"
+                variant="outlined"
+                startIcon={<StarIcon />}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleRateClick(movie);
+                }}
+                fullWidth
+                sx={{
+                  borderColor: '#00d4ff',
+                  color: '#00d4ff',
+                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
+                  py: { xs: 1.5, sm: 1 },
+                  minHeight: { xs: 48, sm: 36 },
+                  '&:hover': {
+                    borderColor: '#66e0ff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                  },
+                }}
+              >
+                Sign in to Rate
+              </Button>
+            );
+          }
+          
+          // Handle authenticated users
           return isAlreadyRated ? (
             <Button
               size="medium"
@@ -398,244 +441,166 @@ const Home = () => {
       } : {},
     }}>
       <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 2 }}>
-        {!isAuthenticated ? (
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            minHeight: '60vh',
-            gap: 4
-          }}>
-            {/* ReelList Logo - Large and Centered */}
-            <Box sx={{ 
-              textAlign: 'center', 
-              mb: { xs: 2, sm: 4 },
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center'
+        {isAuthenticated && (
+          <Box sx={{ mb: { xs: 4, sm: 6 }, textAlign: 'center' }}>
+            <Typography variant="h1" component="h1" gutterBottom sx={{
+              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              mb: 2,
+              fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
             }}>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                gap: { xs: 1.5, sm: 2 },
-                mb: 2
-              }}>
-                <MovieIcon sx={{ 
-                  color: '#00d4ff', 
-                  fontSize: { xs: '3rem', sm: '4rem', md: '5rem' },
-                  filter: 'drop-shadow(0 0 10px rgba(0, 212, 255, 0.5))'
-                }} />
-                <Typography variant="h1" component="h1" sx={{
-                  background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  fontWeight: 700,
-                  fontSize: { xs: '3rem', sm: '4rem', md: '5rem' },
-                  letterSpacing: { xs: '0.05em', sm: '0.1em' },
-                  textShadow: '0 0 20px rgba(0, 212, 255, 0.3)',
-                }}>
-                  ReelList
-                </Typography>
-              </Box>
-            </Box>
-
-            <Button
-              variant="contained"
-              size="large"
-              component={Link}
-              to="/login"
-              sx={{ 
-                px: { xs: 4, sm: 6 }, 
-                py: { xs: 1.5, sm: 2 }, 
-                fontSize: { xs: '1rem', sm: '1.2rem' },
-                minWidth: { xs: 150, sm: 200 },
-                width: { xs: '100%', sm: 'auto' },
-                maxWidth: { xs: 300, sm: 'none' }
-              }}
-            >
-              Login
-            </Button>
-            <Button
-              variant="outlined"
-              size="large"
-              component={Link}
-              to="/register"
-              sx={{ 
-                px: { xs: 4, sm: 6 }, 
-                py: { xs: 1.5, sm: 2 }, 
-                fontSize: { xs: '1rem', sm: '1.2rem' },
-                minWidth: { xs: 150, sm: 200 },
-                width: { xs: '100%', sm: 'auto' },
-                maxWidth: { xs: 300, sm: 'none' }
-              }}
-            >
-              Sign Up
-            </Button>
+              Welcome to ReelList
+            </Typography>
+            <Typography variant="h5" align="center" sx={{ 
+              color: 'rgba(255, 255, 255, 0.8)',
+              mb: 4,
+              fontWeight: 300,
+              fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
+              px: { xs: 2, sm: 0 }
+            }}>
+              Discover, rate, and share your favorite movies with friends
+            </Typography>
           </Box>
-        ) : (
-          <>
-            <Box sx={{ mb: { xs: 4, sm: 6 }, textAlign: 'center' }}>
-              <Typography variant="h1" component="h1" gutterBottom sx={{
-                background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                mb: 2,
-                fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
-              }}>
-                Welcome to ReelList
-              </Typography>
-              <Typography variant="h5" align="center" sx={{ 
-                color: 'rgba(255, 255, 255, 0.8)',
-                mb: 4,
-                fontWeight: 300,
-                fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
-                px: { xs: 2, sm: 0 }
-              }}>
-                Discover, rate, and share your favorite movies with friends
-              </Typography>
+        )}
+
+        <Box sx={{ mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 4, gap: 2 }}>
+            <Tabs
+              value={activeTab}
+              onChange={(e, newValue) => setActiveTab(newValue)}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{
+                '& .MuiTab-root': {
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  minWidth: { xs: 120, sm: 200 },
+                  px: { xs: 2, sm: 3 },
+                  '&.Mui-selected': {
+                    color: '#00d4ff',
+                  },
+                },
+                '& .MuiTabs-indicator': {
+                  background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                  height: 3,
+                },
+              }}
+            >
+              <Tab label={isAuthenticated ? "Suggested for You" : "Popular Movies"} />
+            </Tabs>
+            {activeTab === 1 && isAuthenticated && (
+              <IconButton
+                onClick={handleRefresh}
+                disabled={loading || isRefreshing}
+                sx={{
+                  color: '#00d4ff',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                  },
+                  '&.Mui-disabled': {
+                    color: 'rgba(255, 255, 255, 0.3)',
+                  },
+                  ...(isRefreshing && {
+                    animation: 'spin 1s linear infinite',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '100%': { transform: 'rotate(360deg)' },
+                    },
+                  }),
+                }}
+                title="Refresh recommendations"
+              >
+                <RefreshIcon />
+              </IconButton>
+            )}
+          </Box>
+
+          {loading && !isRefreshing && 
+           ((isAuthenticated && displayMovies.length === 0 && filteredRecommendedMovies.length === 0) ||
+            (!isAuthenticated && popularMovies.length === 0)) ? (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
+              <CircularProgress />
             </Box>
-
-            <Box sx={{ mb: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 4, gap: 2 }}>
-                <Tabs
-                  value={activeTab}
-                  onChange={(e, newValue) => setActiveTab(newValue)}
-                  variant="scrollable"
-                  scrollButtons="auto"
-                  sx={{
-                    '& .MuiTab-root': {
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      fontSize: { xs: '0.875rem', sm: '1rem' },
-                      fontWeight: 600,
-                      textTransform: 'none',
-                      minWidth: { xs: 120, sm: 200 },
-                      px: { xs: 2, sm: 3 },
-                      '&.Mui-selected': {
-                        color: '#00d4ff',
-                      },
-                    },
-                    '& .MuiTabs-indicator': {
-                      background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                      height: 3,
-                    },
-                  }}
-                >
-                  <Tab label={isAuthenticated ? "Suggested for You" : "Popular Movies"} />
-                </Tabs>
-                {activeTab === 1 && (
-                  <IconButton
-                    onClick={handleRefresh}
-                    disabled={loading || isRefreshing}
-                    sx={{
-                      color: '#00d4ff',
-                      '&:hover': {
-                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                      },
-                      '&.Mui-disabled': {
-                        color: 'rgba(255, 255, 255, 0.3)',
-                      },
-                      ...(isRefreshing && {
-                        animation: 'spin 1s linear infinite',
-                        '@keyframes spin': {
-                          '0%': { transform: 'rotate(0deg)' },
-                          '100%': { transform: 'rotate(360deg)' },
-                        },
-                      }),
-                    }}
-                    title="Refresh recommendations"
-                  >
-                    <RefreshIcon />
-                  </IconButton>
-                )}
-              </Box>
-
-              {loading && !isRefreshing && displayMovies.length === 0 && filteredRecommendedMovies.length === 0 ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
-                  <CircularProgress />
-                </Box>
-              ) : (
+          ) : (
+            <Box
+              sx={{
+                opacity: isRefreshing ? 0.5 : 1,
+                transition: 'opacity 0.3s ease-in-out',
+                position: 'relative',
+              }}
+            >
+              {isRefreshing && (
                 <Box
                   sx={{
-                    opacity: isRefreshing ? 0.5 : 1,
-                    transition: 'opacity 0.3s ease-in-out',
-                    position: 'relative',
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    zIndex: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
-                  {isRefreshing && (
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        zIndex: 10,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <CircularProgress size={40} />
-                    </Box>
-                  )}
-                  <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
-                    {(!isAuthenticated ? popularMovies : (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies))
-                      .slice(0, 8)
-                      .map((movie) => (
-                        <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
-                          <MovieCard movie={movie} />
-                        </Grid>
-                      ))}
-                  {isAuthenticated && activeTab === 1 && displayMovies.length === 0 && filteredRecommendedMovies.length === 0 && !loading && (
-                    <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
-                      <Typography variant="h6" sx={{ 
-                        color: 'rgba(255, 255, 255, 0.7)', 
-                        mb: 2,
-                        fontSize: { xs: '1rem', sm: '1.25rem' }
-                      }}>
-                        {recommendedMovies.length > 0 
-                          ? "You've rated all the recommended movies! Click refresh to get new suggestions."
-                          : "Rate some movies to get personalized recommendations!"
-                        }
-                      </Typography>
-                      <Typography variant="body2" sx={{ 
-                        color: 'rgba(255, 255, 255, 0.5)',
-                        fontSize: { xs: '0.875rem', sm: '1rem' }
-                      }}>
-                        {recommendedMovies.length > 0
-                          ? "Keep rating movies to discover more great films!"
-                          : "Start rating movies and we'll suggest similar ones you might enjoy."
-                        }
-                      </Typography>
-                    </Box>
-                  )}
-                  {!isAuthenticated && popularMovies.length === 0 && !loading && (
-                    <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
-                      <Typography variant="h6" sx={{ 
-                        color: 'rgba(255, 255, 255, 0.7)', 
-                        mb: 2,
-                        fontSize: { xs: '1rem', sm: '1.25rem' }
-                      }}>
-                        Discover popular movies
-                      </Typography>
-                      <Typography variant="body2" sx={{ 
-                        color: 'rgba(255, 255, 255, 0.5)',
-                        fontSize: { xs: '0.875rem', sm: '1rem' }
-                      }}>
-                        Sign in to get personalized recommendations based on your ratings!
-                      </Typography>
-                    </Box>
-                  )}
-                  </Grid>
+                  <CircularProgress size={40} />
                 </Box>
               )}
+              <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
+                {(!isAuthenticated ? popularMovies : (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies))
+                  .slice(0, 8)
+                  .map((movie) => (
+                    <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
+                      <MovieCard movie={movie} />
+                    </Grid>
+                  ))}
+                {isAuthenticated && activeTab === 1 && displayMovies.length === 0 && filteredRecommendedMovies.length === 0 && !loading && (
+                  <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
+                    <Typography variant="h6" sx={{ 
+                      color: 'rgba(255, 255, 255, 0.7)', 
+                      mb: 2,
+                      fontSize: { xs: '1rem', sm: '1.25rem' }
+                    }}>
+                      {recommendedMovies.length > 0 
+                        ? "You've rated all the recommended movies! Click refresh to get new suggestions."
+                        : "Rate some movies to get personalized recommendations!"
+                      }
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      color: 'rgba(255, 255, 255, 0.5)',
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                    }}>
+                      {recommendedMovies.length > 0
+                        ? "Keep rating movies to discover more great films!"
+                        : "Start rating movies and we'll suggest similar ones you might enjoy."
+                      }
+                    </Typography>
+                  </Box>
+                )}
+                {!isAuthenticated && popularMovies.length === 0 && !loading && (
+                  <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
+                    <Typography variant="h6" sx={{ 
+                      color: 'rgba(255, 255, 255, 0.7)', 
+                      mb: 2,
+                      fontSize: { xs: '1rem', sm: '1.25rem' }
+                    }}>
+                      Discover popular movies
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      color: 'rgba(255, 255, 255, 0.5)',
+                      fontSize: { xs: '0.875rem', sm: '1rem' }
+                    }}>
+                      Sign in to get personalized recommendations based on your ratings!
+                    </Typography>
+                  </Box>
+                )}
+              </Grid>
             </Box>
-          </>
-        )}
+          )}
+        </Box>
       </Container>
 
       {ratingMovie && (
