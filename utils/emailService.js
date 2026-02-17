@@ -35,9 +35,9 @@ const sendPasswordResetEmail = async (email, resetLink) => {
   }
 
   const mailOptions = {
-    from: `"MovieRate" <${process.env.EMAIL_USER}>`,
+    from: `"ReelList" <${process.env.EMAIL_USER}>`,
     to: email,
-    subject: 'Password Reset Request - MovieRate',
+    subject: 'Password Reset Request - ReelList',
     html: `
       <!DOCTYPE html>
       <html>
@@ -82,7 +82,7 @@ const sendPasswordResetEmail = async (email, resetLink) => {
             <div class="content">
               <h2>Password Reset Request</h2>
               <p>Hello,</p>
-              <p>You requested to reset your password for your MovieRate account. Click the button below to reset your password:</p>
+              <p>You requested to reset your password for your ReelList account. Click the button below to reset your password:</p>
               <p style="text-align: center;">
                 <a href="${resetLink}" class="button">Reset Password</a>
               </p>
@@ -91,7 +91,7 @@ const sendPasswordResetEmail = async (email, resetLink) => {
               <p>This link will expire in 1 hour.</p>
               <p>If you didn't request this password reset, please ignore this email.</p>
               <div class="footer">
-                <p>Best regards,<br>The MovieRate Team</p>
+                <p>Best regards,<br>The ReelList Team</p>
               </div>
             </div>
           </div>
@@ -99,11 +99,11 @@ const sendPasswordResetEmail = async (email, resetLink) => {
       </html>
     `,
     text: `
-      Password Reset Request - MovieRate
+      Password Reset Request - ReelList
       
       Hello,
       
-      You requested to reset your password for your MovieRate account. 
+      You requested to reset your password for your ReelList account. 
       Click the link below to reset your password:
       
       ${resetLink}
@@ -113,7 +113,7 @@ const sendPasswordResetEmail = async (email, resetLink) => {
       If you didn't request this password reset, please ignore this email.
       
       Best regards,
-      The MovieRate Team
+      The ReelList Team
     `,
   };
 

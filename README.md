@@ -1,4 +1,4 @@
-# MovieRate - Movie Rating Website
+# ReelList - Movie Rating Website
 
 A social movie rating platform inspired by Beli, where users can discover, rate, and share their favorite movies with friends.
 

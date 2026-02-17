@@ -59,7 +59,7 @@ const Navbar = () => {
                 display: { xs: 'none', sm: 'block' }
               }}
             >
-              MovieRate
+              ReelList
             </Typography>
           </Box>
         )}

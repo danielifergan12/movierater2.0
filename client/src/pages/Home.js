@@ -321,7 +321,7 @@ const Home = () => {
             minHeight: '60vh',
             gap: 4
           }}>
-            {/* MovieRate Logo - Large and Centered */}
+            {/* ReelList Logo - Large and Centered */}
             <Box sx={{ 
               textAlign: 'center', 
               mb: { xs: 2, sm: 4 },
@@ -352,7 +352,7 @@ const Home = () => {
                   letterSpacing: { xs: '0.05em', sm: '0.1em' },
                   textShadow: '0 0 20px rgba(0, 212, 255, 0.3)',
                 }}>
-                  MovieRate
+                  ReelList
                 </Typography>
               </Box>
             </Box>
@@ -401,7 +401,7 @@ const Home = () => {
                 mb: 2,
                 fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
               }}>
-                Welcome to MovieRate
+                Welcome to ReelList
               </Typography>
               <Typography variant="h5" align="center" sx={{ 
                 color: 'rgba(255, 255, 255, 0.8)',

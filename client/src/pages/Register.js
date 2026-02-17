@@ -68,7 +68,7 @@ const Register = () => {
       position: 'relative',
     }}>
       <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 2, px: { xs: 2, sm: 3 } }}>
-        {/* MovieRate Logo - Large and Centered */}
+        {/* ReelList Logo - Large and Centered */}
         <Box sx={{ 
           textAlign: 'center', 
           mb: { xs: 4, sm: 6 },
@@ -99,7 +99,7 @@ const Register = () => {
               letterSpacing: { xs: '0.05em', sm: '0.1em' },
               textShadow: '0 0 20px rgba(0, 212, 255, 0.3)',
             }}>
-              MovieRate
+              ReelList
             </Typography>
           </Box>
         </Box>
@@ -127,7 +127,7 @@ const Register = () => {
               fontWeight: 300,
               fontSize: { xs: '1rem', sm: '1.25rem' },
             }}>
-              Join MovieRate and start rating movies today!
+              Join ReelList and start rating movies today!
             </Typography>
           </Box>
 
