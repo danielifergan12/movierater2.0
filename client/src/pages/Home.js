@@ -10,7 +10,6 @@ import {
   CardActions,
   Button,
   Box,
-  Chip,
   Rating,
   CircularProgress,
   Tabs,
