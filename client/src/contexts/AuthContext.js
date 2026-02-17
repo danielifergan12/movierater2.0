@@ -51,9 +51,16 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL
+      });
       return { 
         success: false, 
-        message: error.response?.data?.message || 'Login failed' 
+        message: error.response?.data?.message || error.message || 'Login failed. Please check your backend connection.' 
       };
     }
   };
@@ -75,9 +82,16 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Registration error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL
+      });
       return { 
         success: false, 
-        message: error.response?.data?.message || 'Registration failed' 
+        message: error.response?.data?.message || error.message || 'Registration failed. Please check your backend connection.' 
       };
     }
   };
