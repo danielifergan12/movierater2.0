@@ -33,7 +33,18 @@ const Navbar = () => {
         gap: { xs: 1, sm: 0 }
       }}>
         {isAuthenticated && (
-          <Link to="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', marginRight: { xs: 0, sm: 2 } }}>
+          <Box
+            component={Link}
+            to="/"
+            sx={{
+              textDecoration: 'none',
+              color: 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              mr: { xs: 0, sm: 2 },
+              order: { xs: 1, sm: 0 }
+            }}
+          >
             <MovieIcon sx={{ mr: 1, color: '#00d4ff', fontSize: { xs: '1.5rem', sm: '2rem' } }} />
             <Typography
               variant="h6"
@@ -50,7 +61,7 @@ const Navbar = () => {
             >
               MovieRate
             </Typography>
-          </Link>
+          </Box>
         )}
 
         {isAuthenticated && (
