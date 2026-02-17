@@ -67,8 +67,9 @@ const Home = () => {
   };
 
   const handleRefresh = () => {
+    // Clear current recommendations and fetch fresh ones
     setRefreshKey(prev => prev + 1);
-    getPersonalRecommendations();
+    getPersonalRecommendations(true); // Pass true to force refresh
   };
 
   // Filter out already-rated movies from recommendations

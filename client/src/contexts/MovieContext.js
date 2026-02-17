@@ -74,10 +74,16 @@ export const MovieProvider = ({ children }) => {
     }
   };
 
-  const getPersonalRecommendations = async () => {
+  const getPersonalRecommendations = async (forceRefresh = false) => {
     setLoading(true);
     try {
-      const response = await api.get('/api/movies/recommendations/personal');
+      // Clear recommendations first if forcing refresh
+      if (forceRefresh) {
+        setRecommendedMovies([]);
+      }
+      // Add cache-busting parameter to ensure fresh data
+      const cacheBuster = forceRefresh ? `&_t=${Date.now()}` : '';
+      const response = await api.get(`/api/movies/recommendations/personal${cacheBuster}`);
       setRecommendedMovies(response.data.results || []);
       return response.data;
     } catch (error) {
