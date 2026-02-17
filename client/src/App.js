@@ -158,42 +158,42 @@ function AppContent() {
       {showBackground && <AnimatedMovieBackground />}
       <Navbar />
       <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password/:token" element={<ResetPassword />} />
-                <Route path="/auth/google/callback" element={<GoogleCallback />} />
-                <Route path="/search" element={
-                  <ProtectedRoute>
-                    <Search />
-                  </ProtectedRoute>
-                } />
-                <Route path="/feed" element={
-                  <ProtectedRoute>
-                    <Feed />
-                  </ProtectedRoute>
-                } />
-                <Route path="/rate" element={
-                  <ProtectedRoute>
-                    <Rate />
-                  </ProtectedRoute>
-                } />
-                <Route path="/rankings" element={<MyRankings />} />
-                <Route path="/discover" element={<DiscoverUsers />} />
-                <Route path="/following" element={
-                  <ProtectedRoute>
-                    <FollowingRankings />
-                  </ProtectedRoute>
-                } />
-                <Route path="/share/:shareCode" element={<SharedRankings />} />
-                <Route path="/profile/:userId" element={<Profile />} />
-                <Route path="/movie/:movieId" element={<MovieDetail />} />
-                <Route path="/admin/users" element={
-                  <ProtectedRoute>
-                    <AdminUsers />
-                  </ProtectedRoute>
-                } />
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/auth/google/callback" element={<GoogleCallback />} />
+        <Route path="/search" element={
+          <ProtectedRoute>
+            <Search />
+          </ProtectedRoute>
+        } />
+        <Route path="/feed" element={
+          <ProtectedRoute>
+            <Feed />
+          </ProtectedRoute>
+        } />
+        <Route path="/rate" element={
+          <ProtectedRoute>
+            <Rate />
+          </ProtectedRoute>
+        } />
+        <Route path="/rankings" element={<MyRankings />} />
+        <Route path="/discover" element={<DiscoverUsers />} />
+        <Route path="/following" element={
+          <ProtectedRoute>
+            <FollowingRankings />
+          </ProtectedRoute>
+        } />
+        <Route path="/share/:shareCode" element={<SharedRankings />} />
+        <Route path="/profile/:userId" element={<Profile />} />
+        <Route path="/movie/:movieId" element={<MovieDetail />} />
+        <Route path="/admin/users" element={
+          <ProtectedRoute>
+            <AdminUsers />
+          </ProtectedRoute>
+        } />
       </Routes>
     </div>
   );
