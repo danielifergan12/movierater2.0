@@ -420,9 +420,9 @@ const Home = () => {
   return (
     <Box sx={{ 
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
+      background: isAuthenticated ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)' : 'transparent',
       position: 'relative',
-      '&::before': {
+      '&::before': isAuthenticated ? {
         content: '""',
         position: 'absolute',
         top: 0,
@@ -432,7 +432,7 @@ const Home = () => {
         background: 'radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.1) 0%, transparent 50%)',
         pointerEvents: 'none',
         zIndex: 1,
-      },
+      } : {},
     }}>
       <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 2 }}>
         <Box sx={{ mb: { xs: 4, sm: 6 }, textAlign: 'center' }}>
