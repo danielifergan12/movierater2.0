@@ -23,7 +23,7 @@ import {
 import {
   Movie as MovieIcon
 } from '@mui/icons-material';
-import api from '../config/axios';
+import { publicApi } from '../config/axios';
 
 const SharedRankings = () => {
   const { shareCode } = useParams();
@@ -35,13 +35,8 @@ const SharedRankings = () => {
     const fetchSharedRankings = async () => {
       try {
         setLoading(true);
-        // Make request without auth token for public share links
-        const response = await api.get(`/api/share/${shareCode}`, {
-          headers: {
-            // Explicitly don't send auth token for public share links
-            Authorization: undefined
-          }
-        });
+        // Use publicApi to avoid sending auth token for public share links
+        const response = await publicApi.get(`/api/share/${shareCode}`);
         setSharedData(response.data);
         setError(null);
       } catch (err) {

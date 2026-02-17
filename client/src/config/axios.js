@@ -32,5 +32,13 @@ api.interceptors.request.use(
   }
 );
 
+// Create a public API instance without auth interceptor for public endpoints
+export const publicApi = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 export default api;
 
