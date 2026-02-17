@@ -335,7 +335,7 @@ router.get('/genre/:genreId', async (req, res) => {
   }
 });
 
-// Get highly rated movies by genre
+// Get popular/known movies by genre
 router.get('/genre/:genreId/highly-rated', async (req, res) => {
   try {
     const { genreId } = req.params;
@@ -349,16 +349,17 @@ router.get('/genre/:genreId/highly-rated', async (req, res) => {
           with_genres: genreId,
           page,
           language: 'en-US',
-          sort_by: 'vote_average.desc',
-          'vote_count.gte': 100 // Only include movies with at least 100 votes for quality
+          sort_by: 'popularity.desc', // Sort by popularity to get well-known movies
+          'vote_count.gte': 1000, // Require at least 1000 votes to ensure movies are well-known
+          'vote_average.gte': 6.0 // Also require minimum rating of 6.0 for quality
         }
       }
     );
 
     res.json(response.data);
   } catch (error) {
-    console.error('Get highly rated movies by genre error:', error);
-    res.status(500).json({ message: 'Error fetching highly rated movies by genre' });
+    console.error('Get popular movies by genre error:', error);
+    res.status(500).json({ message: 'Error fetching popular movies by genre' });
   }
 });
 

@@ -121,7 +121,7 @@ const GenreMovies = () => {
           mb: { xs: 3, sm: 4 },
           fontSize: { xs: '1rem', sm: '1.25rem' }
         }}>
-          Highly rated movies in {genreName}
+          Popular {genreName} movies
         </Typography>
 
         {loading && movies.length === 0 ? (
@@ -130,12 +130,13 @@ const GenreMovies = () => {
           </Box>
         ) : (
           <>
-            <Grid container spacing={{ xs: 2, sm: 3 }}>
+            <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
               {movies.map((movie) => {
                 const isAlreadyRated = rawRatings.some(r => r.id?.toString() === movie.id?.toString());
                 return (
-                  <Grid key={movie.id} item xs={6} sm={6} md={4} lg={3}>
+                  <Grid key={movie.id} item xs={12} sm={6} md={4} lg={4}>
                     <Card sx={{ 
+                      maxWidth: { xs: '100%', sm: 300 },
                       height: '100%', 
                       display: 'flex', 
                       flexDirection: 'column',
@@ -145,6 +146,7 @@ const GenreMovies = () => {
                       borderRadius: { xs: 3, sm: 4 },
                       overflow: 'hidden',
                       transition: 'all 0.3s ease',
+                      mb: { xs: 2, sm: 0 },
                       '&:hover': {
                         transform: { xs: 'none', sm: 'translateY(-8px)' },
                         boxShadow: { xs: 'none', sm: '0 20px 40px rgba(0, 212, 255, 0.3)' },
@@ -154,7 +156,7 @@ const GenreMovies = () => {
                       <Box sx={{ position: 'relative', overflow: 'hidden' }}>
                         <CardMedia
                           component="img"
-                          height={{ xs: 300, sm: 400 }}
+                          height={{ xs: 250, sm: 300 }}
                           image={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'}
                           alt={movie.title}
                           sx={{ 
