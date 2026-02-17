@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, Box, Chip } from '@mui/material';
 import { Movie as MovieIcon, Star as StarIcon, People as PeopleIcon, Favorite as FavoriteIcon, AdminPanelSettings as AdminIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
@@ -35,8 +35,7 @@ const Navbar = () => {
       }}>
         {isAuthenticated && (
           <Box
-            component={Link}
-            to="/"
+            onClick={() => navigate('/')}
             sx={{
               textDecoration: 'none',
               color: 'inherit',
@@ -45,7 +44,8 @@ const Navbar = () => {
               mr: { xs: 0, sm: 2 },
               order: { xs: 1, sm: 0 },
               minHeight: { xs: 44, sm: 'auto' },
-              minWidth: { xs: 44, sm: 'auto' }
+              minWidth: { xs: 44, sm: 'auto' },
+              cursor: 'pointer'
             }}
           >
             <MovieIcon sx={{ mr: 1, color: '#00d4ff', fontSize: { xs: '1.75rem', sm: '2rem' } }} />
@@ -128,8 +128,7 @@ const Navbar = () => {
               <Button
                 color="inherit"
                 startIcon={<StarIcon />}
-                component={Link}
-                to="/rankings"
+                onClick={() => navigate('/rankings')}
                 sx={{ 
                   mr: { xs: 0.5, sm: 1 },
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -149,8 +148,7 @@ const Navbar = () => {
               <Button
                 color="inherit"
                 startIcon={<PeopleIcon />}
-                component={Link}
-                to="/discover"
+                onClick={() => navigate('/discover')}
                 sx={{ 
                   mr: { xs: 0.5, sm: 1 },
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -170,8 +168,7 @@ const Navbar = () => {
               <Button
                 color="inherit"
                 startIcon={<FavoriteIcon />}
-                component={Link}
-                to="/following"
+                onClick={() => navigate('/following')}
                 sx={{ 
                   mr: { xs: 0.5, sm: 1 },
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -192,8 +189,7 @@ const Navbar = () => {
                 <Button
                   color="inherit"
                   startIcon={<AdminIcon />}
-                  component={Link}
-                  to="/admin/users"
+                  onClick={() => navigate('/admin/users')}
                   sx={{ 
                     mr: { xs: 0.5, sm: 1 },
                     fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -230,8 +226,7 @@ const Navbar = () => {
             <>
               <Button 
                 color="inherit" 
-                component={Link} 
-                to="/login" 
+                onClick={() => navigate('/login')}
                 sx={{ 
                   mr: { xs: 1, sm: 1 },
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
@@ -245,8 +240,7 @@ const Navbar = () => {
               </Button>
               <Button 
                 variant="contained" 
-                component={Link} 
-                to="/register"
+                onClick={() => navigate('/register')}
                 sx={{ 
                   fontSize: { xs: '0.875rem', sm: '0.875rem' },
                   px: { xs: 2, sm: 2 },
