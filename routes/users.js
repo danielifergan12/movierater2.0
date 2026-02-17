@@ -194,10 +194,10 @@ router.get('/following/rankings', auth, async (req, res) => {
       });
     }
 
-    // Get all followed users with their rankings
+    // Get all followed users with their rankings and followers count
     const followedUsers = await User.find({
       _id: { $in: currentUser.following }
-    }).select('username profilePicture ratings');
+    }).select('username profilePicture ratings followers');
 
     // Format response with user info and their rankings
     const rankings = followedUsers
@@ -206,6 +206,7 @@ router.get('/following/rankings', auth, async (req, res) => {
         userId: user._id,
         username: user.username || 'Anonymous',
         profilePicture: user.profilePicture || '',
+        followersCount: user.followers?.length || 0,
         ratings: user.ratings || []
       }));
 

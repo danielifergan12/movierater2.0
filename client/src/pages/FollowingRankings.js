@@ -233,16 +233,30 @@ const FollowingRankings = () => {
                     {userRankings.username?.charAt(0).toUpperCase() || 'U'}
                   </Avatar>
                   <Box>
-                    <Typography variant="h6" sx={{ 
-                      color: '#ffffff',
-                      fontWeight: 600,
-                      fontSize: { xs: '1rem', sm: '1.25rem' }
-                    }}>
-                      {userRankings.username}'s Rankings
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                      <Typography variant="h6" sx={{ 
+                        color: '#ffffff',
+                        fontWeight: 600,
+                        fontSize: { xs: '1rem', sm: '1.25rem' }
+                      }}>
+                        {userRankings.username}'s Rankings
+                      </Typography>
+                      <Chip
+                        label={`${userRankings.followersCount || 0} followers`}
+                        size="small"
+                        sx={{
+                          backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                          color: '#00d4ff',
+                          border: '1px solid rgba(0, 212, 255, 0.3)',
+                          fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                          height: { xs: 20, sm: 24 }
+                        }}
+                      />
+                    </Box>
                     <Typography variant="body2" sx={{ 
                       color: 'rgba(255, 255, 255, 0.7)',
-                      fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      mt: 0.5
                     }}>
                       {userRankings.ratings.length} movie{userRankings.ratings.length !== 1 ? 's' : ''}
                     </Typography>
