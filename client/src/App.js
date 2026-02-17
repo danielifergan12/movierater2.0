@@ -152,12 +152,18 @@ const theme = createTheme({
 function AppContent() {
   const location = useLocation();
   const showBackground = ['/', '/login', '/register'].includes(location.pathname);
+  const [routeKey, setRouteKey] = React.useState(0);
+
+  // Force Routes to remount when location changes to ensure smooth navigation
+  React.useEffect(() => {
+    setRouteKey(prev => prev + 1);
+  }, [location.pathname, location.search, location.hash]);
 
   return (
     <div className="App" style={{ position: 'relative' }}>
       {showBackground && <AnimatedMovieBackground />}
       <Navbar />
-      <Routes key={location.key || `${location.pathname}${location.search}${location.hash}`}>
+      <Routes key={routeKey}>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
