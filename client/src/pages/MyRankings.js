@@ -125,7 +125,7 @@ const MyRankings = () => {
     return `#${position + 1}`;
   };
 
-  // Fetch movie details for ratings missing metadata
+  // Fetch movie details for ratings missing metadata (in batches)
   useEffect(() => {
     const fetchMissingDetails = async () => {
       const missingIds = rawRatings
@@ -137,27 +137,40 @@ const MyRankings = () => {
 
       setLoadingDetails(true);
       try {
-        const detailsPromises = missingIds.slice(0, 10).map(async (id) => {
-          try {
-            const details = await getMovieDetails(id);
-            return { id, details };
-          } catch (error) {
-            console.error(`Error fetching details for movie ${id}:`, error);
-            return { id, details: null };
-          }
-        });
-
-        const results = await Promise.all(detailsPromises);
+        // Fetch in batches of 10 to avoid overwhelming the API
+        const batchSize = 10;
         const newCache = { ...movieDetailsCache };
-        results.forEach(({ id, details }) => {
-          if (details) {
-            newCache[id] = {
-              releaseDate: details.releaseDate || details.release_date,
-              genres: details.genres || []
-            };
+        
+        for (let i = 0; i < missingIds.length; i += batchSize) {
+          const batch = missingIds.slice(i, i + batchSize);
+          const detailsPromises = batch.map(async (id) => {
+            try {
+              const details = await getMovieDetails(id);
+              return { id, details };
+            } catch (error) {
+              console.error(`Error fetching details for movie ${id}:`, error);
+              return { id, details: null };
+            }
+          });
+
+          const results = await Promise.all(detailsPromises);
+          results.forEach(({ id, details }) => {
+            if (details) {
+              newCache[id] = {
+                releaseDate: details.releaseDate || details.release_date,
+                genres: details.genres || []
+              };
+            }
+          });
+          
+          // Update cache after each batch
+          setMovieDetailsCache({ ...newCache });
+          
+          // Small delay between batches to avoid rate limiting
+          if (i + batchSize < missingIds.length) {
+            await new Promise(resolve => setTimeout(resolve, 200));
           }
-        });
-        setMovieDetailsCache(newCache);
+        }
       } catch (error) {
         console.error('Error fetching movie details:', error);
       } finally {
@@ -223,16 +236,22 @@ const MyRankings = () => {
       });
     }
 
-    // Filter by year range
+    // Filter by year range (only if different from default)
     if (filters.yearRange) {
-      filtered = filtered.filter(r => {
-        if (!r.releaseDate) return false;
-        const releaseDate = r.releaseDate instanceof Date 
-          ? r.releaseDate 
-          : new Date(r.releaseDate);
-        const year = releaseDate.getFullYear();
-        return year >= filters.yearRange[0] && year <= filters.yearRange[1];
-      });
+      const defaultYearRange = [1900, new Date().getFullYear() + 1];
+      const isDefaultRange = filters.yearRange[0] === defaultYearRange[0] && 
+                            filters.yearRange[1] === defaultYearRange[1];
+      
+      if (!isDefaultRange) {
+        filtered = filtered.filter(r => {
+          if (!r.releaseDate) return false;
+          const releaseDate = r.releaseDate instanceof Date 
+            ? r.releaseDate 
+            : new Date(r.releaseDate);
+          const year = releaseDate.getFullYear();
+          return year >= filters.yearRange[0] && year <= filters.yearRange[1];
+        });
+      }
     }
 
     // Filter by rating range
