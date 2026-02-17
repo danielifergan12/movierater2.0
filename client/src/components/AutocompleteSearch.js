@@ -82,11 +82,8 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
         break;
       case 'Enter':
         event.preventDefault();
-        if (showSuggestions && selectedIndex >= 0 && selectedIndex < suggestions.length) {
-          // If a suggestion is selected, navigate to that movie
-          handleMovieSelect(suggestions[selectedIndex]);
-        } else if (query.trim().length >= 2) {
-          // If no suggestion selected but query exists, navigate to search page
+        if (query.trim().length >= 2) {
+          // Always navigate to search page to show all results
           navigateToSearchPage();
         }
         break;
