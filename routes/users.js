@@ -349,4 +349,51 @@ router.get('/admin/all', auth, async (req, res) => {
   }
 });
 
+// Admin route: Delete user (only for danielifergan)
+router.delete('/admin/:userId', auth, async (req, res) => {
+  try {
+    // Check if the current user is danielifergan
+    const currentUser = await User.findById(req.userId).select('username');
+    
+    if (!currentUser || currentUser.username !== 'danielifergan') {
+      return res.status(403).json({ message: 'Access denied. Admin only.' });
+    }
+
+    const { userId } = req.params;
+
+    // Prevent deleting yourself
+    if (userId === req.userId.toString()) {
+      return res.status(400).json({ message: 'Cannot delete your own account' });
+    }
+
+    const userToDelete = await User.findById(userId);
+    if (!userToDelete) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Delete all reviews by this user
+    await Review.deleteMany({ user: userId });
+
+    // Remove user from all followers' following lists
+    await User.updateMany(
+      { following: userId },
+      { $pull: { following: userId } }
+    );
+
+    // Remove user from all following users' followers lists
+    await User.updateMany(
+      { followers: userId },
+      { $pull: { followers: userId } }
+    );
+
+    // Delete the user
+    await User.findByIdAndDelete(userId);
+
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Delete user (admin) error:', error);
+    res.status(500).json({ message: 'Error deleting user' });
+  }
+});
+
 module.exports = router;

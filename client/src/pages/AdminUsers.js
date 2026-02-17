@@ -18,10 +18,19 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Pagination
+  Pagination,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+  Snackbar
 } from '@mui/material';
-import { Person as PersonIcon, Movie as MovieIcon, People as PeopleIcon } from '@mui/icons-material';
+import { Person as PersonIcon, Movie as MovieIcon, People as PeopleIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import api from '../config/axios';
+import { useAuth } from '../contexts/AuthContext';
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
@@ -30,6 +39,11 @@ const AdminUsers = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const { user: currentUser } = useAuth();
 
   useEffect(() => {
     fetchUsers();
@@ -56,6 +70,43 @@ const AdminUsers = () => {
   const handlePageChange = (event, value) => {
     setPage(value);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteClick = (user) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+
+    setDeleting(true);
+    try {
+      await api.delete(`/api/users/admin/${userToDelete._id}`);
+      setSnackbar({ open: true, message: 'User deleted successfully', severity: 'success' });
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+      // Refresh the users list
+      fetchUsers();
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      setSnackbar({ 
+        open: true, 
+        message: err.response?.data?.message || 'Failed to delete user', 
+        severity: 'error' 
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setUserToDelete(null);
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   if (loading) {
@@ -155,6 +206,7 @@ const AdminUsers = () => {
                     <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }} align="center">Followers</TableCell>
                     <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }} align="center">Following</TableCell>
                     <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }} align="center">Joined</TableCell>
+                    <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }} align="center">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -243,6 +295,22 @@ const AdminUsers = () => {
                       <TableCell align="center" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                         {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                       </TableCell>
+                      <TableCell align="center">
+                        {user._id !== currentUser?._id && (
+                          <IconButton
+                            onClick={() => handleDeleteClick(user)}
+                            sx={{
+                              color: '#ff6b35',
+                              '&:hover': {
+                                backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                              }
+                            }}
+                            size="small"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -272,6 +340,71 @@ const AdminUsers = () => {
           </>
         )}
       </Container>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        PaperProps={{
+          sx: {
+            background: 'rgba(26, 26, 26, 0.95)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(0, 212, 255, 0.2)',
+          }
+        }}
+      >
+        <DialogTitle sx={{ color: '#ffffff' }}>
+          Delete User
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+            Are you sure you want to delete user <strong>{userToDelete?.username}</strong> ({userToDelete?.email})? 
+            This action cannot be undone and will delete all their reviews and ratings.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            onClick={handleDeleteCancel}
+            sx={{ color: '#00d4ff' }}
+            disabled={deleting}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            sx={{ 
+              backgroundColor: '#ff6b35',
+              '&:hover': {
+                backgroundColor: '#e55a2b',
+              }
+            }}
+            disabled={deleting}
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleSnackbarClose} 
+          severity={snackbar.severity}
+          sx={{ 
+            width: '100%',
+            backgroundColor: snackbar.severity === 'error' ? 'rgba(211, 47, 47, 0.9)' : 'rgba(46, 125, 50, 0.9)',
+            color: '#ffffff'
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
