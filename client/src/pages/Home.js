@@ -28,7 +28,6 @@ const Home = () => {
   const { isAuthenticated } = useAuth();
   const { rawRatings } = useRatings();
   const [activeTab, setActiveTab] = useState(1);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [ratingMovie, setRatingMovie] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [displayMovies, setDisplayMovies] = useState([]);
@@ -91,7 +90,7 @@ const Home = () => {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, isAuthenticated, refreshKey]);
+  }, [activeTab, isAuthenticated]);
 
   // Refresh recommendations when a movie is rated
   useEffect(() => {
@@ -150,11 +149,11 @@ const Home = () => {
         const newFiltered = result.results.filter(movie => 
           movie && movie.id && !ratedIds.has(movie.id.toString())
         );
-        setDisplayMovies(newFiltered.slice(0, 8));
+        // Only update if we have new movies, otherwise keep current displayMovies
+        if (newFiltered.length > 0) {
+          setDisplayMovies(newFiltered.slice(0, 8));
+        }
       }
-      
-      // Update refresh key after successful refresh to trigger useEffect cleanup
-      setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error('Error refreshing recommendations:', error);
     } finally {
@@ -174,7 +173,6 @@ const Home = () => {
     if (activeTab === 1) {
       // Only update displayMovies when not refreshing (smooth transition)
       // During refresh, keep showing old movies until new ones are ready
-      // Also update on initial load when displayMovies is empty
       if (!isRefreshing && filteredRecommendedMovies.length > 0) {
         // Only update if the movies have actually changed (by comparing IDs)
         const currentIds = displayMovies.map(m => m.id).sort().join(',');
@@ -182,13 +180,13 @@ const Home = () => {
         if (currentIds !== newIds) {
           setDisplayMovies(filteredRecommendedMovies.slice(0, 8));
         }
-      } else if (filteredRecommendedMovies.length > 0 && displayMovies.length === 0) {
-        // Initial load - set display movies
+      } else if (filteredRecommendedMovies.length > 0 && displayMovies.length === 0 && !loading) {
+        // Initial load - set display movies only when loading is complete
         setDisplayMovies(filteredRecommendedMovies.slice(0, 8));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredRecommendedMovies, activeTab, isRefreshing]);
+  }, [filteredRecommendedMovies, activeTab, isRefreshing, loading]);
 
   
 
@@ -542,7 +540,7 @@ const Home = () => {
                 )}
               </Box>
 
-              {loading && !isRefreshing ? (
+              {loading && !isRefreshing && displayMovies.length === 0 ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
                   <CircularProgress />
                 </Box>
@@ -578,7 +576,7 @@ const Home = () => {
                           <MovieCard movie={movie} />
                         </Grid>
                       ))}
-                  {activeTab === 1 && filteredRecommendedMovies.length === 0 && (
+                  {activeTab === 1 && displayMovies.length === 0 && filteredRecommendedMovies.length === 0 && !loading && (
                     <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
                       <Typography variant="h6" sx={{ 
                         color: 'rgba(255, 255, 255, 0.7)', 
