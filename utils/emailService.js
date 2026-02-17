@@ -20,6 +20,13 @@ const createTransporter = () => {
 
 // Send password reset email
 const sendPasswordResetEmail = async (email, resetLink) => {
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    console.error('Invalid email format:', email);
+    return { success: false, message: 'Invalid email address', resetLink };
+  }
+
   const transporter = createTransporter();
   
   if (!transporter) {
@@ -112,10 +119,18 @@ const sendPasswordResetEmail = async (email, resetLink) => {
 
   try {
     await transporter.sendMail(mailOptions);
+    console.log(`Password reset email sent successfully to: ${email}`);
     return { success: true, message: 'Password reset email sent successfully' };
   } catch (error) {
     console.error('Error sending email:', error);
-    return { success: false, message: 'Failed to send email', resetLink };
+    console.error('Error details:', {
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      responseCode: error.responseCode
+    });
+    // Don't expose sensitive error details to user
+    return { success: false, message: 'Failed to send email. Please try again later.', resetLink };
   }
 };
 
