@@ -4,18 +4,29 @@ const nodemailer = require('nodemailer');
 const createTransporter = () => {
   // If email is not configured, return null
   if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.warn('Email service not configured. Missing required environment variables: EMAIL_HOST, EMAIL_USER, or EMAIL_PASS');
     return null;
   }
 
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT || 587,
-    secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+  try {
+    const transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: parseInt(process.env.EMAIL_PORT) || 587,
+      secure: process.env.EMAIL_SECURE === 'true', // true for 465, false for other ports
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      // Add connection timeout
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,
+    });
+
+    return transporter;
+  } catch (error) {
+    console.error('Error creating email transporter:', error);
+    return null;
+  }
 };
 
 // Send password reset email
@@ -118,19 +129,38 @@ const sendPasswordResetEmail = async (email, resetLink) => {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    // Verify connection before sending
+    await transporter.verify();
+    console.log('Email server connection verified successfully');
+
+    // Send the email
+    const info = await transporter.sendMail(mailOptions);
     console.log(`Password reset email sent successfully to: ${email}`);
+    console.log('Email message ID:', info.messageId);
     return { success: true, message: 'Password reset email sent successfully' };
   } catch (error) {
-    console.error('Error sending email:', error);
-    console.error('Error details:', {
-      code: error.code,
-      command: error.command,
-      response: error.response,
-      responseCode: error.responseCode
-    });
-    // Don't expose sensitive error details to user
-    return { success: false, message: 'Failed to send email. Please try again later.', resetLink };
+    console.error('Error sending password reset email:', error);
+    
+    // Provide more specific error messages for common issues
+    let errorMessage = 'Failed to send email. Please try again later.';
+    
+    if (error.code === 'EAUTH') {
+      console.error('Email authentication failed. Check EMAIL_USER and EMAIL_PASS.');
+      errorMessage = 'Email authentication failed. Please contact support.';
+    } else if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
+      console.error('Email server connection failed. Check EMAIL_HOST and EMAIL_PORT.');
+      errorMessage = 'Email server connection failed. Please try again later.';
+    } else if (error.responseCode) {
+      console.error('SMTP error response:', {
+        code: error.code,
+        command: error.command,
+        response: error.response,
+        responseCode: error.responseCode
+      });
+    }
+    
+    // Don't expose sensitive error details to user, but log them for debugging
+    return { success: false, message: errorMessage, resetLink };
   }
 };
 

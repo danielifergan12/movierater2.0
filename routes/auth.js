@@ -223,14 +223,19 @@ router.post('/forgot-password', [
     user.resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
     await user.save();
 
-    // Generate reset link
-    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
+    // Generate reset link - ensure proper URL formatting
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, ''); // Remove trailing slash
+    const resetLink = `${frontendUrl}/reset-password/${resetToken}`;
+
+    console.log(`Generating password reset link for user: ${user.email}`);
+    console.log(`Reset link: ${resetLink.substring(0, 50)}...`); // Log partial link for debugging
 
     // Try to send email
     const emailResult = await sendPasswordResetEmail(email, resetLink);
 
     // If email was sent successfully, return success message
     if (emailResult.success) {
+      console.log(`Password reset email sent successfully to: ${email}`);
       return res.json({ 
         message: 'If an account with that email exists, a password reset link has been sent.'
       });
@@ -238,6 +243,7 @@ router.post('/forgot-password', [
 
     // If email service is not configured, return the link in development mode
     // This allows testing without email configuration
+    console.warn(`Email service not available. Reset link generated but not sent: ${emailResult.message}`);
     res.json({ 
       message: 'If an account with that email exists, a password reset link has been sent.',
       resetLink: process.env.NODE_ENV === 'development' ? resetLink : undefined,
@@ -245,7 +251,14 @@ router.post('/forgot-password', [
     });
   } catch (error) {
     console.error('Forgot password error:', error);
-    res.status(500).json({ message: 'Server error during password reset request' });
+    console.error('Error stack:', error.stack);
+    
+    // Provide more specific error messages
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+    
+    res.status(500).json({ message: 'Server error during password reset request. Please try again later.' });
   }
 });
 
@@ -267,18 +280,26 @@ router.post('/reset-password', [
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_change_me');
     } catch (error) {
+      console.warn('Invalid JWT token in password reset request:', error.message);
       return res.status(400).json({ message: 'Invalid or expired reset token' });
     }
 
     // Find user by ID and verify token matches
     const user = await User.findById(decoded.userId);
-    if (!user || user.resetToken !== token) {
+    if (!user) {
+      console.warn(`User not found for reset token. User ID: ${decoded.userId}`);
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    if (user.resetToken !== token) {
+      console.warn(`Reset token mismatch for user: ${user.email}`);
       return res.status(400).json({ message: 'Invalid or expired reset token' });
     }
 
     // Check if token has expired
     if (!user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
-      return res.status(400).json({ message: 'Reset token has expired' });
+      console.warn(`Reset token expired for user: ${user.email}. Expiry: ${user.resetTokenExpiry}`);
+      return res.status(400).json({ message: 'Reset token has expired. Please request a new password reset link.' });
     }
 
     // Update password (will be hashed by pre-save hook)
@@ -287,10 +308,18 @@ router.post('/reset-password', [
     user.resetTokenExpiry = null;
     await user.save();
 
+    console.log(`Password reset successfully for user: ${user.email}`);
     res.json({ message: 'Password reset successfully' });
   } catch (error) {
     console.error('Reset password error:', error);
-    res.status(500).json({ message: 'Server error during password reset' });
+    console.error('Error stack:', error.stack);
+    
+    // Handle mongoose validation errors
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: 'Invalid password format' });
+    }
+    
+    res.status(500).json({ message: 'Server error during password reset. Please try again later.' });
   }
 });
 
