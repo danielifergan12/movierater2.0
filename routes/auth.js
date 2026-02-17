@@ -157,4 +157,98 @@ router.put('/profile', auth, [
   }
 });
 
+// Forgot password
+router.post('/forgot-password', [
+  body('email').isEmail().normalizeEmail()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Don't reveal if email exists or not for security
+      return res.json({ 
+        message: 'If an account with that email exists, a password reset link has been sent.'
+      });
+    }
+
+    // Generate reset token (JWT with 1 hour expiry)
+    const resetToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET || 'dev_secret_change_me',
+      { expiresIn: '1h' }
+    );
+
+    // Save token and expiry to user
+    user.resetToken = resetToken;
+    user.resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+    await user.save();
+
+    // In development, return the reset link
+    // In production, you would send an email here using Nodemailer, SendGrid, etc.
+    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`;
+
+    // For development, return the link in the response
+    // In production, remove this and send email instead
+    res.json({ 
+      message: 'If an account with that email exists, a password reset link has been sent.',
+      resetLink: process.env.NODE_ENV === 'development' ? resetLink : undefined
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Server error during password reset request' });
+  }
+});
+
+// Reset password
+router.post('/reset-password', [
+  body('token').notEmpty(),
+  body('password').isLength({ min: 6 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { token, password } = req.body;
+
+    // Verify token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_change_me');
+    } catch (error) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    // Find user by ID and verify token matches
+    const user = await User.findById(decoded.userId);
+    if (!user || user.resetToken !== token) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    // Check if token has expired
+    if (!user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
+      return res.status(400).json({ message: 'Reset token has expired' });
+    }
+
+    // Update password (will be hashed by pre-save hook)
+    user.password = password;
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+    await user.save();
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Server error during password reset' });
+  }
+});
+
 module.exports = router;

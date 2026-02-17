@@ -61,7 +61,15 @@ const userSchema = new mongoose.Schema({
     id: { type: String, required: true },
     title: { type: String, required: true },
     posterUrl: String
-  }]
+  }],
+  resetToken: {
+    type: String,
+    default: null
+  },
+  resetTokenExpiry: {
+    type: Date,
+    default: null
+  }
 }, {
   timestamps: true
 });

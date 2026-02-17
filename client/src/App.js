@@ -15,6 +15,8 @@ import Feed from './pages/Feed';
 import MyRankings from './pages/MyRankings';
 import ProtectedRoute from './components/ProtectedRoute';
 import Rate from './pages/Rate';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 const theme = createTheme({
   palette: {
@@ -154,6 +156,8 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/feed" element={
                   <ProtectedRoute>
