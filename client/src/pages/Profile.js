@@ -131,12 +131,14 @@ const Profile = () => {
                 </Typography>
               )}
 
-              <Box sx={{ display: 'flex', justifyContent: 'space-around', my: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-around', my: 3, flexWrap: 'wrap', gap: 2 }}>
                 <Box 
                   sx={{ 
                     textAlign: 'center',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
+                    flex: '1 1 0',
+                    minWidth: '80px',
                     '&:hover': {
                       transform: 'scale(1.05)',
                     }
@@ -155,6 +157,8 @@ const Profile = () => {
                     textAlign: 'center',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
+                    flex: '1 1 0',
+                    minWidth: '80px',
                     '&:hover': {
                       transform: 'scale(1.05)',
                     }
@@ -166,6 +170,20 @@ const Profile = () => {
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Following
+                  </Typography>
+                </Box>
+                <Box 
+                  sx={{ 
+                    textAlign: 'center',
+                    flex: '1 1 0',
+                    minWidth: '80px',
+                  }}
+                >
+                  <Typography variant="h6" sx={{ color: '#ff6b35' }}>
+                    {rankings.length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Rankings
                   </Typography>
                 </Box>
               </Box>

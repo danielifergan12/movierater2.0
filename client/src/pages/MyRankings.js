@@ -464,7 +464,7 @@ const MyRankings = () => {
           </Alert>
         </Snackbar>
         <Box sx={{ textAlign: 'center', mb: { xs: 4, sm: 6 } }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
             <Typography variant="h2" sx={{
               background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
               backgroundClip: 'text',
@@ -474,6 +474,20 @@ const MyRankings = () => {
             }}>
               My Movie Rankings
             </Typography>
+            <Chip
+              label={`${rawRatings.length} Total`}
+              sx={{
+                background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                color: '#ffffff',
+                fontWeight: 600,
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                height: { xs: 32, sm: 36 },
+                px: { xs: 1, sm: 1.5 },
+                '& .MuiChip-label': {
+                  px: { xs: 1.5, sm: 2 }
+                }
+              }}
+            />
             <IconButton
               onClick={handleShareClick}
               sx={{
