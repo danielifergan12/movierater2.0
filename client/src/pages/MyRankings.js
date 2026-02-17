@@ -81,16 +81,16 @@ const MyRankings = () => {
   };
 
   const handleDragStart = (e, originalIndex) => {
+    // Don't start drag if clicking on a button or link
+    if (e.target.closest('button') || e.target.closest('a')) {
+      e.preventDefault();
+      return;
+    }
+    
     setDraggedIndex(originalIndex);
     setDragOverIndex(null); // Reset on new drag
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', e.target);
-    // Set a custom drag image to prevent flickering
-    const dragImage = e.target.cloneNode(true);
-    dragImage.style.opacity = '0.5';
-    document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, 0, 0);
-    setTimeout(() => document.body.removeChild(dragImage), 0);
+    e.dataTransfer.setData('text/html', e.target.outerHTML);
   };
 
   const handleDragOver = (e, dropOriginalIndex) => {
@@ -713,12 +713,6 @@ const MyRankings = () => {
                       },
                       '&:active': {
                         cursor: 'grabbing',
-                      },
-                      '& *': {
-                        pointerEvents: 'none',
-                      },
-                      '& button, & a': {
-                        pointerEvents: 'auto',
                       }
                     }}
                   >
@@ -823,10 +817,12 @@ const MyRankings = () => {
                       mt: { xs: 2, sm: 0 },
                       width: { xs: '100%', sm: 'auto' },
                       justifyContent: { xs: 'flex-end', sm: 'flex-start' },
-                      pointerEvents: 'auto',
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
-                    onDragStart={(e) => e.stopPropagation()}
+                    onDragStart={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
                     >
                       <Button
                         variant="outlined"
