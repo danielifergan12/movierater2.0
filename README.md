@@ -73,6 +73,7 @@ A social movie rating platform inspired by Beli, where users can discover, rate,
      CLOUDINARY_API_KEY=your_cloudinary_api_key
      CLOUDINARY_API_SECRET=your_cloudinary_api_secret
      TMDB_API_KEY=your_tmdb_api_key_here
+     OMDB_API_KEY=your_omdb_api_key_here_optional
      ```
 
 5. **Get TMDB API Key**
@@ -150,6 +151,90 @@ A social movie rating platform inspired by Beli, where users can discover, rate,
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## Deployment
+
+### Deploying to Vercel (Recommended)
+
+1. **Push your code to GitHub** (see GitHub Setup below)
+
+2. **Deploy Backend:**
+   - Go to [Vercel](https://vercel.com) and sign up/login
+   - Click "New Project" and import your GitHub repository
+   - Set the root directory to the project root (not `client`)
+   - Add environment variables from your `.env` file
+   - Deploy
+
+3. **Deploy Frontend:**
+   - In Vercel, create another project
+   - Set root directory to `client`
+   - Add environment variables (if needed)
+   - Update API calls in `client/src` to use your backend URL
+   - Deploy
+
+### Deploying to Heroku
+
+1. **Install Heroku CLI:**
+   ```bash
+   npm install -g heroku
+   ```
+
+2. **Create Heroku app:**
+   ```bash
+   heroku create your-app-name
+   ```
+
+3. **Set environment variables:**
+   ```bash
+   heroku config:set MONGODB_URI=your_mongodb_uri
+   heroku config:set JWT_SECRET=your_jwt_secret
+   heroku config:set TMDB_API_KEY=your_tmdb_key
+   # ... add all other env variables
+   ```
+
+4. **Deploy:**
+   ```bash
+   git push heroku main
+   ```
+
+### Deploying to Netlify
+
+1. **Build the React app:**
+   ```bash
+   cd client
+   npm run build
+   ```
+
+2. **Deploy:**
+   - Go to [Netlify](https://netlify.com)
+   - Drag and drop the `client/build` folder
+   - Or connect your GitHub repo and set build command: `cd client && npm run build`
+   - Set publish directory: `client/build`
+
+### GitHub Setup
+
+1. **Create a GitHub repository:**
+   - Go to [GitHub](https://github.com/new)
+   - Create a new repository (don't initialize with README)
+
+2. **Connect and push:**
+   ```bash
+   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+   git branch -M main
+   git push -u origin main
+   ```
+
+3. **Important:** Never commit your `.env` file! It's already in `.gitignore`
+
+## Environment Variables
+
+Make sure to set these in your deployment platform:
+
+- `MONGODB_URI` - MongoDB connection string (use MongoDB Atlas for production)
+- `JWT_SECRET` - Secret key for JWT tokens
+- `TMDB_API_KEY` - The Movie Database API key (required)
+- `OMDB_API_KEY` - OMDB API key for IMDB ratings (optional)
+- `CLOUDINARY_*` - Cloudinary credentials (optional, for image uploads)
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
@@ -157,5 +242,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - [The Movie Database (TMDB)](https://www.themoviedb.org/) for movie data
+- [OMDB API](http://www.omdbapi.com/) for IMDB ratings
 - [Material-UI](https://mui.com/) for the UI components
 - [Belie](https://beli.com/) for inspiration on the social rating concept
