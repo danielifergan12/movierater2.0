@@ -11,10 +11,13 @@ import {
   Avatar,
   Typography,
   CircularProgress,
-  Fade
+  Fade,
+  Button,
+  IconButton
 } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Star as StarIcon } from '@mui/icons-material';
 import api from '../config/axios';
+import RatingModal from './RatingModal';
 
 const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." }) => {
   const [query, setQuery] = useState('');
@@ -22,6 +25,7 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [ratingMovie, setRatingMovie] = useState(null);
   const searchRef = useRef(null);
   const suggestionsRef = useRef(null);
 
@@ -235,7 +239,7 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
                         >
                           {movie.overview}
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
                           <Typography
                             variant="caption"
                             sx={{
@@ -246,6 +250,29 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
                           >
                             ⭐ {movie.vote_average.toFixed(1)}
                           </Typography>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={<StarIcon />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRatingMovie({
+                                id: movie.id,
+                                title: movie.title,
+                                posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'
+                              });
+                              setShowSuggestions(false);
+                            }}
+                            sx={{
+                              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                              fontSize: '0.75rem',
+                              py: 0.5,
+                              px: 1.5,
+                              minWidth: 'auto',
+                            }}
+                          >
+                            Rate
+                          </Button>
                         </Box>
                       </Box>
                     }
@@ -256,6 +283,15 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
           </List>
         </Paper>
       </Fade>
+
+      {ratingMovie && (
+        <RatingModal
+          open={!!ratingMovie}
+          movie={ratingMovie}
+          onClose={() => setRatingMovie(null)}
+          onComplete={() => setRatingMovie(null)}
+        />
+      )}
     </Box>
   );
 };

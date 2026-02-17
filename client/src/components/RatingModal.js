@@ -115,31 +115,58 @@ const RatingModal = ({ movie, open, onClose, onComplete }) => {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}>
-                Which is better?
+                Which do you prefer?
               </Typography>
               <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                Is "{movie.title}" better or worse than "{compareTarget?.title}"?
+                Click on the movie you like better
               </Typography>
             </Box>
 
             <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Card sx={{ maxWidth: 240 }}>
+              <Card 
+                sx={{ 
+                  maxWidth: 240,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'scale(1.05)',
+                    boxShadow: '0 8px 24px rgba(0, 212, 255, 0.4)',
+                    border: '2px solid rgba(0, 212, 255, 0.6)',
+                  },
+                  border: '2px solid transparent',
+                }}
+                onClick={() => {
+                  // New movie is better (higher in ranking)
+                  setHigh(mid - 1);
+                }}
+              >
                 <CardMedia component="img" height="340" image={movie.posterUrl || '/placeholder-movie.jpg'} alt={movie.title} />
                 <CardContent>
-                  <Typography variant="subtitle1" noWrap>{movie.title}</Typography>
+                  <Typography variant="subtitle1" noWrap sx={{ fontWeight: 600 }}>{movie.title}</Typography>
                 </CardContent>
               </Card>
-              <Card sx={{ maxWidth: 240 }}>
+              <Card 
+                sx={{ 
+                  maxWidth: 240,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'scale(1.05)',
+                    boxShadow: '0 8px 24px rgba(0, 212, 255, 0.4)',
+                    border: '2px solid rgba(0, 212, 255, 0.6)',
+                  },
+                  border: '2px solid transparent',
+                }}
+                onClick={() => {
+                  // Compare target is better (lower in ranking)
+                  setLow(mid + 1);
+                }}
+              >
                 <CardMedia component="img" height="340" image={compareTarget?.posterUrl || '/placeholder-movie.jpg'} alt={compareTarget?.title} />
                 <CardContent>
-                  <Typography variant="subtitle1" noWrap>{compareTarget?.title}</Typography>
+                  <Typography variant="subtitle1" noWrap sx={{ fontWeight: 600 }}>{compareTarget?.title}</Typography>
                 </CardContent>
               </Card>
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 3 }}>
-              <Button variant="contained" onClick={() => setHigh(mid - 1)}>Better</Button>
-              <Button variant="contained" onClick={() => setLow(mid + 1)}>Worse</Button>
             </Box>
           </>
         )}
