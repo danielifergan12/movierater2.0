@@ -560,43 +560,205 @@ router.get('/recommendations/personal', auth, async (req, res) => {
     
     const ratedMovieIds = new Set(ratings.map(r => r.id?.toString()).filter(Boolean));
     
-    // FIRST: Analyze user's genre preferences from their rated movies
-    const genreFrequency = new Map();
-    const genreDetailsPromises = topRatedMovies.slice(0, 10).map(async (ratedMovie) => {
-      try {
-        const movieDetailsResponse = await axios.get(
-          `https://api.themoviedb.org/3/movie/${ratedMovie.id}`,
-          {
-            params: {
-              api_key: process.env.TMDB_API_KEY,
-              language: 'en-US'
-            },
-            timeout: 3000
+    // ===== ENHANCED USER PREFERENCE ANALYSIS =====
+    // Analyze user's rating patterns, decade preferences, quality preferences, and genre depth
+    const analyzeUserPreferences = async (topRatedMovies) => {
+      const genreFrequency = new Map(); // genreId -> { count, totalRating }
+      const genreRatings = new Map(); // genreId -> [ratings]
+      const releaseYears = [];
+      const voteAverages = [];
+      const voteCounts = [];
+      const castFrequency = new Map(); // actorId -> { count, totalRating }
+      const directorFrequency = new Map(); // directorId -> { count, totalRating }
+      
+      // Fetch movie details for top rated movies
+      const movieDetailsPromises = topRatedMovies.slice(0, 10).map(async (ratedMovie, index) => {
+        try {
+          const movieDetailsResponse = await axios.get(
+            `https://api.themoviedb.org/3/movie/${ratedMovie.id}`,
+            {
+              params: {
+                api_key: process.env.TMDB_API_KEY,
+                language: 'en-US',
+                append_to_response: 'credits'
+              },
+              timeout: 3000
+            }
+          );
+          const movie = movieDetailsResponse.data;
+          if (!movie) return null;
+          
+          // Calculate position-based rating (higher position = higher implicit rating)
+          // Position 0 = rating of 10, position 9 = rating of 1
+          const positionRating = 10 - (index / topRatedMovies.length) * 9;
+          
+          // Analyze genres with weighted ratings
+          (movie.genres || []).forEach(genre => {
+            if (genre && genre.id) {
+              const current = genreFrequency.get(genre.id) || { count: 0, totalRating: 0 };
+              genreFrequency.set(genre.id, {
+                count: current.count + 1,
+                totalRating: current.totalRating + positionRating
+              });
+              
+              if (!genreRatings.has(genre.id)) {
+                genreRatings.set(genre.id, []);
+              }
+              genreRatings.get(genre.id).push(positionRating);
+            }
+          });
+          
+          // Collect release years
+          if (movie.release_date) {
+            const year = new Date(movie.release_date).getFullYear();
+            if (year > 1900 && year <= new Date().getFullYear() + 1) {
+              releaseYears.push(year);
+            }
           }
-        );
-        return movieDetailsResponse.data?.genres || [];
-      } catch (error) {
-        return [];
-      }
-    });
-    
-    const genreDetailsResults = await Promise.all(genreDetailsPromises);
-    genreDetailsResults.forEach(genres => {
-      genres.forEach(genre => {
-        if (genre && genre.id) {
-          genreFrequency.set(genre.id, (genreFrequency.get(genre.id) || 0) + 1);
+          
+          // Collect quality metrics
+          if (movie.vote_average) voteAverages.push(movie.vote_average);
+          if (movie.vote_count) voteCounts.push(movie.vote_count);
+          
+          // Analyze cast (top 5 actors/actresses)
+          const cast = (movie.credits?.cast || [])
+            .filter(person => person && person.order < 5) // Top 5 billed
+            .slice(0, 5);
+          
+          cast.forEach(person => {
+            if (person && person.id) {
+              const current = castFrequency.get(person.id) || { count: 0, totalRating: 0 };
+              castFrequency.set(person.id, {
+                count: current.count + 1,
+                totalRating: current.totalRating + positionRating
+              });
+            }
+          });
+          
+          // Analyze directors
+          const directors = (movie.credits?.crew || [])
+            .filter(person => person && person.job === 'Director')
+            .slice(0, 2);
+          
+          directors.forEach(director => {
+            if (director && director.id) {
+              const current = directorFrequency.get(director.id) || { count: 0, totalRating: 0 };
+              directorFrequency.set(director.id, {
+                count: current.count + 1,
+                totalRating: current.totalRating + positionRating
+              });
+            }
+          });
+          
+          return movie;
+        } catch (error) {
+          return null;
         }
       });
-    });
+      
+      const movieDetailsResults = await Promise.all(movieDetailsPromises);
+      const validMovies = movieDetailsResults.filter(m => m !== null);
+      
+      // Calculate preferences
+      const avgReleaseYear = releaseYears.length > 0 
+        ? releaseYears.reduce((a, b) => a + b, 0) / releaseYears.length 
+        : 2000;
+      
+      const avgVoteAverage = voteAverages.length > 0
+        ? voteAverages.reduce((a, b) => a + b, 0) / voteAverages.length
+        : 7.5;
+      
+      const avgVoteCount = voteCounts.length > 0
+        ? voteCounts.reduce((a, b) => a + b, 0) / voteCounts.length
+        : 1000;
+      
+      // Determine quality preference (critically acclaimed vs popular)
+      const prefersCriticallyAcclaimed = avgVoteAverage > 7.5;
+      const prefersPopular = avgVoteCount > 2000;
+      
+      // Determine decade preference
+      const prefersRecent = avgReleaseYear > 2010;
+      const prefersClassics = avgReleaseYear < 2000;
+      
+      // Get favorite genres weighted by rating (not just frequency)
+      const favoriteGenres = Array.from(genreFrequency.entries())
+        .map(([id, data]) => ({
+          id: parseInt(id),
+          score: data.totalRating / data.count, // Average rating for this genre
+          count: data.count
+        }))
+        .sort((a, b) => {
+          // Sort by score first, then by count
+          if (Math.abs(b.score - a.score) > 0.5) {
+            return b.score - a.score;
+          }
+          return b.count - a.count;
+        })
+        .slice(0, 5)
+        .map(g => g.id);
+      
+      // Get favorite actors (top 10)
+      const favoriteActors = Array.from(castFrequency.entries())
+        .map(([id, data]) => ({
+          id: parseInt(id),
+          score: data.totalRating / data.count,
+          count: data.count
+        }))
+        .sort((a, b) => {
+          if (Math.abs(b.score - a.score) > 0.5) {
+            return b.score - a.score;
+          }
+          return b.count - a.count;
+        })
+        .slice(0, 10)
+        .map(a => a.id);
+      
+      // Determine adaptive quality thresholds based on user's rating patterns
+      // If user rates mostly high-quality movies, use higher thresholds
+      let minVoteAverage, minVoteCount;
+      if (avgVoteAverage >= 8.0 && avgVoteCount >= 2000) {
+        // User prefers very high quality
+        minVoteAverage = 7.5;
+        minVoteCount = 1000;
+      } else if (avgVoteAverage >= 7.5 && avgVoteCount >= 1000) {
+        // User prefers high quality
+        minVoteAverage = 7.2;
+        minVoteCount = 500;
+      } else if (avgVoteAverage >= 7.0) {
+        // User prefers moderate quality
+        minVoteAverage = 7.0;
+        minVoteCount = 500;
+      } else {
+        // User has diverse tastes, use lower thresholds for variety
+        minVoteAverage = 6.5;
+        minVoteCount = 200;
+      }
+      
+      return {
+        favoriteGenres,
+        favoriteActors,
+        avgReleaseYear,
+        prefersRecent,
+        prefersClassics,
+        prefersCriticallyAcclaimed,
+        prefersPopular,
+        minVoteAverage,
+        minVoteCount,
+        genreFrequency,
+        genreRatings
+      };
+    };
     
-    // Get top 3-5 favorite genres (most frequently rated)
-    const favoriteGenres = Array.from(genreFrequency.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([id]) => id);
+    const userPreferences = await analyzeUserPreferences(topRatedMovies);
+    const favoriteGenres = userPreferences.favoriteGenres;
+    const favoriteActors = userPreferences.favoriteActors;
     
     // Map to store recommendations with scores
     const recommendationMap = new Map();
+    
+    // Use adaptive quality thresholds
+    const minVoteAverage = userPreferences.minVoteAverage;
+    const minVoteCount = userPreferences.minVoteCount;
     
     // Strategy 0: PRIORITIZE - Get HIGH QUALITY movies from user's favorite genres
     if (favoriteGenres.length > 0) {
@@ -610,9 +772,9 @@ router.get('/recommendations/personal', auth, async (req, res) => {
               api_key: process.env.TMDB_API_KEY,
               language: 'en-US',
               with_genres: favoriteGenreIds,
-              sort_by: 'vote_average.desc',
-              'vote_count.gte': 1000,  // Much higher threshold - only well-known movies
-              'vote_average.gte': 7.5,  // Higher quality threshold
+              sort_by: userPreferences.prefersCriticallyAcclaimed ? 'vote_average.desc' : 'popularity.desc',
+              'vote_count.gte': minVoteCount,
+              'vote_average.gte': minVoteAverage,
               page: genrePage
             },
             timeout: 5000
@@ -624,18 +786,84 @@ router.get('/recommendations/personal', auth, async (req, res) => {
           if (movie.id && 
               !ratedMovieIds.has(movie.id.toString()) && 
               !excludeIds.has(movie.id.toString()) &&
-              movie.vote_average >= 7.5 &&  // Stricter quality filter
-              movie.vote_count >= 1000) {   // Only well-reviewed movies
+              movie.vote_average >= minVoteAverage &&
+              movie.vote_count >= minVoteCount) {
             const score = recommendationMap.get(movie.id) || 0;
             // High score for favorite genres - prioritize these
             const genreMatchScore = favoriteGenres.some(gid => 
               movie.genre_ids && movie.genre_ids.includes(gid)
             ) ? 25 : 15;
-            recommendationMap.set(movie.id, score + genreMatchScore + (5 / (index + 1)));
+            
+            // Quality bonus
+            const qualityBonus = movie.vote_average >= 8.0 ? 8 : (movie.vote_average >= 7.5 ? 5 : 0);
+            
+            // Recency bonus
+            let recencyBonus = 0;
+            if (movie.release_date) {
+              const movieYear = new Date(movie.release_date).getFullYear();
+              if (userPreferences.prefersRecent && movieYear >= 2010) {
+                recencyBonus = 5;
+              } else if (userPreferences.prefersClassics && movieYear < 2000) {
+                recencyBonus = 5;
+              }
+            }
+            
+            recommendationMap.set(movie.id, score + genreMatchScore + qualityBonus + recencyBonus + (5 / (index + 1)));
           }
         });
       } catch (error) {
         console.log(`Error fetching favorite genre movies:`, error.message);
+      }
+    }
+    
+    // Strategy 0.5: Get movies with favorite actors
+    if (favoriteActors.length > 0) {
+      try {
+        // Get movies for top 5 favorite actors
+        const topActors = favoriteActors.slice(0, 5);
+        for (const actorId of topActors) {
+          try {
+            const actorMoviesResponse = await axios.get(
+              `https://api.themoviedb.org/3/person/${actorId}/movie_credits`,
+              {
+                params: {
+                  api_key: process.env.TMDB_API_KEY,
+                  language: 'en-US'
+                },
+                timeout: 5000
+              }
+            );
+            
+            const actorMovies = (actorMoviesResponse.data?.cast || [])
+              .filter(movie => 
+                movie && 
+                movie.id &&
+                movie.vote_average >= minVoteAverage &&
+                movie.vote_count >= minVoteCount &&
+                !ratedMovieIds.has(movie.id.toString())
+              )
+              .sort((a, b) => {
+                if (Math.abs((b.vote_average || 0) - (a.vote_average || 0)) > 0.2) {
+                  return (b.vote_average || 0) - (a.vote_average || 0);
+                }
+                return (b.vote_count || 0) - (a.vote_count || 0);
+              })
+              .slice(0, 10);
+            
+            actorMovies.forEach((movie, index) => {
+              if (movie && movie.id && !excludeIds.has(movie.id.toString())) {
+                const score = recommendationMap.get(movie.id) || 0;
+                // Cast match score - higher for actors that appear in multiple favorite movies
+                const castScore = 18 - (index * 0.5); // 18 for first, decreasing
+                recommendationMap.set(movie.id, score + castScore + (3 / (index + 1)));
+              }
+            });
+          } catch (error) {
+            console.log(`Error fetching actor movies for ${actorId}:`, error.message);
+          }
+        }
+      } catch (error) {
+        console.log(`Error fetching cast movies:`, error.message);
       }
     }
     
@@ -663,17 +891,22 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         
         const similarMovies = (similarResponse.data?.results || []).filter(m => m && m.id);
         
-        // Score and add similar movies - only high quality
+        // Score and add similar movies - use adaptive thresholds
         similarMovies.forEach((movie, index) => {
           if (movie.id && 
               !ratedMovieIds.has(movie.id.toString()) &&
               !excludeIds.has(movie.id.toString()) &&
-              movie.vote_average >= 7.0 &&  // Higher quality threshold
-              movie.vote_count >= 500) {    // More votes = more reliable
+              movie.vote_average >= minVoteAverage &&
+              movie.vote_count >= minVoteCount) {
             const score = recommendationMap.get(movie.id) || 0;
             // Higher score for movies similar to higher-ranked movies
             const positionWeight = (topRatedMovies.length - topRatedMovies.indexOf(ratedMovie)) / topRatedMovies.length;
-            recommendationMap.set(movie.id, score + (10 * positionWeight) + (5 / (index + 1)));
+            const baseScore = 10 * positionWeight;
+            
+            // Quality bonus
+            const qualityBonus = movie.vote_average >= 8.0 ? 5 : (movie.vote_average >= 7.5 ? 3 : 0);
+            
+            recommendationMap.set(movie.id, score + baseScore + qualityBonus + (5 / (index + 1)));
           }
         });
       } catch (error) {
@@ -721,14 +954,14 @@ router.get('/recommendations/personal', auth, async (req, res) => {
               }
             );
             
-            // Filter for director role and HIGH QUALITY movies only
+            // Filter for director role - use adaptive thresholds
             const directorMovies = (directorMoviesResponse.data?.crew || [])
               .filter(movie => 
                 movie && 
                 movie.id &&
                 movie.job === 'Director' && 
-                movie.vote_average >= 7.2 &&  // Higher quality threshold for directors
-                movie.vote_count >= 500 &&    // More votes = more reliable
+                movie.vote_average >= minVoteAverage &&
+                movie.vote_count >= minVoteCount &&
                 !ratedMovieIds.has(movie.id.toString())
               )
               .sort((a, b) => {
@@ -744,9 +977,12 @@ router.get('/recommendations/personal', auth, async (req, res) => {
               if (movie && movie.id && !excludeIds.has(movie.id.toString())) {
                 const score = recommendationMap.get(movie.id) || 0;
                 // MUCH higher score for same director - this is a key recommendation factor
-                // Directors are weighted more heavily than genres
-                const directorScore = 30 * positionWeight; // Increased from 15
-                recommendationMap.set(movie.id, score + directorScore + (5 / (index + 1)));
+                const directorScore = 30 * positionWeight;
+                
+                // Quality bonus for director movies
+                const qualityBonus = movie.vote_average >= 8.0 ? 8 : (movie.vote_average >= 7.5 ? 5 : 0);
+                
+                recommendationMap.set(movie.id, score + directorScore + qualityBonus + (5 / (index + 1)));
               }
             });
           } catch (error) {
@@ -772,9 +1008,9 @@ router.get('/recommendations/personal', auth, async (req, res) => {
                   api_key: process.env.TMDB_API_KEY,
                   language: 'en-US',
                   with_genres: genreIds,
-                  sort_by: sortBy,
-                  'vote_count.gte': 1000,  // Much higher threshold - only well-known movies
-                  'vote_average.gte': 7.5, // Higher quality threshold
+                  sort_by: userPreferences.prefersCriticallyAcclaimed ? 'vote_average.desc' : 'popularity.desc',
+                  'vote_count.gte': minVoteCount,
+                  'vote_average.gte': minVoteAverage,
                   page: genrePage
                 },
                 timeout: 5000 // 5 second timeout
@@ -786,15 +1022,30 @@ router.get('/recommendations/personal', auth, async (req, res) => {
               if (movie.id && 
                   !ratedMovieIds.has(movie.id.toString()) && 
                   !excludeIds.has(movie.id.toString()) &&
-                  movie.vote_average >= 7.5 &&  // Stricter quality filter
-                  movie.vote_count >= 1000) {   // Only well-reviewed movies
+                  movie.vote_average >= minVoteAverage &&
+                  movie.vote_count >= minVoteCount) {
                 const score = recommendationMap.get(movie.id) || 0;
                 // Check if this genre is in user's favorites - boost score if so
                 const isFavoriteGenre = favoriteGenres.some(gid => 
                   movie.genre_ids && movie.genre_ids.includes(gid)
                 );
                 const genreBoost = isFavoriteGenre ? 8 : 0;
-                recommendationMap.set(movie.id, score + (12 * positionWeight) + genreBoost + (2 / (index + 1)));
+                
+                // Quality bonus
+                const qualityBonus = movie.vote_average >= 8.0 ? 6 : (movie.vote_average >= 7.5 ? 3 : 0);
+                
+                // Recency bonus
+                let recencyBonus = 0;
+                if (movie.release_date) {
+                  const movieYear = new Date(movie.release_date).getFullYear();
+                  if (userPreferences.prefersRecent && movieYear >= 2010) {
+                    recencyBonus = 3;
+                  } else if (userPreferences.prefersClassics && movieYear < 2000) {
+                    recencyBonus = 3;
+                  }
+                }
+                
+                recommendationMap.set(movie.id, score + (12 * positionWeight) + genreBoost + qualityBonus + recencyBonus + (2 / (index + 1)));
               }
             });
           } catch (error) {
@@ -817,9 +1068,9 @@ router.get('/recommendations/personal', auth, async (req, res) => {
           api_key: process.env.TMDB_API_KEY,
           language: 'en-US',
                   with_keywords: keywordIds,
-                  sort_by: 'vote_average.desc',
-                  'vote_count.gte': 200,
-                  'vote_average.gte': 7.0,
+                  sort_by: userPreferences.prefersCriticallyAcclaimed ? 'vote_average.desc' : 'popularity.desc',
+                  'vote_count.gte': Math.max(200, minVoteCount),
+                  'vote_average.gte': Math.max(6.5, minVoteAverage - 0.5),
                   page: 1
                 },
                 timeout: 5000 // 5 second timeout
@@ -851,35 +1102,77 @@ router.get('/recommendations/personal', auth, async (req, res) => {
       .filter(([id, score]) => id && !isNaN(parseInt(id)) && score > 0)
       .map(([id, score]) => ({ id: parseInt(id), score }));
     
-    // Boost scores for movies that match user's favorite genres
-    if (favoriteGenres.length > 0) {
-      // Fetch genre info for top recommendations to boost favorite genres
+    // Boost scores for movies that match multiple criteria and apply recency balance
+    if (favoriteGenres.length > 0 || favoriteActors.length > 0) {
+      // Fetch full info for top recommendations to boost multi-criteria matches
       const topRecIds = recommendations.slice(0, 50).map(r => r.id);
-      const genreInfoPromises = topRecIds.map(id =>
+      const movieInfoPromises = topRecIds.map(id =>
         axios.get(
           `https://api.themoviedb.org/3/movie/${id}`,
           {
             params: {
               api_key: process.env.TMDB_API_KEY,
-              language: 'en-US'
+              language: 'en-US',
+              append_to_response: 'credits'
             },
             timeout: 2000
           }
         ).catch(() => null)
       );
       
-      const genreInfoResults = await Promise.all(genreInfoPromises);
-      genreInfoResults.forEach((result, index) => {
-        if (result && result.data && result.data.genres) {
-          const movieGenres = result.data.genres.map(g => g.id);
-          const favoriteGenreMatches = movieGenres.filter(gid => favoriteGenres.includes(gid)).length;
-          if (favoriteGenreMatches > 0) {
-            // Boost score significantly for favorite genre matches
-            const rec = recommendations.find(r => r.id === topRecIds[index]);
-            if (rec) {
-              rec.score += favoriteGenreMatches * 10;
+      const movieInfoResults = await Promise.all(movieInfoPromises);
+      movieInfoResults.forEach((result, index) => {
+        if (result && result.data) {
+          const movie = result.data;
+          const rec = recommendations.find(r => r.id === topRecIds[index]);
+          if (!rec) return;
+          
+          let boost = 0;
+          
+          // Genre matches
+          if (favoriteGenres.length > 0 && movie.genres) {
+            const movieGenres = movie.genres.map(g => g.id);
+            const favoriteGenreMatches = movieGenres.filter(gid => favoriteGenres.includes(gid)).length;
+            if (favoriteGenreMatches > 0) {
+              boost += favoriteGenreMatches * 10;
             }
           }
+          
+          // Cast matches
+          if (favoriteActors.length > 0 && movie.credits && movie.credits.cast) {
+            const movieActorIds = movie.credits.cast
+              .filter(person => person && person.order < 5) // Top 5 billed
+              .map(person => person.id);
+            const favoriteActorMatches = movieActorIds.filter(aid => favoriteActors.includes(aid)).length;
+            if (favoriteActorMatches > 0) {
+              boost += favoriteActorMatches * 12; // Slightly higher than genre
+            }
+          }
+          
+          // Multi-criteria bonus (director + genre + cast)
+          const hasDirector = rec.score > 20; // Director movies have high base scores
+          const hasGenre = movie.genres && movie.genres.some(g => favoriteGenres.includes(g.id));
+          const hasCast = movie.credits && movie.credits.cast && 
+            movie.credits.cast.some(person => favoriteActors.includes(person.id));
+          
+          if (hasDirector && (hasGenre || hasCast)) {
+            boost += 15; // Big bonus for multi-criteria matches
+          }
+          
+          // Recency balance
+          if (movie.release_date) {
+            const movieYear = new Date(movie.release_date).getFullYear();
+            if (userPreferences.prefersRecent && movieYear >= 2010) {
+              boost += 5;
+            } else if (userPreferences.prefersClassics && movieYear < 2000) {
+              boost += 5;
+            } else if (!userPreferences.prefersRecent && !userPreferences.prefersClassics) {
+              // User has mixed preferences, small bonus for any movie
+              boost += 2;
+            }
+          }
+          
+          rec.score += boost;
         }
       });
     }
@@ -937,9 +1230,11 @@ router.get('/recommendations/personal', auth, async (req, res) => {
       });
     }
     
+    // ===== DIVERSITY FILTERING =====
+    // Apply diversity constraints to ensure variety in recommendations
     // Fetch full movie details for top recommendations
     const topRecommendationIds = recommendations
-      .slice(0, 30)
+      .slice(0, 50) // Fetch more to have options for diversity
       .map(r => r.id)
       .filter(id => id && !isNaN(id));
     
@@ -959,7 +1254,8 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         {
           params: {
             api_key: process.env.TMDB_API_KEY,
-            language: 'en-US'
+            language: 'en-US',
+            append_to_response: 'credits'
           },
           timeout: 5000 // 5 second timeout
         }
@@ -967,7 +1263,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
     );
     
     const movieDetailsResults = await Promise.all(movieDetailsPromises);
-    let recommendedMovies = movieDetailsResults
+    const moviesWithDetails = movieDetailsResults
       .filter(result => result && result.data && result.data.id)
       .map(result => ({
         id: result.data.id,
@@ -979,19 +1275,84 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         vote_average: result.data.vote_average || 0,
         vote_count: result.data.vote_count || 0,
         popularity: result.data.popularity || 0,
-        genres: result.data.genres || []
+        genres: result.data.genres || [],
+        directors: (result.data.credits?.crew || [])
+          .filter(person => person && person.job === 'Director')
+          .map(person => person.id),
+        score: recommendations.find(r => r.id === result.data.id)?.score || 0
       }))
       .filter(movie => 
-        movie.vote_average >= 7.0 &&  // Higher quality threshold
-        movie.vote_count >= 500 &&    // More votes = more reliable
+        movie.vote_average >= minVoteAverage &&
+        movie.vote_count >= minVoteCount &&
         !excludeIds.has(movie.id.toString())
-      );
+      )
+      .sort((a, b) => b.score - a.score); // Sort by score
     
-    // If we don't have enough movies and have excludeIds, fetch more from additional pages
-    if (recommendedMovies.length < 8 && excludeIds.size > 0) {
-      // Get more recommendations from the sorted list
+    // Apply diversity filter
+    const directorCount = new Map();
+    const genreCount = new Map();
+    const diverseMovies = [];
+    const maxPerDirector = 2;
+    const maxPerGenre = 3;
+    
+    for (const movie of moviesWithDetails) {
+      // Check director diversity
+      const movieDirectors = movie.directors || [];
+      const hasDirectorLimit = movieDirectors.length > 0 && 
+        movieDirectors.some(dirId => (directorCount.get(dirId) || 0) >= maxPerDirector);
+      
+      // Check genre diversity
+      const movieGenres = (movie.genres || []).map(g => g.id);
+      const hasGenreLimit = movieGenres.length > 0 &&
+        movieGenres.some(genreId => (genreCount.get(genreId) || 0) >= maxPerGenre);
+      
+      // Skip if it would exceed diversity limits (unless we don't have enough movies yet)
+      if (hasDirectorLimit || hasGenreLimit) {
+        if (diverseMovies.length >= 8) {
+          continue; // Skip this movie, we have enough
+        }
+        // If we need more movies, allow it but with a small penalty
+        movie.score -= 5;
+      }
+      
+      // Add the movie
+      diverseMovies.push(movie);
+      
+      // Update counts
+      movieDirectors.forEach(dirId => {
+        directorCount.set(dirId, (directorCount.get(dirId) || 0) + 1);
+      });
+      movieGenres.forEach(genreId => {
+        genreCount.set(genreId, (genreCount.get(genreId) || 0) + 1);
+      });
+      
+      // Stop when we have enough
+      if (diverseMovies.length >= 20) {
+        break;
+      }
+    }
+    
+    // Re-sort by score after diversity filtering
+    diverseMovies.sort((a, b) => b.score - a.score);
+    
+    let recommendedMovies = diverseMovies.map(movie => ({
+      id: movie.id,
+      title: movie.title,
+      overview: movie.overview,
+      release_date: movie.release_date,
+      poster_path: movie.poster_path,
+      backdrop_path: movie.backdrop_path,
+      vote_average: movie.vote_average,
+      vote_count: movie.vote_count,
+      popularity: movie.popularity,
+      genres: movie.genres
+    }));
+    
+    // If we don't have enough movies, fetch more from additional recommendations
+    if (recommendedMovies.length < 8) {
+      // Get more recommendations from the sorted list that weren't in top 50
       const additionalIds = recommendations
-        .slice(30, 60)
+        .slice(50, 100)
         .map(r => r.id)
         .filter(id => id && !isNaN(id) && !excludeIds.has(id.toString()));
       
@@ -1002,7 +1363,8 @@ router.get('/recommendations/personal', auth, async (req, res) => {
             {
               params: {
                 api_key: process.env.TMDB_API_KEY,
-                language: 'en-US'
+                language: 'en-US',
+                append_to_response: 'credits'
               },
               timeout: 3000
             }
@@ -1022,15 +1384,50 @@ router.get('/recommendations/personal', auth, async (req, res) => {
             vote_average: result.data.vote_average || 0,
             vote_count: result.data.vote_count || 0,
             popularity: result.data.popularity || 0,
-            genres: result.data.genres || []
+            genres: result.data.genres || [],
+            directors: (result.data.credits?.crew || [])
+              .filter(person => person && person.job === 'Director')
+              .map(person => person.id)
           }))
           .filter(movie => 
-            movie.vote_average >= 7.0 &&  // Higher quality threshold
-            movie.vote_count >= 500 &&    // More votes = more reliable
+            movie.vote_average >= minVoteAverage &&
+            movie.vote_count >= minVoteCount &&
             !excludeIds.has(movie.id.toString())
           );
         
-        recommendedMovies = [...recommendedMovies, ...additionalMovies];
+        // Add additional movies with diversity check
+        for (const movie of additionalMovies) {
+          if (recommendedMovies.length >= 20) break;
+          
+          const movieDirectors = movie.directors || [];
+          const movieGenres = (movie.genres || []).map(g => g.id);
+          
+          const hasDirectorLimit = movieDirectors.some(dirId => (directorCount.get(dirId) || 0) >= maxPerDirector);
+          const hasGenreLimit = movieGenres.some(genreId => (genreCount.get(genreId) || 0) >= maxPerGenre);
+          
+          if (!hasDirectorLimit && !hasGenreLimit) {
+            recommendedMovies.push({
+              id: movie.id,
+              title: movie.title,
+              overview: movie.overview,
+              release_date: movie.release_date,
+              poster_path: movie.poster_path,
+              backdrop_path: movie.backdrop_path,
+              vote_average: movie.vote_average,
+              vote_count: movie.vote_count,
+              popularity: movie.popularity,
+              genres: movie.genres
+            });
+            
+            // Update counts
+            movieDirectors.forEach(dirId => {
+              directorCount.set(dirId, (directorCount.get(dirId) || 0) + 1);
+            });
+            movieGenres.forEach(genreId => {
+              genreCount.set(genreId, (genreCount.get(genreId) || 0) + 1);
+            });
+          }
+        }
       }
     }
     
