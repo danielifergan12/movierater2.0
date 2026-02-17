@@ -71,7 +71,6 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     
     // If re-rating, remove the movie from ratings first
     // Use robust string comparison to handle ID type mismatches
-    const movieIdStr = String(movie.id);
     let ratingsToUse = rawRatings;
     
     if (alreadyRated && allowRerate) {
