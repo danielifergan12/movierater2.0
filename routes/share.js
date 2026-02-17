@@ -17,10 +17,21 @@ router.post('/generate', auth, async (req, res) => {
     // If user already has a share code, return it
     if (user.shareCode) {
       // Get frontend URL from environment variable, request origin, or default to localhost
-      const frontendUrl = process.env.FRONTEND_URL || 
-        (req.headers.origin && !req.headers.origin.includes('localhost') ? req.headers.origin : null) ||
-        (req.headers.referer ? new URL(req.headers.referer).origin : null) ||
-        'http://localhost:3000';
+      // Priority: 1. FRONTEND_URL env var, 2. Request origin (if not localhost), 3. Referer origin, 4. localhost
+      let frontendUrl = process.env.FRONTEND_URL;
+      if (!frontendUrl) {
+        if (req.headers.origin && !req.headers.origin.includes('localhost')) {
+          frontendUrl = req.headers.origin;
+        } else if (req.headers.referer) {
+          try {
+            frontendUrl = new URL(req.headers.referer).origin;
+          } catch (e) {
+            frontendUrl = 'http://localhost:3000';
+          }
+        } else {
+          frontendUrl = 'http://localhost:3000';
+        }
+      }
       const shareUrl = `${frontendUrl}/share/${user.shareCode}`;
       
       return res.json({
@@ -57,10 +68,21 @@ router.post('/generate', auth, async (req, res) => {
     await user.save();
 
     // Get frontend URL from environment variable, request origin, or default to localhost
-    const frontendUrl = process.env.FRONTEND_URL || 
-      (req.headers.origin && !req.headers.origin.includes('localhost') ? req.headers.origin : null) ||
-      (req.headers.referer ? new URL(req.headers.referer).origin : null) ||
-      'http://localhost:3000';
+    // Priority: 1. FRONTEND_URL env var, 2. Request origin (if not localhost), 3. Referer origin, 4. localhost
+    let frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) {
+      if (req.headers.origin && !req.headers.origin.includes('localhost')) {
+        frontendUrl = req.headers.origin;
+      } else if (req.headers.referer) {
+        try {
+          frontendUrl = new URL(req.headers.referer).origin;
+        } catch (e) {
+          frontendUrl = 'http://localhost:3000';
+        }
+      } else {
+        frontendUrl = 'http://localhost:3000';
+      }
+    }
     const shareUrl = `${frontendUrl}/share/${shareCode}`;
 
     res.json({
