@@ -21,9 +21,16 @@ router.post('/register', [
 
     const { username, email, password } = req.body;
 
-    // Check if user already exists
+    // Normalize email to lowercase (since database stores emails in lowercase)
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedUsername = username.trim();
+
+    // Check if user already exists (using normalized values)
     const existingUser = await User.findOne({
-      $or: [{ email }, { username }]
+      $or: [
+        { email: normalizedEmail },
+        { username: normalizedUsername }
+      ]
     });
 
     if (existingUser) {
@@ -32,8 +39,12 @@ router.post('/register', [
       });
     }
 
-    // Create new user
-    const user = new User({ username, email, password });
+    // Create new user (email will be lowercased by schema, but use normalized values)
+    const user = new User({ 
+      username: normalizedUsername, 
+      email: normalizedEmail, 
+      password 
+    });
     await user.save();
 
     // Generate JWT token
