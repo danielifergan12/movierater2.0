@@ -24,8 +24,18 @@ const Search = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Sync query from URL params when they change (e.g., when navigating from navbar search)
   useEffect(() => {
-    if (query) {
+    const urlQuery = searchParams.get('q') || '';
+    if (urlQuery && urlQuery !== query) {
+      setQuery(urlQuery);
+      setPage(1);
+    }
+  }, [searchParams]);
+
+  // Perform search when query or page changes
+  useEffect(() => {
+    if (query.trim()) {
       performSearch();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -33,16 +43,19 @@ const Search = () => {
 
   const performSearch = async () => {
     const result = await searchMovies(query, page);
-    if (result.total_pages) {
+    if (result && result.total_pages) {
       setTotalPages(result.total_pages);
     }
   };
 
   const handleSearch = (e) => {
     if (e.key === 'Enter') {
-      setQuery(e.target.value);
-      setPage(1);
-      setSearchParams({ q: e.target.value });
+      const searchQuery = e.target.value.trim();
+      if (searchQuery) {
+        setQuery(searchQuery);
+        setPage(1);
+        setSearchParams({ q: searchQuery });
+      }
     }
   };
 
@@ -165,13 +178,29 @@ const Search = () => {
   );
 
   return (
-    <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3 } }}>
-      <Typography variant="h4" gutterBottom sx={{ 
-        fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
-        mb: { xs: 2, sm: 3 }
-      }}>
-        Search Movies
-      </Typography>
+    <Box sx={{ 
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
+      position: 'relative',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.1) 0%, transparent 50%)',
+        pointerEvents: 'none',
+        zIndex: 1,
+      },
+    }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 2 }}>
+        <Typography variant="h4" gutterBottom sx={{ 
+          fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
+          mb: { xs: 2, sm: 3 }
+        }}>
+          Search Movies
+        </Typography>
 
       <Box sx={{ mb: { xs: 3, sm: 4 } }}>
         <TextField
@@ -262,17 +291,25 @@ const Search = () => {
         </>
       )}
 
-      {!query && (
+      {!loading && !query && (
         <Box textAlign="center" py={8}>
-          <Typography variant="h6" color="text.secondary">
+          <Typography variant="h6" sx={{ 
+            color: 'rgba(255, 255, 255, 0.7)',
+            mb: 2,
+            fontSize: { xs: '1rem', sm: '1.25rem' }
+          }}>
             Start typing to search for movies
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={{ 
+            color: 'rgba(255, 255, 255, 0.5)',
+            fontSize: { xs: '0.875rem', sm: '1rem' }
+          }}>
             Discover your next favorite movie!
           </Typography>
         </Box>
       )}
-    </Container>
+      </Container>
+    </Box>
   );
 };
 
