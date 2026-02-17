@@ -187,15 +187,17 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
 
             <Box sx={{ 
               display: 'flex', 
-              gap: { xs: 2.5, sm: 3 }, 
+              gap: { xs: 1.5, sm: 3 }, 
               justifyContent: 'center', 
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: 'center'
+              flexDirection: 'row',
+              alignItems: 'center',
+              flexWrap: 'wrap'
             }}>
               <Card 
                 sx={{ 
-                  maxWidth: { xs: '100%', sm: 240 },
-                  width: { xs: '100%', sm: 'auto' },
+                  maxWidth: { xs: 'calc(50% - 0.75rem)', sm: 240 },
+                  width: { xs: 'calc(50% - 0.75rem)', sm: 'auto' },
+                  flex: { xs: '1 1 calc(50% - 0.75rem)', sm: 'none' },
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   minHeight: { xs: 200, sm: 'auto' },
@@ -216,7 +218,7 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
               >
                 <CardMedia 
                   component="img" 
-                  height={{ xs: 350, sm: 340 }} 
+                  height={{ xs: 250, sm: 340 }} 
                   image={movie.posterUrl || '/placeholder-movie.jpg'} 
                   alt={movie.title}
                   sx={{ objectFit: 'cover' }}
@@ -233,8 +235,9 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
               </Card>
               <Card 
                 sx={{ 
-                  maxWidth: { xs: '100%', sm: 240 },
-                  width: { xs: '100%', sm: 'auto' },
+                  maxWidth: { xs: 'calc(50% - 0.75rem)', sm: 240 },
+                  width: { xs: 'calc(50% - 0.75rem)', sm: 'auto' },
+                  flex: { xs: '1 1 calc(50% - 0.75rem)', sm: 'none' },
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   minHeight: { xs: 200, sm: 'auto' },
@@ -255,7 +258,7 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
               >
                 <CardMedia 
                   component="img" 
-                  height={{ xs: 350, sm: 340 }} 
+                  height={{ xs: 250, sm: 340 }} 
                   image={compareTarget?.posterUrl || '/placeholder-movie.jpg'} 
                   alt={compareTarget?.title}
                   sx={{ objectFit: 'cover' }}
