@@ -53,14 +53,14 @@ router.get('/search', async (req, res) => {
 });
 
 // Get movie details
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     
-    // Validate movie ID
+    // Non-numeric paths (popular, genres, new-releases, etc.) fall through to later routes
     const movieId = parseInt(id);
     if (isNaN(movieId)) {
-      return res.status(400).json({ message: 'Invalid movie ID' });
+      return next('route');
     }
     
     // First check if movie exists in our database

@@ -49,12 +49,21 @@ app.get('*', (req, res) => {
 });
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/movierating', {
+const mongoUri = process.env.MONGODB_URI;
+if (!mongoUri) {
+  console.error('FATAL: MONGODB_URI is not set. Auth and rankings will fail.');
+}
+
+mongoose.connect(mongoUri || 'mongodb://localhost:27017/movierating', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 10000,
 })
 .then(() => console.log('Connected to MongoDB'))
-.catch(err => console.log('MongoDB connection error:', err));
+.catch(err => {
+  console.error('MongoDB connection error:', err.message);
+  console.error('Check Railway MONGODB_URI, Atlas Network Access (0.0.0.0/0), and DB user password.');
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
