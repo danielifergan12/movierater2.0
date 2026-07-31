@@ -1,77 +1,128 @@
 import React from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { Box, Typography, Button } from '@mui/material';
 
-const LandingHero = ({ onStartRanking }) => {
+const LandingHero = () => {
   return (
     <Box
+      className="landing-hero"
       sx={{
-        textAlign: 'center',
-        py: { xs: 4, sm: 6, md: 8 },
-        px: { xs: 2, sm: 3 },
-        maxWidth: '800px',
-        mx: 'auto',
+        position: 'relative',
+        zIndex: 2,
+        minHeight: { xs: 'calc(100dvh - 64px)', sm: 'calc(100dvh - 72px)' },
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+        px: { xs: 3, sm: 6, md: 10 },
+        pb: { xs: 8, sm: 10, md: 12 },
+        pt: { xs: 6, sm: 8 },
+        maxWidth: 920,
       }}
     >
       <Typography
-        variant="h1"
-        component="h1"
+        component="p"
+        className="landing-hero__brand"
         sx={{
-          fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
-          fontWeight: 700,
-          mb: 2,
-          background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          lineHeight: 1.2,
+          fontFamily: '"Bebas Neue", sans-serif',
+          fontSize: { xs: '4.5rem', sm: '6.5rem', md: '8rem' },
+          lineHeight: 0.9,
+          letterSpacing: '0.04em',
+          color: 'var(--rl-cream)',
+          mb: { xs: 2, sm: 2.5 },
+          m: 0,
         }}
       >
-        Search and rank 5 movies. Build your personal list.
+        ReelList
       </Typography>
 
       <Typography
-        variant="h6"
-        component="p"
+        component="h1"
+        className="landing-hero__headline"
         sx={{
-          fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
-          color: 'rgba(255, 255, 255, 0.8)',
-          mb: { xs: 3, sm: 4 },
-          fontWeight: 300,
-          fontStyle: 'italic',
+          fontFamily: '"Libre Baskerville", Georgia, serif',
+          fontWeight: 400,
+          fontSize: { xs: '1.35rem', sm: '1.75rem', md: '2rem' },
+          lineHeight: 1.35,
+          color: 'var(--rl-cream)',
+          maxWidth: 520,
+          mb: { xs: 1.5, sm: 2 },
         }}
       >
-        Your rankings say who you are.
+        Rank the films you love. See who matches your taste.
       </Typography>
 
-      <Button
-        variant="contained"
-        onClick={onStartRanking}
+      <Typography
+        className="landing-hero__support"
         sx={{
-          background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-          color: '#ffffff',
-          fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
-          fontWeight: 700,
-          px: { xs: 4, sm: 6, md: 8 },
-          py: { xs: 1.5, sm: 2, md: 2.5 },
-          borderRadius: 3,
-          textTransform: 'none',
-          boxShadow: '0 8px 24px rgba(0, 212, 255, 0.4)',
-          transition: 'all 0.3s ease',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: '0 12px 32px rgba(0, 212, 255, 0.6)',
-            background: 'linear-gradient(45deg, #66e0ff, #ff8a65)',
-          },
-          '&:active': {
-            transform: 'translateY(-2px)',
-          },
+          fontFamily: '"Manrope", sans-serif',
+          fontSize: { xs: '0.95rem', sm: '1.05rem' },
+          lineHeight: 1.55,
+          color: 'var(--rl-muted)',
+          maxWidth: 440,
+          mb: { xs: 3.5, sm: 4 },
         }}
       >
-        Start Ranking
-      </Button>
+        A personal ranking list — not another star rating dump.
+      </Typography>
+
+      <Box
+        className="landing-hero__cta"
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: { xs: 1.5, sm: 2 },
+        }}
+      >
+        <Button
+          component={RouterLink}
+          to="/register"
+          variant="contained"
+          disableElevation
+          sx={{
+            fontFamily: '"Manrope", sans-serif',
+            fontWeight: 700,
+            fontSize: { xs: '0.95rem', sm: '1rem' },
+            px: { xs: 3, sm: 3.5 },
+            py: { xs: 1.25, sm: 1.4 },
+            borderRadius: '4px',
+            textTransform: 'none',
+            color: '#140f0a',
+            backgroundImage: 'none',
+            backgroundColor: 'var(--rl-accent)',
+            boxShadow: 'none',
+            '&:hover': {
+              backgroundImage: 'none',
+              backgroundColor: 'var(--rl-accent-hover)',
+              boxShadow: 'none',
+            },
+          }}
+        >
+          Get started
+        </Button>
+        <Button
+          component={RouterLink}
+          to="/login"
+          variant="text"
+          sx={{
+            fontFamily: '"Manrope", sans-serif',
+            fontWeight: 600,
+            fontSize: { xs: '0.95rem', sm: '1rem' },
+            px: { xs: 1.5, sm: 2 },
+            py: { xs: 1.25, sm: 1.4 },
+            borderRadius: '4px',
+            textTransform: 'none',
+            color: 'var(--rl-cream)',
+            '&:hover': {
+              backgroundColor: 'rgba(244, 239, 230, 0.08)',
+            },
+          }}
+        >
+          Sign in
+        </Button>
+      </Box>
     </Box>
   );
 };
 
 export default LandingHero;
-

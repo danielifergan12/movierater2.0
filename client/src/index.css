@@ -1,13 +1,52 @@
+:root {
+  --rl-cream: #f4efe6;
+  --rl-muted: rgba(244, 239, 230, 0.72);
+  --rl-accent: #d4a017;
+  --rl-accent-hover: #e0b12e;
+  --rl-ink: #0c0b0a;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: "Manrope", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--rl-ink);
+  color: var(--rl-cream);
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+/* Landing entrance motions */
+@keyframes rlFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-hero__brand {
+  animation: rlFadeUp 0.7s ease both;
+}
+
+.landing-hero__headline {
+  animation: rlFadeUp 0.7s ease 0.12s both;
+}
+
+.landing-hero__support {
+  animation: rlFadeUp 0.7s ease 0.22s both;
+}
+
+.landing-hero__cta {
+  animation: rlFadeUp 0.7s ease 0.32s both;
+}
+
+.landing-backdrop__image {
+  will-change: opacity, transform;
 }

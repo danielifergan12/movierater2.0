@@ -55,14 +55,10 @@ const theme = createTheme({
     divider: '#333333',
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Manrope", system-ui, sans-serif',
     h1: {
       fontWeight: 700,
       fontSize: '3rem',
-      background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-      backgroundClip: 'text',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
     },
     h2: {
       fontWeight: 600,
@@ -147,9 +143,10 @@ const theme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: 'rgba(10, 10, 10, 0.8)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(0, 212, 255, 0.2)',
+          backgroundColor: 'rgba(12, 11, 10, 0.92)',
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(244, 239, 230, 0.08)',
+          boxShadow: 'none',
         },
       },
     },

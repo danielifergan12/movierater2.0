@@ -22,6 +22,7 @@ import { useMovies } from '../contexts/MovieContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
+import LandingHero from '../components/LandingHero';
 import api from '../config/axios';
 
 const Home = () => {
@@ -509,17 +510,18 @@ const Home = () => {
     </Card>
   );
 
+  if (!isAuthenticated) {
+    return <LandingHero />;
+  }
+
   return (
     <Box sx={{ 
-      height: !isAuthenticated ? '100vh' : 'auto',
-      minHeight: isAuthenticated ? '100vh' : '100vh',
-      maxHeight: !isAuthenticated ? '100vh' : 'none',
-      overflow: !isAuthenticated ? 'hidden' : 'visible',
-      background: isAuthenticated ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)' : 'transparent',
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
-      '&::before': isAuthenticated ? {
+      '&::before': {
         content: '""',
         position: 'absolute',
         top: 0,
@@ -529,24 +531,21 @@ const Home = () => {
         background: 'radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.1) 0%, transparent 50%)',
         pointerEvents: 'none',
         zIndex: 1,
-      } : {},
+      },
     }}>
       <Container 
         maxWidth="lg" 
         sx={{ 
-          py: !isAuthenticated ? { xs: 2, sm: 3 } : { xs: 4, sm: 6, md: 8 }, 
+          py: { xs: 4, sm: 6, md: 8 }, 
           px: { xs: 2, sm: 3 }, 
           position: 'relative', 
           zIndex: 2,
-          height: !isAuthenticated ? '100%' : 'auto',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: !isAuthenticated ? 'center' : 'flex-start',
-          overflow: !isAuthenticated ? 'hidden' : 'visible',
         }}
       >
         <Box sx={{ 
-          mb: !isAuthenticated ? { xs: 2, sm: 3 } : { xs: 4, sm: 6 }, 
+          mb: { xs: 4, sm: 6 }, 
           textAlign: 'center',
           flexShrink: 0,
         }}>
@@ -555,20 +554,16 @@ const Home = () => {
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            mb: !isAuthenticated ? 1 : 2,
-            fontSize: !isAuthenticated 
-              ? { xs: '1.75rem', sm: '2.5rem', md: '3rem' }
-              : { xs: '2rem', sm: '3rem', md: '4rem' },
+            mb: 2,
+            fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
           }}>
             Welcome to ReelList
           </Typography>
           <Typography variant="h5" align="center" sx={{ 
             color: 'rgba(255, 255, 255, 0.8)',
-            mb: !isAuthenticated ? 1 : 2,
+            mb: 2,
             fontWeight: 300,
-            fontSize: !isAuthenticated 
-              ? { xs: '0.875rem', sm: '1rem', md: '1.25rem' }
-              : { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
+            fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
             px: { xs: 2, sm: 0 }
           }}>
             Discover, rate, and share your favorite movies with friends
@@ -576,7 +571,7 @@ const Home = () => {
           {totalRankings > 0 && (
             <Typography variant="body1" align="center" sx={{ 
               color: 'rgba(255, 255, 255, 0.6)',
-              mb: !isAuthenticated ? 2 : 4,
+              mb: 4,
               fontSize: { xs: '0.75rem', sm: '0.875rem' },
               px: { xs: 2, sm: 0 }
             }}>
@@ -586,14 +581,12 @@ const Home = () => {
         </Box>
 
         <Box sx={{ 
-          mb: !isAuthenticated ? 2 : 3,
-          flex: !isAuthenticated ? '1 1 auto' : '0 0 auto',
+          mb: 3,
           display: 'flex',
           flexDirection: 'column',
           minHeight: 0,
         }}>
-          {isAuthenticated && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 4, gap: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 4, gap: 2 }}>
               <Tabs
                 value={activeTab}
                 onChange={(e, newValue) => {
@@ -651,9 +644,8 @@ const Home = () => {
                 </IconButton>
               )}
             </Box>
-          )}
 
-          {isAuthenticated && activeTab === 2 ? (
+          {activeTab === 2 ? (
             <Box>
               {genresLoading ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
@@ -722,7 +714,7 @@ const Home = () => {
                 </Grid>
               )}
             </Box>
-          ) : isAuthenticated ? (
+          ) : (
             loading && !isRefreshing && displayMovies.length === 0 && filteredRecommendedMovies.length === 0 ? (
               <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
                 <CircularProgress />
@@ -785,43 +777,6 @@ const Home = () => {
                 </Grid>
               </Box>
             )
-          ) : (
-            <Box sx={{ 
-              textAlign: 'center', 
-              py: { xs: 2, sm: 3 }, 
-              width: '100%', 
-              px: { xs: 2, sm: 0 },
-              flexShrink: 0,
-            }}>
-              <Typography variant="h6" sx={{ 
-                color: 'rgba(255, 255, 255, 0.7)', 
-                mb: 1.5,
-                fontSize: { xs: '0.875rem', sm: '1rem' }
-              }}>
-                Start rating to see recommendations
-              </Typography>
-              <Typography variant="body2" sx={{ 
-                color: 'rgba(255, 255, 255, 0.5)',
-                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                mb: 2
-              }}>
-                Sign in and rate movies to get personalized recommendations!
-              </Typography>
-              <Button
-                variant="contained"
-                component={Link}
-                to="/login"
-                sx={{
-                  background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                  px: { xs: 3, sm: 5 },
-                  py: { xs: 1.25, sm: 1.75 },
-                  fontSize: { xs: '0.8125rem', sm: '0.9375rem' },
-                  mt: 1
-                }}
-              >
-                Sign In to Get Started
-              </Button>
-            </Box>
           )}
         </Box>
       </Container>

@@ -9,24 +9,14 @@ const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Debug: Log user info to help troubleshoot admin button visibility
-  React.useEffect(() => {
-    if (isAuthenticated && user) {
-      console.log('Navbar - Current user:', user.username);
-      console.log('Navbar - Is admin?', user?.username && user.username.toLowerCase() === 'danielifergan');
-    }
-  }, [user, isAuthenticated]);
+  const isMarketingHome = !isAuthenticated && location.pathname === '/';
 
   const handleMovieSelect = (movie) => {
     navigate(`/movie/${movie.id}`);
   };
 
   const handleNavigation = (path) => {
-    // When navigating from home page, ensure React Router detects the change
-    // by using state to force a remount if needed
     if (location.pathname === '/' && path !== '/') {
-      // Navigate with state to ensure React Router detects the change
       navigate(path, { replace: false, state: { fromHome: true, timestamp: Date.now() } });
     } else {
       navigate(path, { replace: false });
@@ -35,7 +25,6 @@ const Navbar = () => {
 
   return (
     <>
-      {/* Admin Button - Fixed position in top left, below navbar */}
       {isAuthenticated && user?.username && user.username.toLowerCase() === 'danielifergan' && (
         <Box
           sx={{
@@ -43,10 +32,6 @@ const Navbar = () => {
             top: { xs: 80, sm: 64 },
             left: { xs: 8, sm: 16 },
             zIndex: 1100,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            gap: 1
           }}
         >
           <Button
@@ -55,16 +40,17 @@ const Navbar = () => {
             onClick={() => handleNavigation('/admin/users')}
             size="small"
             sx={{
-              background: 'linear-gradient(45deg, #ff6b35, #e64a19)',
-              color: '#ffffff',
+              backgroundColor: '#c45c26',
+              color: '#fff',
               fontSize: '0.75rem',
               px: 2,
               py: 0.75,
               minHeight: 32,
-              boxShadow: '0 2px 8px rgba(255, 107, 53, 0.4)',
+              borderRadius: '4px',
+              boxShadow: 'none',
               '&:hover': {
-                background: 'linear-gradient(45deg, #e64a19, #cc3d0f)',
-                boxShadow: '0 4px 12px rgba(255, 107, 53, 0.6)',
+                backgroundColor: '#a34a1c',
+                boxShadow: 'none',
               },
             }}
           >
@@ -73,253 +59,156 @@ const Navbar = () => {
         </Box>
       )}
 
-      <AppBar position="sticky" sx={{ 
-        background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(255, 107, 53, 0.1))',
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(0, 212, 255, 0.2)',
-      }}>
-        <Toolbar sx={{ 
-          flexDirection: { xs: 'column', sm: 'row' },
-          py: { xs: 1.5, sm: 0 },
-          gap: { xs: 1.5, sm: 0 },
-          minHeight: { xs: 'auto', sm: 64 }
-        }}>
+      <AppBar
+        position="sticky"
+        elevation={0}
+        sx={{
+          backgroundColor: isMarketingHome ? 'transparent' : 'rgba(12, 11, 10, 0.92)',
+          backdropFilter: isMarketingHome ? 'none' : 'blur(12px)',
+          borderBottom: isMarketingHome
+            ? '1px solid transparent'
+            : '1px solid rgba(244, 239, 230, 0.08)',
+          boxShadow: 'none',
+        }}
+      >
+        <Toolbar
+          sx={{
+            minHeight: { xs: 64, sm: 72 },
+            px: { xs: 2, sm: 3, md: 4 },
+            gap: 2,
+          }}
+        >
           <Box
             onClick={() => handleNavigation('/')}
             sx={{
-              textDecoration: 'none',
-              color: 'inherit',
-              display: 'flex',
+              display: isMarketingHome ? 'none' : 'flex',
               alignItems: 'center',
-              mr: { xs: 0, sm: 2 },
-              order: { xs: 1, sm: 0 },
-              minHeight: { xs: 44, sm: 'auto' },
-              minWidth: { xs: 44, sm: 'auto' },
-              cursor: 'pointer'
+              cursor: 'pointer',
             }}
           >
-            <MovieIcon sx={{ mr: 1, color: '#00d4ff', fontSize: { xs: '1.75rem', sm: '2rem' } }} />
+            <MovieIcon sx={{ mr: 1, color: 'var(--rl-accent)', fontSize: '1.5rem' }} />
             <Typography
-              variant="h6"
-              component="div"
               sx={{
-                fontWeight: 700,
-                background: 'linear-gradient(135deg, #00d4ff 0%, #ff6b35 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                fontSize: { xs: '1.25rem', sm: '1.5rem' },
-                display: { xs: 'none', sm: 'block' }
+                fontFamily: '"Bebas Neue", sans-serif',
+                fontSize: '1.5rem',
+                letterSpacing: '0.06em',
+                color: 'var(--rl-cream)',
+                lineHeight: 1,
               }}
             >
               ReelList
             </Typography>
           </Box>
 
-          {/* Search - only show for authenticated users */}
           {isAuthenticated && (
-            <Box sx={{ 
-              flexGrow: 1, 
-              display: 'flex', 
-              alignItems: 'center', 
-              maxWidth: { xs: '100%', sm: 600 },
-              width: { xs: '100%', sm: 'auto' },
-              ml: { xs: 0, sm: 3 },
-              mr: { xs: 0, sm: 4 },
-              order: { xs: 3, sm: 0 },
-              mb: { xs: 1, sm: 0 }
-            }}>
-              <AutocompleteSearch 
+            <Box
+              sx={{
+                flexGrow: 1,
+                display: 'flex',
+                alignItems: 'center',
+                maxWidth: 560,
+                ml: { xs: 0, sm: 2 },
+              }}
+            >
+              <AutocompleteSearch
                 onMovieSelect={handleMovieSelect}
                 placeholder="Search movies"
               />
             </Box>
           )}
 
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          ml: { xs: 0, sm: isAuthenticated ? 'auto' : 0 },
-          gap: { xs: 1, sm: 1 },
-          flexWrap: 'wrap',
-          justifyContent: { xs: 'center', sm: 'flex-end' },
-          width: { xs: '100%', sm: 'auto' },
-          order: { xs: 2, sm: 0 }
-        }}>
-          {isAuthenticated ? (
-            <>
-              <Box sx={{ 
-                mr: { xs: 1, sm: 2 }, 
-                display: { xs: 'none', sm: 'flex' }, 
-                alignItems: 'center',
-                gap: 1
-              }}>
-                <Typography variant="body1" sx={{ 
-                  fontWeight: 600, 
-                  color: '#66e0ff',
-                  fontSize: { xs: '0.875rem', sm: '1rem' }
-                }}>
-                  {user?.username}
-                </Typography>
-                {user?.followers && (
-                  <Chip
-                    label={`${user.followers.length} followers`}
-                    size="small"
-                    onClick={() => handleNavigation(`/profile/${user._id}/followers`)}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              ml: 'auto',
+              gap: { xs: 0.5, sm: 1 },
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end',
+            }}
+          >
+            {isAuthenticated ? (
+              <>
+                <Box
+                  sx={{
+                    mr: 1,
+                    display: { xs: 'none', md: 'flex' },
+                    alignItems: 'center',
+                    gap: 1,
+                  }}
+                >
+                  <Typography
                     sx={{
-                      backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                      color: '#00d4ff',
-                      border: '1px solid rgba(0, 212, 255, 0.3)',
-                      fontSize: '0.7rem',
-                      height: 22,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      '&:hover': {
-                        backgroundColor: 'rgba(0, 212, 255, 0.2)',
-                        border: '1px solid rgba(0, 212, 255, 0.5)',
-                        transform: 'scale(1.05)'
-                      }
+                      fontFamily: '"Manrope", sans-serif',
+                      fontWeight: 600,
+                      color: 'var(--rl-cream)',
+                      fontSize: '0.9rem',
                     }}
-                  />
-                )}
-              </Box>
-              <Button
-                color="inherit"
-                startIcon={<StarIcon />}
-                onClick={() => handleNavigation('/rankings')}
-                sx={{ 
-                  mr: { xs: 0.5, sm: 1 },
-                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                  px: { xs: 2, sm: 2 },
-                  py: { xs: 1.25, sm: 1 },
-                  minHeight: { xs: 44, sm: 36 },
-                  minWidth: { xs: 44, sm: 'auto' }
-                }}
-              >
-                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                  My Rankings
+                  >
+                    {user?.username}
+                  </Typography>
+                  {user?.followers && (
+                    <Chip
+                      label={`${user.followers.length} followers`}
+                      size="small"
+                      onClick={() => handleNavigation(`/profile/${user._id}/followers`)}
+                      sx={{
+                        backgroundColor: 'rgba(212, 160, 23, 0.12)',
+                        color: 'var(--rl-accent)',
+                        border: '1px solid rgba(212, 160, 23, 0.35)',
+                        fontSize: '0.7rem',
+                        height: 22,
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                      }}
+                    />
+                  )}
                 </Box>
-                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
-                  Rankings
-                </Box>
-              </Button>
-              <Button
-                color="inherit"
-                startIcon={<BookmarkIcon />}
-                onClick={() => handleNavigation('/watchlist')}
-                sx={{ 
-                  mr: { xs: 0.5, sm: 1 },
-                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                  px: { xs: 2, sm: 2 },
-                  py: { xs: 1.25, sm: 1 },
-                  minHeight: { xs: 44, sm: 36 },
-                  minWidth: { xs: 44, sm: 'auto' }
-                }}
-              >
-                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                  Watchlist
-                </Box>
-                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
-                  Watch
-                </Box>
-              </Button>
-              <Button
-                color="inherit"
-                startIcon={<ListIcon />}
-                onClick={() => handleNavigation('/lists')}
-                sx={{ 
-                  mr: { xs: 0.5, sm: 1 },
-                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                  px: { xs: 2, sm: 2 },
-                  py: { xs: 1.25, sm: 1 },
-                  minHeight: { xs: 44, sm: 36 },
-                  minWidth: { xs: 44, sm: 'auto' }
-                }}
-              >
-                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                <Button color="inherit" startIcon={<StarIcon />} onClick={() => handleNavigation('/rankings')}>
+                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>My Rankings</Box>
+                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>Rankings</Box>
+                </Button>
+                <Button color="inherit" startIcon={<BookmarkIcon />} onClick={() => handleNavigation('/watchlist')}>
+                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Watchlist</Box>
+                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>Watch</Box>
+                </Button>
+                <Button color="inherit" startIcon={<ListIcon />} onClick={() => handleNavigation('/lists')}>
                   Lists
-                </Box>
-                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
-                  Lists
-                </Box>
-              </Button>
+                </Button>
+                <Button color="inherit" startIcon={<PeopleIcon />} onClick={() => handleNavigation('/discover')}>
+                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Discover</Box>
+                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>Users</Box>
+                </Button>
+                <Button color="inherit" startIcon={<FavoriteIcon />} onClick={() => handleNavigation('/following')}>
+                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Following</Box>
+                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>Follow</Box>
+                </Button>
+                <Button color="inherit" onClick={() => { logout(); navigate('/'); }}>
+                  Logout
+                </Button>
+              </>
+            ) : (
               <Button
-                color="inherit"
-                startIcon={<PeopleIcon />}
-                onClick={() => handleNavigation('/discover')}
-                sx={{ 
-                  mr: { xs: 0.5, sm: 1 },
-                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                  px: { xs: 2, sm: 2 },
-                  py: { xs: 1.25, sm: 1 },
-                  minHeight: { xs: 44, sm: 36 },
-                  minWidth: { xs: 44, sm: 'auto' }
+                onClick={() => handleNavigation('/login')}
+                sx={{
+                  fontFamily: '"Manrope", sans-serif',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  color: 'var(--rl-cream)',
+                  textTransform: 'none',
+                  borderRadius: '4px',
+                  px: 2,
+                  '&:hover': {
+                    backgroundColor: 'rgba(244, 239, 230, 0.08)',
+                  },
                 }}
               >
-                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                  Discover
-                </Box>
-                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
-                  Users
-                </Box>
+                Sign in
               </Button>
-              <Button
-                color="inherit"
-                startIcon={<FavoriteIcon />}
-                onClick={() => handleNavigation('/following')}
-                sx={{ 
-                  mr: { xs: 0.5, sm: 1 },
-                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                  px: { xs: 2, sm: 2 },
-                  py: { xs: 1.25, sm: 1 },
-                  minHeight: { xs: 44, sm: 36 },
-                  minWidth: { xs: 44, sm: 'auto' }
-                }}
-              >
-                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                  Following
-                </Box>
-                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>
-                  Follow
-                </Box>
-              </Button>
-              <Button 
-                color="inherit" 
-                onClick={() => { logout(); navigate('/'); }}
-                sx={{ 
-                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                  px: { xs: 2, sm: 2 },
-                  py: { xs: 1.25, sm: 1 },
-                  minHeight: { xs: 44, sm: 36 },
-                  minWidth: { xs: 44, sm: 'auto' }
-                }}
-              >
-                Logout
-              </Button>
-            </>
-          ) : (
-            <Button
-              color="inherit"
-              onClick={() => handleNavigation('/login')}
-              sx={{ 
-                fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                px: { xs: 2, sm: 3 },
-                py: { xs: 1.25, sm: 1 },
-                minHeight: { xs: 44, sm: 36 },
-                minWidth: { xs: 44, sm: 'auto' },
-                color: '#00d4ff',
-                fontWeight: 600,
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                }
-              }}
-            >
-              Sign In
-            </Button>
-          )}
-        </Box>
-      </Toolbar>
-    </AppBar>
+            )}
+          </Box>
+        </Toolbar>
+      </AppBar>
     </>
   );
 };
