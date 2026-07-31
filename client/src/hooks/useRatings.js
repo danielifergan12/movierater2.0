@@ -214,9 +214,9 @@ export function useRatings() {
       id: movie.id,
       title: movie.title,
       posterUrl: movie.posterUrl,
-      // Optionally store additional metadata for filtering
       releaseDate: movie.releaseDate || movie.release_date || null,
       genres: movie.genres || movie.genre_ids || null,
+      ratedAt: new Date().toISOString(),
     };
     updated.splice(index, 0, entry);
     console.log(`[RATINGS] Adding rating for movie: ${movie.title} at index ${index} for user ${user?._id || 'guest'}`);
@@ -248,7 +248,22 @@ export function useRatings() {
 
   const setRatingsArray = useCallback((newRatings) => {
     setRatings(newRatings);
-  }, []);
+    try {
+      if (user?._id) {
+        localStorage.setItem(`${USER_STORAGE_PREFIX}${user._id}`, JSON.stringify(newRatings));
+        const token = localStorage.getItem('token');
+        if (token) {
+          api.put('/api/ratings', { ratings: newRatings }).catch((error) => {
+            console.error('[RATINGS] Error saving reordered ratings:', error);
+          });
+        }
+      } else {
+        localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(newRatings));
+      }
+    } catch (error) {
+      console.error('[RATINGS] Error persisting ratings array:', error);
+    }
+  }, [user]);
 
   return {
     ratings: withScores,

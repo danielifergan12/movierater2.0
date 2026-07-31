@@ -471,10 +471,12 @@ const MovieDetail = () => {
               id: movie.id || movie.tmdbId,
               title: movie.title,
               posterUrl: movie.posterPath ? `https://image.tmdb.org/t/p/w500${movie.posterPath}` : '/placeholder-movie.jpg',
+              releaseDate: movie.releaseDate || movie.release_date || null,
+              genres: movie.genres || null,
             }}
             onClose={() => setShowRatingModal(false)}
             onComplete={handleRatingComplete}
-            allowRerate={false}
+            allowRerate={true}
           />
         )}
 

@@ -37,14 +37,21 @@ router.put('/', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    // Remove duplicates by movie ID (keep first occurrence)
+    // Remove duplicates by movie ID (keep first occurrence); preserve ranking metadata
     const seenIds = new Set();
     const uniqueRatings = [];
     for (const r of ratings) {
       const movieId = r.id?.toString();
       if (movieId && !seenIds.has(movieId)) {
         seenIds.add(movieId);
-        uniqueRatings.push({ id: r.id, title: r.title, posterUrl: r.posterUrl });
+        uniqueRatings.push({
+          id: r.id,
+          title: r.title,
+          posterUrl: r.posterUrl || null,
+          releaseDate: r.releaseDate || null,
+          genres: r.genres || null,
+          ratedAt: r.ratedAt ? new Date(r.ratedAt) : new Date(),
+        });
       }
     }
     

@@ -45,7 +45,7 @@ const AnimatedMovieBackground = () => {
     if (backdrops.length < 2) return undefined;
     const id = setInterval(() => {
       setActiveIndex((i) => (i + 1) % backdrops.length);
-    }, 8000);
+    }, 2800);
     return () => clearInterval(id);
   }, [backdrops]);
 
@@ -81,8 +81,8 @@ const AnimatedMovieBackground = () => {
             objectFit: 'cover',
             objectPosition: 'center 30%',
             opacity: index === activeIndex ? 1 : 0,
-            transform: index === activeIndex ? 'scale(1.06)' : 'scale(1)',
-            transition: 'opacity 1.4s ease, transform 8s ease-out',
+            transform: index === activeIndex ? 'scale(1.05)' : 'scale(1)',
+            transition: 'opacity 0.45s ease, transform 2.8s ease-out',
             filter: 'saturate(0.85) contrast(1.05)',
           }}
           onLoad={() => {

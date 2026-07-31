@@ -70,7 +70,10 @@ const userSchema = new mongoose.Schema({
   ratings: [{
     id: { type: String, required: true },
     title: { type: String, required: true },
-    posterUrl: String
+    posterUrl: String,
+    releaseDate: { type: mongoose.Schema.Types.Mixed, default: null },
+    genres: { type: mongoose.Schema.Types.Mixed, default: null },
+    ratedAt: { type: Date, default: Date.now }
   }],
   resetToken: {
     type: String,
