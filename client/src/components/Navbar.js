@@ -85,13 +85,13 @@ const Navbar = () => {
           <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
             {isAuthenticated ? (
               <>
-                <Button color="inherit" startIcon={<StarIcon sx={{ fontSize: '1.1rem !important' }} />} onClick={() => go('/rankings')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', sm: 'inline-flex' }, fontSize: '0.9rem', minWidth: 0, px: 1.25 }}>
+                <Button color="inherit" startIcon={<StarIcon />} onClick={() => go('/rankings')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', sm: 'inline-flex' } }}>
                   Rankings
                 </Button>
-                <Button color="inherit" startIcon={<MovieIcon sx={{ fontSize: '1.1rem !important' }} />} onClick={() => go('/rate')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', sm: 'inline-flex' }, fontSize: '0.9rem', minWidth: 0, px: 1.25 }}>
+                <Button color="inherit" startIcon={<MovieIcon />} onClick={() => go('/rate')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', sm: 'inline-flex' } }}>
                   Rate
                 </Button>
-                <Button color="inherit" startIcon={<FeedIcon sx={{ fontSize: '1.1rem !important' }} />} onClick={() => go('/feed')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', md: 'inline-flex' }, fontSize: '0.9rem', minWidth: 0, px: 1.25 }}>
+                <Button color="inherit" startIcon={<FeedIcon />} onClick={() => go('/feed')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', md: 'inline-flex' } }}>
                   Feed
                 </Button>
                 <Typography sx={{ color: 'var(--rl-muted)', mx: 1, display: { xs: 'none', lg: 'block' }, fontSize: '0.9rem' }}>
