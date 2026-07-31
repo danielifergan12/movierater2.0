@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const session = require('express-session');
-const MongoStore = require('connect-mongo').MongoStore || require('connect-mongo').default;
 const passport = require('passport');
 require('dotenv').config();
 
@@ -22,7 +21,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
-const sessionConfig = {
+// MemoryStore is fine for single-process Railway + JWT auth.
+// (connect-mongo v6 CJS interop was crashing boot: MongoStore.create is not a function)
+app.use(session({
   secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || 'dev_secret_change_me',
   resave: false,
   saveUninitialized: false,
@@ -30,22 +31,7 @@ const sessionConfig = {
     secure: process.env.NODE_ENV === 'production',
     maxAge: 1000 * 60 * 60 * 24 * 7,
   },
-};
-
-if (process.env.MONGODB_URI && MongoStore?.create) {
-  try {
-    sessionConfig.store = MongoStore.create({
-      mongoUrl: mongoUri,
-      ttl: 60 * 60 * 24 * 7,
-    });
-  } catch (err) {
-    console.error('Session store init failed, falling back to MemoryStore:', err.message);
-  }
-} else if (process.env.MONGODB_URI) {
-  console.error('connect-mongo create() unavailable; using MemoryStore');
-}
-
-app.use(session(sessionConfig));
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 
