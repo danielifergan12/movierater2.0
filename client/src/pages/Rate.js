@@ -1,18 +1,14 @@
 import React, { useEffect, useState } from 'react';
- 
 import {
   Container,
   Typography,
   Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  CardActions,
-  Button,
   Box,
-  Rating,
-  CircularProgress
+  Button,
+  CircularProgress,
+  Chip,
 } from '@mui/material';
+import { Check as CheckIcon } from '@mui/icons-material';
 import api from '../config/axios';
 import RatingModal from '../components/RatingModal';
 import { useRatings } from '../hooks/useRatings';
@@ -30,14 +26,12 @@ const Rate = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
- 
-
   const loadPage = async (nextPage, replace = false) => {
     setLoading(true);
     try {
       const res = await api.get(`/api/movies/popular?page=${nextPage}`);
       const newMovies = res.data.results || [];
-      setMovies(prev => (replace ? newMovies : [...prev, ...newMovies]));
+      setMovies((prev) => (replace ? newMovies : [...prev, ...newMovies]));
       setHasMore(newMovies.length > 0);
       setPage(nextPage);
     } catch (e) {
@@ -51,91 +45,172 @@ const Rate = () => {
     setRatingMovie({
       id: movie.id,
       title: movie.title,
-      posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg',
+      posterUrl: movie.poster_path
+        ? `https://image.tmdb.org/t/p/w342${movie.poster_path}`
+        : '/placeholder-movie.jpg',
       release_date: movie.release_date,
       overview: movie.overview,
       vote_average: movie.vote_average,
     });
   };
 
-  const handleRatingComplete = () => {
-    setRatingMovie(null);
-  };
+  const ratedIds = new Set(rawRatings.map((r) => r.id?.toString()).filter(Boolean));
 
   return (
-    <Box sx={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
-    }}>
-      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6 }, px: { xs: 2, sm: 3 } }}>
-        <Box sx={{ textAlign: 'center', mb: { xs: 3, sm: 4 } }}>
-          <Typography variant="h2" sx={{ 
-            fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' }
-          }}>
-            Rate Movies
+    <Box sx={{ minHeight: '100vh', backgroundColor: 'var(--rl-ink)' }}>
+      <Container
+        maxWidth="lg"
+        sx={{
+          py: { xs: 3, sm: 4 },
+          px: { xs: 2, sm: 3 },
+          position: 'relative',
+          zIndex: 2,
+        }}
+      >
+        <Box sx={{ mb: { xs: 3, sm: 3.5 } }}>
+          <Typography
+            sx={{
+              fontFamily: '"Bebas Neue", sans-serif',
+              fontSize: { xs: '2.4rem', sm: '3.2rem' },
+              letterSpacing: '0.04em',
+              color: 'var(--rl-cream)',
+              lineHeight: 1,
+              mb: 1,
+            }}
+          >
+            Rate
           </Typography>
-          <Typography variant="h6" sx={{ 
-            color: 'rgba(255,255,255,0.7)',
-            fontSize: { xs: '1rem', sm: '1.25rem' }
-          }}>
-            Click a movie to add it to your personal ranking
+          <Typography sx={{ color: 'var(--rl-muted)', maxWidth: 480, fontSize: '0.95rem' }}>
+            Tap a poster to place it in your ranking.
           </Typography>
         </Box>
 
-        <Grid container spacing={{ xs: 2, sm: 3 }}>
-          {movies.map((movie) => (
-            <Grid key={movie.id} item xs={6} sm={6} md={4} lg={3}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <CardMedia
-                  component="img"
-                  height={{ xs: 250, sm: 300, md: 360 }}
-                  image={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'}
-                  alt={movie.title}
-                  sx={{ objectFit: 'cover' }}
-                />
-                <CardContent sx={{ flexGrow: 1, p: { xs: 1.5, sm: 2 } }}>
-                  <Typography variant="h6" noWrap sx={{ 
-                    fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' }
-                  }}>
-                    {movie.title}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                    <Rating value={(movie.vote_average || 0) / 2} precision={0.1} readOnly size="small" />
-                    <Typography variant="body2" sx={{ 
-                      ml: 1,
-                      fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                    }}>
-                      {(movie.vote_average || 0).toFixed(1)}
-                    </Typography>
-                  </Box>
-                </CardContent>
-                <CardActions sx={{ p: { xs: 1.5, sm: 2 }, pt: 0 }}>
-                  {(() => {
-                    const isAlreadyRated = rawRatings.some(r => r.id?.toString() === movie.id?.toString());
-                    return (
-                      <Button 
-                        fullWidth 
-                        variant={isAlreadyRated ? "outlined" : "contained"}
-                        onClick={() => !isAlreadyRated && openRate(movie)}
-                        disabled={isAlreadyRated}
+        <Grid container spacing={{ xs: 1.25, sm: 1.75 }}>
+          {movies.map((movie) => {
+            const isRated = ratedIds.has(movie.id?.toString());
+            const year = movie.release_date ? new Date(movie.release_date).getFullYear() : null;
+
+            return (
+              <Grid key={movie.id} item xs={4} sm={3} md={2}>
+                <Box
+                  onClick={() => !isRated && openRate(movie)}
+                  role="button"
+                  tabIndex={isRated ? -1 : 0}
+                  onKeyDown={(e) => {
+                    if (!isRated && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      openRate(movie);
+                    }
+                  }}
+                  sx={{
+                    cursor: isRated ? 'default' : 'pointer',
+                    opacity: isRated ? 0.45 : 1,
+                    transition: 'transform 0.2s ease, opacity 0.2s ease',
+                    '&:hover': isRated
+                      ? undefined
+                      : {
+                          transform: { xs: 'none', sm: 'translateY(-3px)' },
+                          '& .poster-frame': {
+                            borderColor: 'rgba(212, 160, 23, 0.55)',
+                          },
+                        },
+                  }}
+                >
+                  <Box
+                    className="poster-frame"
+                    sx={{
+                      position: 'relative',
+                      aspectRatio: '2 / 3',
+                      borderRadius: 1,
+                      overflow: 'hidden',
+                      border: '1px solid rgba(244, 239, 230, 0.12)',
+                      backgroundColor: 'rgba(244, 239, 230, 0.04)',
+                      transition: 'border-color 0.2s ease',
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={
+                        movie.poster_path
+                          ? `https://image.tmdb.org/t/p/w342${movie.poster_path}`
+                          : '/placeholder-movie.jpg'
+                      }
+                      alt={movie.title}
+                      loading="lazy"
+                      sx={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+                    {isRated && (
+                      <Chip
+                        icon={<CheckIcon sx={{ fontSize: '0.85rem !important' }} />}
+                        label="Rated"
+                        size="small"
                         sx={{
-                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                          py: { xs: 0.75, sm: 1 },
-                          ...(isAlreadyRated && {
-                            borderColor: 'rgba(0, 212, 255, 0.3)',
-                            color: 'rgba(0, 212, 255, 0.5)',
-                            cursor: 'not-allowed',
-                          })
+                          position: 'absolute',
+                          top: 6,
+                          left: 6,
+                          height: 22,
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          backgroundColor: 'rgba(12, 11, 10, 0.82)',
+                          color: 'var(--rl-accent)',
+                          border: '1px solid rgba(212, 160, 23, 0.35)',
+                          '& .MuiChip-icon': { color: 'var(--rl-accent)', ml: 0.5 },
+                        }}
+                      />
+                    )}
+                    {!isRated && movie.vote_average > 0 && (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          bottom: 6,
+                          right: 6,
+                          px: 0.6,
+                          py: 0.15,
+                          borderRadius: 0.75,
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.02em',
+                          color: 'var(--rl-cream)',
+                          backgroundColor: 'rgba(12, 11, 10, 0.78)',
+                          border: '1px solid rgba(244, 239, 230, 0.15)',
                         }}
                       >
-                        {isAlreadyRated ? 'Already Rated' : 'Rate'}
-                      </Button>
-                    );
-                  })()}
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
+                        {movie.vote_average.toFixed(1)}
+                      </Box>
+                    )}
+                  </Box>
+                  <Typography
+                    noWrap
+                    sx={{
+                      mt: 0.75,
+                      fontSize: { xs: '0.72rem', sm: '0.8rem' },
+                      fontWeight: 600,
+                      color: 'var(--rl-cream)',
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {movie.title}
+                  </Typography>
+                  {year && (
+                    <Typography
+                      sx={{
+                        fontSize: '0.68rem',
+                        color: 'rgba(244, 239, 230, 0.45)',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {year}
+                    </Typography>
+                  )}
+                </Box>
+              </Grid>
+            );
+          })}
         </Grid>
 
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: { xs: 3, sm: 4 } }}>
@@ -144,12 +219,23 @@ const Rate = () => {
             onClick={() => loadPage(page + 1)}
             disabled={!hasMore || loading}
             sx={{
-              fontSize: { xs: '0.875rem', sm: '1rem' },
-              px: { xs: 3, sm: 4 },
-              py: { xs: 1, sm: 1.25 }
+              textTransform: 'none',
+              fontSize: '0.875rem',
+              px: 3,
+              py: 0.9,
+              borderColor: 'rgba(244, 239, 230, 0.22)',
+              color: 'var(--rl-cream)',
+              '&:hover': {
+                borderColor: 'var(--rl-accent)',
+                backgroundColor: 'rgba(212, 160, 23, 0.08)',
+              },
+              '&.Mui-disabled': {
+                borderColor: 'rgba(244, 239, 230, 0.1)',
+                color: 'rgba(244, 239, 230, 0.35)',
+              },
             }}
           >
-            {loading ? <CircularProgress size={18} /> : hasMore ? 'Load More' : 'No More'}
+            {loading ? <CircularProgress size={16} sx={{ color: 'var(--rl-accent)' }} /> : hasMore ? 'Load more' : 'No more'}
           </Button>
         </Box>
       </Container>
@@ -159,11 +245,9 @@ const Rate = () => {
           open={Boolean(ratingMovie)}
           movie={ratingMovie}
           onClose={() => setRatingMovie(null)}
-          onComplete={handleRatingComplete}
+          onComplete={() => setRatingMovie(null)}
         />
       )}
-
-      
     </Box>
   );
 };

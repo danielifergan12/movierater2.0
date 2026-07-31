@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { Dialog, DialogContent, Box, Typography, Button, Card, CardMedia, CardContent, useMediaQuery, useTheme, IconButton } from '@mui/material';
+import { Dialog, DialogContent, Box, Typography, Button, useMediaQuery, useTheme, IconButton } from '@mui/material';
 import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useRatings } from '../hooks/useRatings';
 import { useAuth } from '../contexts/AuthContext';
@@ -354,350 +354,288 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     return null;
   }
 
+  const getWorkingRatings = () => {
+    const movieIdStr = String(movie.id);
+    return isRerating && filteredRatings
+      ? filteredRatings
+      : rawRatings.filter((r) => String(r.id) !== movieIdStr);
+  };
+
+  const completeAt = (insertAt) => {
+    const currentRatings = getWorkingRatings();
+    const updated = upsertAtIndex(movie, Math.min(insertAt, currentRatings.length));
+    onComplete && onComplete(updated);
+    onClose && onClose();
+  };
+
+  const preferNew = () => {
+    if (!compareTarget) {
+      completeAt(mid != null && mid >= 0 ? mid : 0);
+      return;
+    }
+    const movieIdStr = String(movie.id);
+    if (movieIdStr === String(compareTarget.id)) {
+      const currentRatings = getWorkingRatings();
+      if (currentRatings.length === 0) {
+        completeAt(0);
+        return;
+      }
+      const validIndex = currentRatings.findIndex((r) => String(r.id) !== movieIdStr);
+      if (validIndex >= 0) setMid(validIndex);
+      return;
+    }
+    saveToHistory(compareTarget);
+    setHigh(mid - 1);
+  };
+
+  const preferExisting = () => {
+    if (!compareTarget) {
+      completeAt(mid != null && mid >= 0 ? mid : 0);
+      return;
+    }
+    const movieIdStr = String(movie.id);
+    if (movieIdStr === String(compareTarget.id)) {
+      const currentRatings = getWorkingRatings();
+      if (currentRatings.length === 0) {
+        completeAt(0);
+        return;
+      }
+      const validIndex = currentRatings.findIndex((r) => String(r.id) !== movieIdStr);
+      if (validIndex >= 0) setMid(validIndex);
+      return;
+    }
+    saveToHistory(compareTarget);
+    setLow(mid + 1);
+  };
+
+  const skipComparison = () => {
+    if (low > high) {
+      completeAt(low);
+    } else if (mid != null) {
+      completeAt(mid);
+    } else {
+      completeAt(low);
+    }
+  };
+
+  const pickPosterSx = {
+    width: { xs: 112, sm: 132 },
+    flex: '0 0 auto',
+    cursor: 'pointer',
+    borderRadius: 1,
+    overflow: 'hidden',
+    border: '1px solid rgba(244, 239, 230, 0.14)',
+    backgroundColor: 'rgba(244, 239, 230, 0.04)',
+    transition: 'border-color 0.2s ease, transform 0.2s ease',
+    '&:hover': {
+      borderColor: 'rgba(212, 160, 23, 0.55)',
+      transform: { xs: 'none', sm: 'translateY(-2px)' },
+    },
+    '&:active': { transform: 'scale(0.98)' },
+  };
+
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      fullWidth 
-      maxWidth="md"
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="xs"
       fullScreen={isMobile}
-      PaperProps={{ 
-        sx: { 
-          backgroundColor: 'rgba(12,11,10,0.97)', 
+      PaperProps={{
+        sx: {
+          backgroundColor: 'rgba(12,11,10,0.97)',
           border: '1px solid rgba(244, 239, 230, 0.12)',
           m: { xs: 0, sm: 2 },
-          maxHeight: { xs: '100dvh', sm: '90vh' },
+          maxHeight: { xs: '100dvh', sm: '85vh' },
           overflow: 'auto',
           borderRadius: { xs: 0, sm: 2 },
-        } 
+        },
       }}
     >
-      <DialogContent sx={{ p: { xs: 2, sm: 3 }, pb: { xs: 'calc(16px + env(safe-area-inset-bottom))', sm: 3 } }}>
-        {/* Go Back Button - only show during comparisons */}
+      <DialogContent sx={{ p: { xs: 2, sm: 2.5 }, pb: { xs: 'calc(16px + env(safe-area-inset-bottom))', sm: 2.5 } }}>
         {!firstTime && (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5, minHeight: 36 }}>
             <IconButton
               onClick={restoreFromHistory}
               disabled={comparisonHistory.length === 0}
+              size="small"
               sx={{
-                color: comparisonHistory.length > 0 ? '#00d4ff' : 'rgba(255, 255, 255, 0.3)',
+                color: comparisonHistory.length > 0 ? 'var(--rl-accent)' : 'rgba(244, 239, 230, 0.25)',
                 '&:hover': {
-                  backgroundColor: comparisonHistory.length > 0 ? 'rgba(0, 212, 255, 0.1)' : 'transparent',
-                },
-                '&.Mui-disabled': {
-                  color: 'rgba(255, 255, 255, 0.3)',
+                  backgroundColor: comparisonHistory.length > 0 ? 'rgba(212, 160, 23, 0.1)' : 'transparent',
                 },
               }}
               title="Go back to previous comparison"
             >
-              <ArrowBackIcon />
+              <ArrowBackIcon fontSize="small" />
             </IconButton>
             {comparisonHistory.length > 0 && (
-              <Typography variant="body2" sx={{ 
-                color: 'rgba(255, 255, 255, 0.6)', 
-                ml: 1,
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                {comparisonHistory.length} step{comparisonHistory.length !== 1 ? 's' : ''} back
+              <Typography sx={{ color: 'rgba(244, 239, 230, 0.5)', ml: 0.5, fontSize: '0.75rem' }}>
+                {comparisonHistory.length} back
               </Typography>
             )}
           </Box>
         )}
+
         {firstTime ? (
-          <>
-            <Box sx={{ textAlign: 'center', mb: 3 }}>
-              <Typography variant="h5" sx={{
-                background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}>
-                First Movie Baseline
-              </Typography>
-              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                Set "{movie.title}" as your baseline (score 10).
-              </Typography>
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography
+              sx={{
+                fontFamily: '"Bebas Neue", sans-serif',
+                fontSize: '1.75rem',
+                letterSpacing: '0.04em',
+                color: 'var(--rl-cream)',
+                lineHeight: 1,
+                mb: 0.75,
+              }}
+            >
+              Baseline
+            </Typography>
+            <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.875rem', mb: 2.5, maxWidth: 280, mx: 'auto' }}>
+              Set “{movie.title}” as your first ranked film.
+            </Typography>
+            <Box
+              sx={{
+                width: 132,
+                mx: 'auto',
+                borderRadius: 1,
+                overflow: 'hidden',
+                border: '1px solid rgba(244, 239, 230, 0.14)',
+              }}
+            >
+              <Box
+                component="img"
+                src={movie.posterUrl || '/placeholder-movie.jpg'}
+                alt={movie.title}
+                sx={{ width: '100%', aspectRatio: '2 / 3', objectFit: 'cover', display: 'block' }}
+              />
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-              <Card sx={{ maxWidth: { xs: '100%', sm: 240 }, width: { xs: '100%', sm: 'auto' } }}>
-                <CardMedia 
-                  component="img" 
-                  height={{ xs: 300, sm: 340 }} 
-                  image={movie.posterUrl || '/placeholder-movie.jpg'} 
-                  alt={movie.title}
-                  sx={{ objectFit: 'cover' }}
-                />
-                <CardContent>
-                  <Typography variant="subtitle1" noWrap sx={{ 
-                    fontSize: { xs: '0.875rem', sm: '1rem' }
-                  }}>
-                    {movie.title}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-              <Button
-                variant="contained"
-                onClick={() => {
-                  const updated = upsertAtIndex(movie, 0);
-                  onComplete && onComplete(updated);
-                  onClose && onClose();
-                }}
-                sx={{
-                  width: { xs: '100%', sm: 'auto' },
-                  py: { xs: 1.75, sm: 1.5 },
-                  fontSize: { xs: '1rem', sm: '1rem' },
-                  minHeight: { xs: 52, sm: 48 },
-                  fontWeight: 600
-                }}
-              >
-                Set as Baseline
-              </Button>
-            </Box>
-          </>
+            <Button
+              variant="contained"
+              onClick={() => completeAt(0)}
+              sx={{
+                mt: 2.5,
+                textTransform: 'none',
+                fontWeight: 600,
+                px: 3,
+                backgroundColor: 'var(--rl-accent)',
+                color: 'var(--rl-ink)',
+                '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
+              }}
+            >
+              Set as baseline
+            </Button>
+          </Box>
         ) : !compareTarget ? (
-          // Loading state while finding a valid comparison target
           <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-              Finding a comparison...
+            <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.9rem' }}>
+              Finding a comparison…
             </Typography>
           </Box>
         ) : (
-          <>
-            <Box sx={{ textAlign: 'center', mb: 3 }}>
-              <Typography variant="h5" sx={{
-                background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}>
-                {isRerating ? 'Rerate: Which do you prefer?' : 'Which do you prefer?'}
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography
+              sx={{
+                fontFamily: '"Bebas Neue", sans-serif',
+                fontSize: { xs: '1.6rem', sm: '1.85rem' },
+                letterSpacing: '0.04em',
+                color: 'var(--rl-cream)',
+                lineHeight: 1,
+                mb: 0.5,
+              }}
+            >
+              {isRerating ? 'Which ranks higher?' : 'Which do you prefer?'}
+            </Typography>
+            <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.8rem', mb: 2.5 }}>
+              Tap the one you like more
+            </Typography>
+
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                gap: { xs: 1.25, sm: 2 },
+              }}
+            >
+              <Box onClick={preferNew} sx={pickPosterSx}>
+                <Box
+                  component="img"
+                  src={movie.posterUrl || '/placeholder-movie.jpg'}
+                  alt={movie.title}
+                  sx={{ width: '100%', aspectRatio: '2 / 3', objectFit: 'cover', display: 'block' }}
+                />
+                <Typography
+                  sx={{
+                    px: 0.75,
+                    py: 0.75,
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    color: 'var(--rl-cream)',
+                    lineHeight: 1.25,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {movie.title}
+                </Typography>
+              </Box>
+
+              <Typography
+                sx={{
+                  alignSelf: 'center',
+                  fontFamily: '"Bebas Neue", sans-serif',
+                  fontSize: '1.1rem',
+                  letterSpacing: '0.08em',
+                  color: 'rgba(244, 239, 230, 0.35)',
+                  pt: 4,
+                }}
+              >
+                VS
               </Typography>
-              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-                {isRerating 
-                  ? 'Click on the movie you like better to update your rating'
-                  : 'Click on the movie you like better'
-                }
-              </Typography>
+
+              <Box onClick={preferExisting} sx={pickPosterSx}>
+                <Box
+                  component="img"
+                  src={compareTarget?.posterUrl || '/placeholder-movie.jpg'}
+                  alt={compareTarget?.title}
+                  sx={{ width: '100%', aspectRatio: '2 / 3', objectFit: 'cover', display: 'block' }}
+                />
+                <Typography
+                  sx={{
+                    px: 0.75,
+                    py: 0.75,
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    color: 'var(--rl-cream)',
+                    lineHeight: 1.25,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {compareTarget?.title}
+                </Typography>
+              </Box>
             </Box>
 
-            <Box sx={{ 
-              display: 'flex', 
-              gap: { xs: 1.5, sm: 3 }, 
-              justifyContent: 'center', 
-              flexDirection: 'row',
-              alignItems: 'center',
-              flexWrap: 'wrap'
-            }}>
-              <Card 
-                sx={{ 
-                  maxWidth: { xs: 'calc(50% - 0.75rem)', sm: 240 },
-                  width: { xs: 'calc(50% - 0.75rem)', sm: 'auto' },
-                  flex: { xs: '1 1 calc(50% - 0.75rem)', sm: 'none' },
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  minHeight: { xs: 200, sm: 'auto' },
-                  '&:active': {
-                    transform: { xs: 'scale(0.98)', sm: 'none' },
-                  },
-                  '&:hover': {
-                    transform: { xs: 'none', sm: 'scale(1.05)' },
-                    boxShadow: { xs: 'none', sm: '0 8px 24px rgba(0, 212, 255, 0.4)' },
-                    border: { xs: '2px solid rgba(0, 212, 255, 0.4)', sm: '2px solid rgba(0, 212, 255, 0.6)' },
-                  },
-                  border: '2px solid transparent',
-                }}
-                onClick={() => {
-                  // Safety check: ensure we have a valid comparison target
-                  if (!compareTarget) {
-                    // If no valid target, try to complete the rating
-                    const movieIdStr = String(movie.id);
-                    const currentRatings = isRerating && filteredRatings 
-                      ? filteredRatings
-                      : rawRatings.filter(r => String(r.id) !== movieIdStr);
-                    const insertAt = mid != null && mid >= 0 ? mid : 0;
-                    const updated = upsertAtIndex(movie, Math.min(insertAt, currentRatings.length));
-                    onComplete && onComplete(updated);
-                    onClose && onClose();
-                    return;
-                  }
-                  
-                  // Additional check: ensure it's not the same movie
-                  const movieIdStr = String(movie.id);
-                  const targetIdStr = String(compareTarget.id);
-                  if (movieIdStr === targetIdStr) {
-                    // Same movie - find a different one or complete
-                    const currentRatings = isRerating && filteredRatings 
-                      ? filteredRatings
-                      : rawRatings.filter(r => String(r.id) !== movieIdStr);
-                    if (currentRatings.length === 0) {
-                      const updated = upsertAtIndex(movie, 0);
-                      onComplete && onComplete(updated);
-                      onClose && onClose();
-                    } else {
-                      // Find a different comparison target
-                      const validIndex = currentRatings.findIndex(r => String(r.id) !== movieIdStr);
-                      if (validIndex >= 0) {
-                        setMid(validIndex);
-                      }
-                    }
-                    return;
-                  }
-                  
-                  // Save to history before making choice
-                  saveToHistory(compareTarget);
-                  // New movie is better (higher in ranking)
-                  setHigh(mid - 1);
-                }}
-              >
-                <CardMedia 
-                  component="img" 
-                  height={{ xs: 250, sm: 340 }} 
-                  image={movie.posterUrl || '/placeholder-movie.jpg'} 
-                  alt={movie.title}
-                  sx={{ objectFit: 'cover' }}
-                />
-                <CardContent sx={{ p: { xs: 2, sm: 2 } }}>
-                  <Typography variant="subtitle1" sx={{ 
-                    fontWeight: 600,
-                    fontSize: { xs: '1rem', sm: '1rem' },
-                    textAlign: 'center'
-                  }}>
-                    {movie.title}
-                  </Typography>
-                </CardContent>
-              </Card>
-              <Card 
-                sx={{ 
-                  maxWidth: { xs: 'calc(50% - 0.75rem)', sm: 240 },
-                  width: { xs: 'calc(50% - 0.75rem)', sm: 'auto' },
-                  flex: { xs: '1 1 calc(50% - 0.75rem)', sm: 'none' },
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  minHeight: { xs: 200, sm: 'auto' },
-                  '&:active': {
-                    transform: { xs: 'scale(0.98)', sm: 'none' },
-                  },
-                  '&:hover': {
-                    transform: { xs: 'none', sm: 'scale(1.05)' },
-                    boxShadow: { xs: 'none', sm: '0 8px 24px rgba(0, 212, 255, 0.4)' },
-                    border: { xs: '2px solid rgba(0, 212, 255, 0.4)', sm: '2px solid rgba(0, 212, 255, 0.6)' },
-                  },
-                  border: '2px solid transparent',
-                }}
-                onClick={() => {
-                  // Safety check: ensure we have a valid comparison target
-                  if (!compareTarget) {
-                    // If no valid target, try to complete the rating
-                    const movieIdStr = String(movie.id);
-                    const currentRatings = isRerating && filteredRatings 
-                      ? filteredRatings
-                      : rawRatings.filter(r => String(r.id) !== movieIdStr);
-                    const insertAt = mid != null && mid >= 0 ? mid : 0;
-                    const updated = upsertAtIndex(movie, Math.min(insertAt, currentRatings.length));
-                    onComplete && onComplete(updated);
-                    onClose && onClose();
-                    return;
-                  }
-                  
-                  // Additional check: ensure it's not the same movie
-                  const movieIdStr = String(movie.id);
-                  const targetIdStr = String(compareTarget.id);
-                  if (movieIdStr === targetIdStr) {
-                    // Same movie - find a different one or complete
-                    const currentRatings = isRerating && filteredRatings 
-                      ? filteredRatings
-                      : rawRatings.filter(r => String(r.id) !== movieIdStr);
-                    if (currentRatings.length === 0) {
-                      const updated = upsertAtIndex(movie, 0);
-                      onComplete && onComplete(updated);
-                      onClose && onClose();
-                    } else {
-                      // Find a different comparison target
-                      const validIndex = currentRatings.findIndex(r => String(r.id) !== movieIdStr);
-                      if (validIndex >= 0) {
-                        setMid(validIndex);
-                      }
-                    }
-                    return;
-                  }
-                  
-                  // Save to history before making choice
-                  saveToHistory(compareTarget);
-                  // Compare target is better (lower in ranking)
-                  setLow(mid + 1);
-                }}
-              >
-                <CardMedia 
-                  component="img" 
-                  height={{ xs: 250, sm: 340 }} 
-                  image={compareTarget?.posterUrl || '/placeholder-movie.jpg'} 
-                  alt={compareTarget?.title}
-                  sx={{ objectFit: 'cover' }}
-                />
-                <CardContent sx={{ p: { xs: 2, sm: 2 } }}>
-                  <Typography variant="subtitle1" sx={{ 
-                    fontWeight: 600,
-                    fontSize: { xs: '1rem', sm: '1rem' },
-                    textAlign: 'center'
-                  }}>
-                    {compareTarget?.title}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, width: '100%' }}>
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  // Skip current comparison - treat as equal and place at current mid position
-                  // This effectively skips to the next step in the binary search
-                  const currentRatings = isRerating && filteredRatings 
-                    ? filteredRatings
-                    : rawRatings;
-                  
-                  if (low > high) {
-                    // Already at insertion point, just insert
-                    const insertAt = low;
-                    const updated = upsertAtIndex(movie, insertAt);
-                    onComplete && onComplete(updated);
-                    onClose && onClose();
-                  } else if (mid != null) {
-                    // Place at current mid position (treating as equal)
-                    // This will trigger the next comparison or completion
-                    const insertAt = mid;
-                    const updated = upsertAtIndex(movie, insertAt);
-                    onComplete && onComplete(updated);
-                    onClose && onClose();
-                  } else {
-                    // Fallback: insert at low
-                    const insertAt = low;
-                    const updated = upsertAtIndex(movie, insertAt);
-                    onComplete && onComplete(updated);
-                    onClose && onClose();
-                  }
-                }}
-                sx={{
-                  width: { xs: '100%', sm: 'auto' },
-                  minWidth: { xs: 'auto', sm: 200 },
-                  maxWidth: { xs: '100%', sm: 400 },
-                  py: { xs: 1.5, sm: 1.25 },
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  fontWeight: 500,
-                  '&:hover': {
-                    borderColor: 'rgba(255, 255, 255, 0.5)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  },
-                }}
-              >
-                I Can't Decide
-              </Button>
-            </Box>
-          </>
+            <Button
+              variant="text"
+              onClick={skipComparison}
+              sx={{
+                mt: 2.5,
+                textTransform: 'none',
+                fontSize: '0.8rem',
+                color: 'rgba(244, 239, 230, 0.5)',
+                '&:hover': { color: 'var(--rl-cream)', backgroundColor: 'rgba(244, 239, 230, 0.06)' },
+              }}
+            >
+              Can’t decide
+            </Button>
+          </Box>
         )}
       </DialogContent>
     </Dialog>
