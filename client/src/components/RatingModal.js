@@ -363,16 +363,16 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       fullScreen={isMobile}
       PaperProps={{ 
         sx: { 
-          backgroundColor: 'rgba(26,26,26,0.95)', 
-          backdropFilter: 'blur(20px)', 
-          border: '1px solid rgba(0, 212, 255, 0.2)',
-          m: { xs: 1, sm: 2 },
-          maxHeight: { xs: '95vh', sm: '90vh' },
-          overflow: 'auto'
+          backgroundColor: 'rgba(12,11,10,0.97)', 
+          border: '1px solid rgba(244, 239, 230, 0.12)',
+          m: { xs: 0, sm: 2 },
+          maxHeight: { xs: '100dvh', sm: '90vh' },
+          overflow: 'auto',
+          borderRadius: { xs: 0, sm: 2 },
         } 
       }}
     >
-      <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
+      <DialogContent sx={{ p: { xs: 2, sm: 3 }, pb: { xs: 'calc(16px + env(safe-area-inset-bottom))', sm: 3 } }}>
         {/* Go Back Button - only show during comparisons */}
         {!firstTime && (
           <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>

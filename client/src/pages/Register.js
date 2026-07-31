@@ -46,9 +46,9 @@ const Register = () => {
     const result = await register(formData.username, formData.email, formData.password);
     
     if (result.success) {
-      // Small delay to ensure auth state is updated before navigation
+      localStorage.removeItem('onboardingComplete');
       setTimeout(() => {
-        navigate('/');
+        navigate('/onboarding');
       }, 100);
     } else {
       setError(result.message);

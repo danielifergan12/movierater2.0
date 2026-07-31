@@ -30,83 +30,76 @@ import Watchlist from './pages/Watchlist';
 import Lists from './pages/Lists';
 import CreateList from './pages/CreateList';
 import ListDetail from './pages/ListDetail';
+import Onboarding from './pages/Onboarding';
+import TasteMatch from './pages/TasteMatch';
+import HealthBanner from './components/HealthBanner';
 
 const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#00d4ff',
-      light: '#66e0ff',
-      dark: '#00a8cc',
+      main: '#d4a017',
+      light: '#e0b12e',
+      dark: '#b8860b',
     },
     secondary: {
-      main: '#ff6b35',
-      light: '#ff8a65',
-      dark: '#e64a19',
+      main: '#f4efe6',
+      light: '#ffffff',
+      dark: '#c9c4b8',
     },
     background: {
-      default: '#0a0a0a',
-      paper: '#1a1a1a',
+      default: '#0c0b0a',
+      paper: '#171512',
     },
     text: {
-      primary: '#ffffff',
-      secondary: '#b0b0b0',
+      primary: '#f4efe6',
+      secondary: 'rgba(244, 239, 230, 0.72)',
     },
-    divider: '#333333',
+    divider: 'rgba(244, 239, 230, 0.12)',
   },
   typography: {
     fontFamily: '"Manrope", system-ui, sans-serif',
-    h1: {
-      fontWeight: 700,
-      fontSize: '3rem',
-    },
-    h2: {
-      fontWeight: 600,
-      fontSize: '2.5rem',
-    },
-    h3: {
-      fontWeight: 600,
-      fontSize: '2rem',
-    },
-    h4: {
-      fontWeight: 500,
-      fontSize: '1.5rem',
-    },
+    h1: { fontWeight: 700, fontSize: '3rem' },
+    h2: { fontWeight: 600, fontSize: '2.5rem' },
+    h3: { fontWeight: 600, fontSize: '2rem' },
+    h4: { fontWeight: 500, fontSize: '1.5rem' },
   },
   components: {
     MuiCard: {
       styleOverrides: {
         root: {
-          backgroundColor: '#1a1a1a',
-          border: '1px solid #333333',
-          borderRadius: '16px',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+          backgroundColor: '#171512',
+          border: '1px solid rgba(244, 239, 230, 0.1)',
+          borderRadius: '8px',
+          boxShadow: 'none',
         },
       },
     },
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: '12px',
+          borderRadius: '4px',
           textTransform: 'none',
           fontWeight: 600,
-          padding: '12px 24px',
+          padding: '10px 20px',
         },
         contained: {
-          background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-          boxShadow: '0 4px 15px rgba(0, 212, 255, 0.3)',
+          backgroundImage: 'none',
+          backgroundColor: '#d4a017',
+          color: '#140f0a',
+          boxShadow: 'none',
           '&:hover': {
-            background: 'linear-gradient(45deg, #00a8cc, #e64a19)',
-            boxShadow: '0 6px 20px rgba(0, 212, 255, 0.4)',
+            backgroundImage: 'none',
+            backgroundColor: '#e0b12e',
+            boxShadow: 'none',
           },
         },
         outlined: {
-          borderColor: '#00d4ff',
-          color: '#00d4ff',
+          borderColor: 'rgba(244, 239, 230, 0.35)',
+          color: '#f4efe6',
           '&:hover': {
-            borderColor: '#66e0ff',
-            backgroundColor: 'rgba(0, 212, 255, 0.1)',
+            borderColor: '#d4a017',
+            backgroundColor: 'rgba(212, 160, 23, 0.08)',
           },
         },
       },
@@ -115,17 +108,11 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            borderRadius: '12px',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-            '& fieldset': {
-              borderColor: '#333333',
-            },
-            '&:hover fieldset': {
-              borderColor: '#00d4ff',
-            },
-            '&.Mui-focused fieldset': {
-              borderColor: '#00d4ff',
-            },
+            borderRadius: '4px',
+            backgroundColor: 'rgba(244, 239, 230, 0.04)',
+            '& fieldset': { borderColor: 'rgba(244, 239, 230, 0.15)' },
+            '&:hover fieldset': { borderColor: 'rgba(212, 160, 23, 0.5)' },
+            '&.Mui-focused fieldset': { borderColor: '#d4a017' },
           },
         },
       },
@@ -133,10 +120,10 @@ const theme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: '20px',
-          backgroundColor: 'rgba(0, 212, 255, 0.1)',
-          border: '1px solid rgba(0, 212, 255, 0.3)',
-          color: '#00d4ff',
+          borderRadius: '4px',
+          backgroundColor: 'rgba(212, 160, 23, 0.12)',
+          border: '1px solid rgba(212, 160, 23, 0.35)',
+          color: '#d4a017',
         },
       },
     },
@@ -175,10 +162,21 @@ function AppContent() {
     <div className="App" style={{ position: 'relative' }}>
       {showBackground && <AnimatedMovieBackground />}
       <Navbar />
+      <HealthBanner />
       <Routes key={routesKey}>
         <Route path="/" element={<Home key={`home-${location.pathname}-${location.key || 'default'}`} />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/onboarding" element={
+          <ProtectedRoute>
+            <Onboarding />
+          </ProtectedRoute>
+        } />
+        <Route path="/taste-match/:userId" element={
+          <ProtectedRoute>
+            <TasteMatch />
+          </ProtectedRoute>
+        } />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/auth/google/callback" element={<GoogleCallback />} />

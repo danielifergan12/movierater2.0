@@ -517,26 +517,15 @@ const Home = () => {
   return (
     <Box sx={{ 
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
+      background: '#0c0b0a',
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.1) 0%, transparent 50%)',
-        pointerEvents: 'none',
-        zIndex: 1,
-      },
     }}>
       <Container 
         maxWidth="lg" 
         sx={{ 
-          py: { xs: 4, sm: 6, md: 8 }, 
+          py: { xs: 3, sm: 5 }, 
           px: { xs: 2, sm: 3 }, 
           position: 'relative', 
           zIndex: 2,
@@ -544,38 +533,28 @@ const Home = () => {
           flexDirection: 'column',
         }}
       >
-        <Box sx={{ 
-          mb: { xs: 4, sm: 6 }, 
-          textAlign: 'center',
-          flexShrink: 0,
-        }}>
-          <Typography variant="h1" component="h1" gutterBottom sx={{
-            background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            mb: 2,
-            fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
+        <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+          <Typography sx={{
+            fontFamily: '"Bebas Neue", sans-serif',
+            fontSize: { xs: '2.4rem', sm: '3.2rem' },
+            letterSpacing: '0.04em',
+            color: 'var(--rl-cream)',
+            lineHeight: 1,
+            mb: 1,
           }}>
-            Welcome to ReelList
+            For you
           </Typography>
-          <Typography variant="h5" align="center" sx={{ 
-            color: 'rgba(255, 255, 255, 0.8)',
-            mb: 2,
-            fontWeight: 300,
-            fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
-            px: { xs: 2, sm: 0 }
-          }}>
-            Discover, rate, and share your favorite movies with friends
+          <Typography sx={{ color: 'var(--rl-muted)', mb: 1, maxWidth: 520 }}>
+            Suggestions from your rankings{user?.username ? `, ${user.username}` : ''}.
           </Typography>
+          {rawRatings.length < 5 && (
+            <Button component={Link} to="/onboarding" sx={{ color: 'var(--rl-accent)', textTransform: 'none', px: 0 }}>
+              Finish ranking 5 films to improve these →
+            </Button>
+          )}
           {totalRankings > 0 && (
-            <Typography variant="body1" align="center" sx={{ 
-              color: 'rgba(255, 255, 255, 0.6)',
-              mb: 4,
-              fontSize: { xs: '0.75rem', sm: '0.875rem' },
-              px: { xs: 2, sm: 0 }
-            }}>
-              {totalRankings.toLocaleString()} movies ranked by our community
+            <Typography sx={{ color: 'rgba(244,239,230,0.45)', fontSize: '0.85rem', mt: 1 }}>
+              {totalRankings.toLocaleString()} community rankings
             </Typography>
           )}
         </Box>
@@ -586,7 +565,7 @@ const Home = () => {
           flexDirection: 'column',
           minHeight: 0,
         }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 4, gap: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', mb: 3, gap: 2 }}>
               <Tabs
                 value={activeTab}
                 onChange={(e, newValue) => {
@@ -599,19 +578,19 @@ const Home = () => {
                 scrollButtons="auto"
                 sx={{
                   '& .MuiTab-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
+                    color: 'rgba(244, 239, 230, 0.65)',
                     fontSize: { xs: '0.875rem', sm: '1rem' },
                     fontWeight: 600,
                     textTransform: 'none',
-                    minWidth: { xs: 120, sm: 200 },
+                    minWidth: { xs: 120, sm: 180 },
                     px: { xs: 2, sm: 3 },
                     '&.Mui-selected': {
-                      color: '#00d4ff',
+                      color: 'var(--rl-accent)',
                     },
                   },
                   '& .MuiTabs-indicator': {
-                    background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                    height: 3,
+                    backgroundColor: 'var(--rl-accent)',
+                    height: 2,
                   },
                 }}
               >
@@ -623,12 +602,12 @@ const Home = () => {
                   onClick={handleRefresh}
                   disabled={loading || isRefreshing}
                   sx={{
-                    color: '#00d4ff',
+                    color: 'var(--rl-accent)',
                     '&:hover': {
-                      backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                      backgroundColor: 'rgba(212, 160, 23, 0.1)',
                     },
                     '&.Mui-disabled': {
-                      color: 'rgba(255, 255, 255, 0.3)',
+                      color: 'rgba(244, 239, 230, 0.3)',
                     },
                     ...(isRefreshing && {
                       animation: 'spin 1s linear infinite',

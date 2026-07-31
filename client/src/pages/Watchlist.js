@@ -48,6 +48,7 @@ const Watchlist = () => {
     year: '',
     sortBy: 'addedAt'
   });
+  const [suggestions, setSuggestions] = useState([]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -55,7 +56,23 @@ const Watchlist = () => {
       return;
     }
     fetchWatchlist();
+    fetchSuggestions();
   }, [isAuthenticated, navigate]);
+
+  const fetchSuggestions = async () => {
+    try {
+      const res = await api.get('/api/movies/recommendations/personal?limit=8');
+      const items = res.data?.results || res.data?.movies || res.data || [];
+      setSuggestions(Array.isArray(items) ? items.slice(0, 8) : []);
+    } catch {
+      try {
+        const trending = await api.get('/api/movies/trending/week');
+        setSuggestions((trending.data?.results || []).slice(0, 8));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
 
   useEffect(() => {
     applyFilters();
@@ -200,6 +217,35 @@ const Watchlist = () => {
             }}
           />
         </Box>
+
+        {suggestions.length > 0 && (
+          <Box sx={{ mb: 4 }}>
+            <Typography sx={{ color: 'var(--rl-cream)', fontWeight: 700, mb: 1.5 }}>
+              Because of your rankings
+            </Typography>
+            <Grid container spacing={2}>
+              {suggestions.map((m) => (
+                <Grid item xs={6} sm={3} md={1.5} key={m.id || m.tmdbId}>
+                  <Card
+                    sx={{ cursor: 'pointer', bgcolor: 'rgba(244,239,230,0.04)' }}
+                    onClick={() => navigate(`/movie/${m.id || m.tmdbId}`)}
+                  >
+                    <CardMedia
+                      component="img"
+                      image={
+                        m.poster_path || m.posterPath
+                          ? `https://image.tmdb.org/t/p/w342${m.poster_path || m.posterPath}`
+                          : (m.posterUrl || '/placeholder-movie.jpg')
+                      }
+                      alt={m.title}
+                      sx={{ aspectRatio: '2/3' }}
+                    />
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        )}
 
         {/* Filters */}
         <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap', alignItems: 'center' }}>

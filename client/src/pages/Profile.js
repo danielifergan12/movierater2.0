@@ -36,12 +36,26 @@ const Profile = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [rankings, setRankings] = useState([]);
   const [loadingRankings, setLoadingRankings] = useState(false);
+  const [tasteProfile, setTasteProfile] = useState(null);
 
   useEffect(() => {
     fetchProfile();
     fetchRankings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  useEffect(() => {
+    const loadTaste = async () => {
+      if (!isAuthenticated || !currentUser?._id || currentUser._id !== userId) return;
+      try {
+        const res = await api.get('/api/users/me/taste-profile');
+        setTasteProfile(res.data);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadTaste();
+  }, [currentUser?._id, isAuthenticated, userId]);
 
   const fetchRankings = async () => {
     setLoadingRankings(true);
@@ -171,14 +185,45 @@ const Profile = () => {
               </Box>
 
               {!isOwnProfile && isAuthenticated && (
-                <Button
-                  variant={isFollowing ? "outlined" : "contained"}
-                  startIcon={isFollowing ? <PersonRemove /> : <PersonAdd />}
-                  onClick={handleFollow}
-                  fullWidth
-                >
-                  {isFollowing ? 'Unfollow' : 'Follow'}
-                </Button>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Button
+                    variant={isFollowing ? "outlined" : "contained"}
+                    startIcon={isFollowing ? <PersonRemove /> : <PersonAdd />}
+                    onClick={handleFollow}
+                    fullWidth
+                  >
+                    {isFollowing ? 'Unfollow' : 'Follow'}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    component={Link}
+                    to={`/taste-match/${userId}`}
+                  >
+                    Compare taste
+                  </Button>
+                </Box>
+              )}
+
+              {isOwnProfile && tasteProfile && (
+                <Box sx={{ mt: 3, textAlign: 'left' }}>
+                  <Typography sx={{ fontWeight: 700, mb: 1, color: 'var(--rl-accent)', fontSize: '0.8rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    Your taste
+                  </Typography>
+                  <Typography sx={{ color: 'var(--rl-muted)', mb: 1.5, fontSize: '0.9rem' }}>
+                    {tasteProfile.totalRanked} ranked
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
+                    {(tasteProfile.topGenres || []).map((g) => (
+                      <Chip key={g.name} label={g.name} size="small" />
+                    ))}
+                  </Box>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                    {(tasteProfile.topDecades || []).map((d) => (
+                      <Chip key={d.decade} label={`${d.decade}s`} size="small" variant="outlined" />
+                    ))}
+                  </Box>
+                </Box>
               )}
             </CardContent>
           </Card>

@@ -26,19 +26,21 @@ import {
   Delete as DeleteIcon,
   Movie as MovieIcon,
   Share as ShareIcon,
-  ContentCopy as CopyIcon,
   DragIndicator as DragIndicatorIcon,
   Undo as UndoIcon,
   Replay as ReplayIcon,
   Search as SearchIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  PlaylistAdd as PlaylistAddIcon,
 } from '@mui/icons-material';
 import { useRatings } from '../hooks/useRatings';
 import { useAuth } from '../contexts/AuthContext';
 import { useMovies } from '../contexts/MovieContext';
 import MovieFilters from '../components/MovieFilters';
 import RatingModal from '../components/RatingModal';
+import AddToListDialog from '../components/AddToListDialog';
+import ShareCard from '../components/ShareCard';
 import api from '../config/axios';
 
 const TIER_DEFS = [
@@ -63,7 +65,7 @@ function assignTier(total) {
 
 const MyRankings = () => {
   const { rawRatings, setRatingsArray } = useRatings();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { getMovieDetails } = useMovies();
   const location = useLocation();
   const navigate = useNavigate();
@@ -71,6 +73,7 @@ const MyRankings = () => {
   const [snack, setSnack] = useState({ open: Boolean(location.state?.message), message: location.state?.message || '' });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, movieId: null });
   const [shareDialog, setShareDialog] = useState({ open: false, shareUrl: '', loading: false });
+  const [listMovie, setListMovie] = useState(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [rerankMovie, setRerankMovie] = useState(null);
   const [filters, setFilters] = useState({
@@ -490,6 +493,14 @@ const MyRankings = () => {
                         <Box sx={{ display: 'flex', gap: 0.5 }}>
                           <IconButton
                             edge="end"
+                            title="Add to list"
+                            onClick={() => setListMovie(ranking)}
+                            sx={{ color: 'var(--rl-muted)' }}
+                          >
+                            <PlaylistAddIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            edge="end"
                             title="Re-rank"
                             onClick={() => setRerankMovie(ranking)}
                             sx={{ color: 'var(--rl-muted)' }}
@@ -585,12 +596,12 @@ const MyRankings = () => {
           {shareDialog.loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={28} /></Box>
           ) : shareDialog.shareUrl ? (
-            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-              <TextField fullWidth size="small" value={shareDialog.shareUrl} InputProps={{ readOnly: true }} />
-              <IconButton onClick={() => { navigator.clipboard.writeText(shareDialog.shareUrl); setSnack({ open: true, message: 'Link copied' }); }}>
-                <CopyIcon />
-              </IconButton>
-            </Box>
+            <ShareCard
+              username={user?.username}
+              rankings={rawRatings}
+              shareUrl={shareDialog.shareUrl}
+              onCopy={() => { navigator.clipboard.writeText(shareDialog.shareUrl); setSnack({ open: true, message: 'Link copied' }); }}
+            />
           ) : (
             <Alert severity="error">Could not create share link.</Alert>
           )}
@@ -599,6 +610,12 @@ const MyRankings = () => {
           <Button onClick={() => setShareDialog({ open: false, shareUrl: '', loading: false })}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      <AddToListDialog
+        open={!!listMovie}
+        onClose={() => setListMovie(null)}
+        movie={listMovie}
+      />
 
       {rerankMovie && (
         <RatingModal

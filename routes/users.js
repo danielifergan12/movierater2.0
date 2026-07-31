@@ -73,6 +73,103 @@ router.get('/discover', async (req, res) => {
   }
 });
 
+// Taste match vs a specific user (must be before /:userId)
+router.get('/taste-match/:otherUserId', auth, async (req, res) => {
+  try {
+    const me = await User.findById(req.userId).select('username ratings');
+    const other = await User.findById(req.params.otherUserId).select('username ratings profilePicture');
+    if (!me || !other) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const myMap = new Map((me.ratings || []).map((r, i) => [String(r.id), { ...r, rank: i + 1 }]));
+    const theirMap = new Map((other.ratings || []).map((r, i) => [String(r.id), { ...r, rank: i + 1 }]));
+
+    const shared = [];
+    for (const [id, mine] of myMap.entries()) {
+      if (theirMap.has(id)) {
+        const theirs = theirMap.get(id);
+        shared.push({
+          id,
+          title: mine.title || theirs.title,
+          posterUrl: mine.posterUrl || theirs.posterUrl,
+          myRank: mine.rank,
+          theirRank: theirs.rank,
+          delta: Math.abs(mine.rank - theirs.rank),
+        });
+      }
+    }
+
+    shared.sort((a, b) => a.delta - b.delta);
+    const agree = shared.filter((s) => s.delta <= 3).slice(0, 8);
+    const disagree = [...shared].sort((a, b) => b.delta - a.delta).slice(0, 8);
+    const overlap = myMap.size && theirMap.size
+      ? Math.round((shared.length / Math.min(myMap.size, theirMap.size)) * 100)
+      : 0;
+
+    res.json({
+      other: {
+        userId: other._id,
+        username: other.username,
+        profilePicture: other.profilePicture,
+      },
+      overlapPercent: overlap,
+      sharedCount: shared.length,
+      agree,
+      disagree,
+    });
+  } catch (error) {
+    console.error('Taste match error:', error);
+    res.status(500).json({ message: 'Error computing taste match' });
+  }
+});
+
+// Build taste profile from ratings metadata
+router.get('/me/taste-profile', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('username ratings');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const genreCounts = {};
+    const decadeCounts = {};
+    (user.ratings || []).forEach((r, index) => {
+      const genres = Array.isArray(r.genres) ? r.genres : [];
+      genres.forEach((g) => {
+        const name = typeof g === 'object' ? (g.name || g.id) : g;
+        if (!name) return;
+        genreCounts[name] = (genreCounts[name] || 0) + Math.max(1, 10 - Math.floor(index / 5));
+      });
+      if (r.releaseDate) {
+        const year = new Date(r.releaseDate).getFullYear();
+        if (!Number.isNaN(year)) {
+          const decade = Math.floor(year / 10) * 10;
+          decadeCounts[decade] = (decadeCounts[decade] || 0) + 1;
+        }
+      }
+    });
+
+    const topGenres = Object.entries(genreCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name, score]) => ({ name, score }));
+    const topDecades = Object.entries(decadeCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([decade, count]) => ({ decade: Number(decade), count }));
+
+    res.json({
+      totalRanked: user.ratings?.length || 0,
+      topGenres,
+      topDecades,
+      topMovies: (user.ratings || []).slice(0, 5),
+    });
+  } catch (error) {
+    console.error('Taste profile error:', error);
+    res.status(500).json({ message: 'Error building taste profile' });
+  }
+});
+
+
 // Get user profile
 router.get('/:userId', async (req, res) => {
   try {

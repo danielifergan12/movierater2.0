@@ -1,7 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Button, Box, Chip } from '@mui/material';
-import { Movie as MovieIcon, Star as StarIcon, People as PeopleIcon, Favorite as FavoriteIcon, AdminPanelSettings as AdminIcon, Bookmark as BookmarkIcon, List as ListIcon } from '@mui/icons-material';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+} from '@mui/material';
+import {
+  Movie as MovieIcon,
+  Star as StarIcon,
+  People as PeopleIcon,
+  Favorite as FavoriteIcon,
+  AdminPanelSettings as AdminIcon,
+  Bookmark as BookmarkIcon,
+  List as ListIcon,
+  MoreVert as MoreIcon,
+  DynamicFeed as FeedIcon,
+  CompareArrows as TasteIcon,
+  Logout as LogoutIcon,
+} from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import AutocompleteSearch from './AutocompleteSearch';
 
@@ -10,49 +34,22 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMarketingHome = !isAuthenticated && location.pathname === '/';
+  const [anchorEl, setAnchorEl] = useState(null);
 
-  const handleMovieSelect = (movie) => {
-    navigate(`/movie/${movie.id}`);
-  };
-
-  const handleNavigation = (path) => {
-    if (location.pathname === '/' && path !== '/') {
-      navigate(path, { replace: false, state: { fromHome: true, timestamp: Date.now() } });
-    } else {
-      navigate(path, { replace: false });
-    }
+  const go = (path) => {
+    setAnchorEl(null);
+    navigate(path);
   };
 
   return (
     <>
-      {isAuthenticated && user?.username && user.username.toLowerCase() === 'danielifergan' && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: { xs: 80, sm: 64 },
-            left: { xs: 8, sm: 16 },
-            zIndex: 1100,
-          }}
-        >
+      {isAuthenticated && user?.username?.toLowerCase() === 'danielifergan' && (
+        <Box sx={{ position: 'fixed', top: { xs: 72, sm: 64 }, left: 12, zIndex: 1100 }}>
           <Button
-            variant="contained"
-            startIcon={<AdminIcon />}
-            onClick={() => handleNavigation('/admin/users')}
             size="small"
-            sx={{
-              backgroundColor: '#c45c26',
-              color: '#fff',
-              fontSize: '0.75rem',
-              px: 2,
-              py: 0.75,
-              minHeight: 32,
-              borderRadius: '4px',
-              boxShadow: 'none',
-              '&:hover': {
-                backgroundColor: '#a34a1c',
-                boxShadow: 'none',
-              },
-            }}
+            startIcon={<AdminIcon />}
+            onClick={() => go('/admin/users')}
+            sx={{ backgroundColor: '#c45c26', color: '#fff', borderRadius: '4px', boxShadow: 'none', '&:hover': { backgroundColor: '#a34a1c', boxShadow: 'none' } }}
           >
             Admin
           </Button>
@@ -65,149 +62,74 @@ const Navbar = () => {
         sx={{
           backgroundColor: isMarketingHome ? 'transparent' : 'rgba(12, 11, 10, 0.92)',
           backdropFilter: isMarketingHome ? 'none' : 'blur(12px)',
-          borderBottom: isMarketingHome
-            ? '1px solid transparent'
-            : '1px solid rgba(244, 239, 230, 0.08)',
-          boxShadow: 'none',
+          borderBottom: isMarketingHome ? '1px solid transparent' : '1px solid rgba(244, 239, 230, 0.08)',
         }}
       >
-        <Toolbar
-          sx={{
-            minHeight: { xs: 64, sm: 72 },
-            px: { xs: 2, sm: 3, md: 4 },
-            gap: 2,
-          }}
-        >
+        <Toolbar sx={{ minHeight: { xs: 64, sm: 72 }, px: { xs: 2, sm: 3 }, gap: 1.5 }}>
           <Box
-            onClick={() => handleNavigation('/')}
-            sx={{
-              display: isMarketingHome ? 'none' : 'flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-            }}
+            onClick={() => go('/')}
+            sx={{ display: isMarketingHome ? 'none' : 'flex', alignItems: 'center', cursor: 'pointer', mr: 1 }}
           >
-            <MovieIcon sx={{ mr: 1, color: 'var(--rl-accent)', fontSize: '1.5rem' }} />
-            <Typography
-              sx={{
-                fontFamily: '"Bebas Neue", sans-serif',
-                fontSize: '1.5rem',
-                letterSpacing: '0.06em',
-                color: 'var(--rl-cream)',
-                lineHeight: 1,
-              }}
-            >
+            <MovieIcon sx={{ mr: 1, color: 'var(--rl-accent)', fontSize: '1.4rem' }} />
+            <Typography sx={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: '1.45rem', letterSpacing: '0.06em', color: 'var(--rl-cream)' }}>
               ReelList
             </Typography>
           </Box>
 
           {isAuthenticated && (
-            <Box
-              sx={{
-                flexGrow: 1,
-                display: 'flex',
-                alignItems: 'center',
-                maxWidth: 560,
-                ml: { xs: 0, sm: 2 },
-              }}
-            >
-              <AutocompleteSearch
-                onMovieSelect={handleMovieSelect}
-                placeholder="Search movies"
-              />
+            <Box sx={{ flexGrow: 1, maxWidth: 480, display: { xs: 'none', md: 'block' } }}>
+              <AutocompleteSearch onMovieSelect={(m) => go(`/movie/${m.id}`)} placeholder="Search movies" />
             </Box>
           )}
 
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              ml: 'auto',
-              gap: { xs: 0.5, sm: 1 },
-              flexWrap: 'wrap',
-              justifyContent: 'flex-end',
-            }}
-          >
+          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
             {isAuthenticated ? (
               <>
-                <Box
-                  sx={{
-                    mr: 1,
-                    display: { xs: 'none', md: 'flex' },
-                    alignItems: 'center',
-                    gap: 1,
-                  }}
+                <Button color="inherit" startIcon={<StarIcon />} onClick={() => go('/rankings')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', sm: 'inline-flex' } }}>
+                  Rankings
+                </Button>
+                <Button color="inherit" startIcon={<MovieIcon />} onClick={() => go('/rate')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', sm: 'inline-flex' } }}>
+                  Rate
+                </Button>
+                <Button color="inherit" startIcon={<FeedIcon />} onClick={() => go('/feed')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', md: 'inline-flex' } }}>
+                  Feed
+                </Button>
+                <Typography sx={{ color: 'var(--rl-muted)', mx: 1, display: { xs: 'none', lg: 'block' }, fontSize: '0.9rem' }}>
+                  {user?.username}
+                </Typography>
+                <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ color: 'var(--rl-cream)' }} aria-label="More">
+                  <MoreIcon />
+                </IconButton>
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={() => setAnchorEl(null)}
+                  PaperProps={{ sx: { bgcolor: '#171512', border: '1px solid rgba(244,239,230,0.1)', minWidth: 200 } }}
                 >
-                  <Typography
-                    sx={{
-                      fontFamily: '"Manrope", sans-serif',
-                      fontWeight: 600,
-                      color: 'var(--rl-cream)',
-                      fontSize: '0.9rem',
-                    }}
-                  >
-                    {user?.username}
-                  </Typography>
-                  {user?.followers && (
-                    <Chip
-                      label={`${user.followers.length} followers`}
-                      size="small"
-                      onClick={() => handleNavigation(`/profile/${user._id}/followers`)}
-                      sx={{
-                        backgroundColor: 'rgba(212, 160, 23, 0.12)',
-                        color: 'var(--rl-accent)',
-                        border: '1px solid rgba(212, 160, 23, 0.35)',
-                        fontSize: '0.7rem',
-                        height: 22,
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                      }}
-                    />
+                  <MenuItem onClick={() => go('/watchlist')}><ListItemIcon><BookmarkIcon fontSize="small" /></ListItemIcon><ListItemText>Watchlist</ListItemText></MenuItem>
+                  <MenuItem onClick={() => go('/lists')}><ListItemIcon><ListIcon fontSize="small" /></ListItemIcon><ListItemText>Lists</ListItemText></MenuItem>
+                  <MenuItem onClick={() => go('/discover')}><ListItemIcon><PeopleIcon fontSize="small" /></ListItemIcon><ListItemText>Discover people</ListItemText></MenuItem>
+                  <MenuItem onClick={() => go('/following')}><ListItemIcon><FavoriteIcon fontSize="small" /></ListItemIcon><ListItemText>Following</ListItemText></MenuItem>
+                  <MenuItem onClick={() => go('/onboarding')}><ListItemIcon><TasteIcon fontSize="small" /></ListItemIcon><ListItemText>Taste setup</ListItemText></MenuItem>
+                  {user?._id && (
+                    <MenuItem onClick={() => go(`/profile/${user._id}`)}><ListItemIcon><PeopleIcon fontSize="small" /></ListItemIcon><ListItemText>Profile</ListItemText></MenuItem>
                   )}
-                </Box>
-                <Button color="inherit" startIcon={<StarIcon />} onClick={() => handleNavigation('/rankings')}>
-                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>My Rankings</Box>
-                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>Rankings</Box>
-                </Button>
-                <Button color="inherit" startIcon={<BookmarkIcon />} onClick={() => handleNavigation('/watchlist')}>
-                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Watchlist</Box>
-                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>Watch</Box>
-                </Button>
-                <Button color="inherit" startIcon={<ListIcon />} onClick={() => handleNavigation('/lists')}>
-                  Lists
-                </Button>
-                <Button color="inherit" startIcon={<PeopleIcon />} onClick={() => handleNavigation('/discover')}>
-                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Discover</Box>
-                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>Users</Box>
-                </Button>
-                <Button color="inherit" startIcon={<FavoriteIcon />} onClick={() => handleNavigation('/following')}>
-                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Following</Box>
-                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>Follow</Box>
-                </Button>
-                <Button color="inherit" onClick={() => { logout(); navigate('/'); }}>
-                  Logout
-                </Button>
+                  <Divider sx={{ borderColor: 'rgba(244,239,230,0.08)' }} />
+                  <MenuItem onClick={() => { logout(); go('/'); }}><ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon><ListItemText>Log out</ListItemText></MenuItem>
+                </Menu>
               </>
             ) : (
-              <Button
-                onClick={() => handleNavigation('/login')}
-                sx={{
-                  fontFamily: '"Manrope", sans-serif',
-                  fontWeight: 600,
-                  fontSize: '0.95rem',
-                  color: 'var(--rl-cream)',
-                  textTransform: 'none',
-                  borderRadius: '4px',
-                  px: 2,
-                  '&:hover': {
-                    backgroundColor: 'rgba(244, 239, 230, 0.08)',
-                  },
-                }}
-              >
+              <Button onClick={() => go('/login')} sx={{ color: 'var(--rl-cream)', textTransform: 'none', fontWeight: 600 }}>
                 Sign in
               </Button>
             )}
           </Box>
         </Toolbar>
+        {isAuthenticated && (
+          <Box sx={{ display: { xs: 'block', md: 'none' }, px: 2, pb: 1.5 }}>
+            <AutocompleteSearch onMovieSelect={(m) => go(`/movie/${m.id}`)} placeholder="Search movies" />
+          </Box>
+        )}
       </AppBar>
     </>
   );

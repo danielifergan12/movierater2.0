@@ -23,17 +23,39 @@ import {
   Share
 } from '@mui/icons-material';
 import api from '../config/axios';
+import { Link } from 'react-router-dom';
 
 const Feed = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
   const [page, setPage] = useState(1);
+  const [friendActivity, setFriendActivity] = useState([]);
 
   useEffect(() => {
     fetchFeed();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, page]);
+
+  useEffect(() => {
+    const loadFriends = async () => {
+      try {
+        const res = await api.get('/api/users/following/rankings');
+        const rows = (res.data?.rankings || [])
+          .filter((u) => u.ratings?.length)
+          .map((u) => ({
+            userId: u.userId,
+            username: u.username,
+            movie: u.ratings[0],
+          }))
+          .slice(0, 8);
+        setFriendActivity(rows);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadFriends();
+  }, []);
 
   const fetchFeed = async () => {
     setLoading(true);
@@ -213,9 +235,39 @@ const Feed = () => {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Movie Feed
+      <Typography sx={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: '2.6rem', letterSpacing: '0.04em', color: 'var(--rl-cream)', mb: 1 }}>
+        Feed
       </Typography>
+      <Typography sx={{ color: 'var(--rl-muted)', mb: 3 }}>
+        What people you follow are ranking and reviewing
+      </Typography>
+
+      {friendActivity.length > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Typography sx={{ fontWeight: 700, mb: 1.5, color: 'var(--rl-accent)', fontSize: '0.8rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            Friends just ranked
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1 }}>
+            {friendActivity.map((row) => (
+              <Box key={`${row.userId}-${row.movie?.id}`} sx={{ minWidth: 120 }}>
+                <Link to={`/movie/${row.movie?.id}`} style={{ textDecoration: 'none' }}>
+                  <Avatar
+                    variant="rounded"
+                    src={row.movie?.posterUrl || undefined}
+                    sx={{ width: 80, height: 120, mb: 0.75 }}
+                  />
+                </Link>
+                <Typography component={Link} to={`/profile/${row.userId}`} sx={{ color: 'var(--rl-cream)', fontSize: '0.8rem', textDecoration: 'none', fontWeight: 600, display: 'block' }}>
+                  {row.username}
+                </Typography>
+                <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.75rem' }} noWrap>
+                  #{1} {row.movie?.title}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      )}
       
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={activeTab} onChange={handleTabChange}>
