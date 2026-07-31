@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
+const MongoStore = require('connect-mongo').MongoStore || require('connect-mongo').default;
 const passport = require('passport');
 require('dotenv').config();
 
@@ -32,11 +32,17 @@ const sessionConfig = {
   },
 };
 
-if (process.env.MONGODB_URI) {
-  sessionConfig.store = MongoStore.create({
-    mongoUrl: mongoUri,
-    ttl: 60 * 60 * 24 * 7,
-  });
+if (process.env.MONGODB_URI && MongoStore?.create) {
+  try {
+    sessionConfig.store = MongoStore.create({
+      mongoUrl: mongoUri,
+      ttl: 60 * 60 * 24 * 7,
+    });
+  } catch (err) {
+    console.error('Session store init failed, falling back to MemoryStore:', err.message);
+  }
+} else if (process.env.MONGODB_URI) {
+  console.error('connect-mongo create() unavailable; using MemoryStore');
 }
 
 app.use(session(sessionConfig));
