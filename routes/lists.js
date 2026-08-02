@@ -5,42 +5,12 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const optionalAuth = require('../middleware/optionalAuth');
 const crypto = require('crypto');
+const {
+  globalRankIndex,
+  insertMovieByRanking,
+} = require('../utils/listRanking');
 
 const router = express.Router();
-
-/** Global rank index in user's preference order, or -1 if unranked. */
-const globalRankIndex = (ratings, movieId, tmdbId) => {
-  const idStr = String(movieId);
-  const tmdbStr = tmdbId != null ? String(tmdbId) : null;
-  return ratings.findIndex((r) => {
-    const rid = String(r.id);
-    return rid === idStr || (tmdbStr && rid === tmdbStr);
-  });
-};
-
-/**
- * Insert so list order mirrors the user's overall ranking.
- * Ranked films stay sorted by global preference; unranked films stay after them.
- */
-const insertMovieByRanking = (listMovies, newMovie, ratings) => {
-  const newRank = globalRankIndex(ratings, newMovie.movieId, newMovie.tmdbId);
-  if (newRank === -1) {
-    listMovies.push(newMovie);
-    return listMovies.length - 1;
-  }
-
-  let insertAt = listMovies.length;
-  for (let i = 0; i < listMovies.length; i += 1) {
-    const m = listMovies[i];
-    const mRank = globalRankIndex(ratings, m.movieId, m.tmdbId);
-    if (mRank === -1 || mRank > newRank) {
-      insertAt = i;
-      break;
-    }
-  }
-  listMovies.splice(insertAt, 0, newMovie);
-  return insertAt;
-};
 
 // Get user's lists
 router.get('/my', auth, async (req, res) => {
