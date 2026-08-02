@@ -18,16 +18,18 @@ const GoogleCallback = () => {
     }
 
     if (token) {
-      // Store token and fetch user
-      loginWithToken(token).then((result) => {
-        if (result.success) {
-          navigate('/');
-        } else {
+      loginWithToken(token)
+        .then((result) => {
+          if (result.success) {
+            const needsOnboarding = !localStorage.getItem('onboardingComplete');
+            navigate(needsOnboarding ? '/onboarding' : '/');
+          } else {
+            navigate('/login?error=google_auth_failed');
+          }
+        })
+        .catch(() => {
           navigate('/login?error=google_auth_failed');
-        }
-      }).catch(() => {
-        navigate('/login?error=google_auth_failed');
-      });
+        });
     } else {
       navigate('/login');
     }
@@ -35,17 +37,19 @@ const GoogleCallback = () => {
   }, []);
 
   return (
-    <Box sx={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
-    }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: '#0c0b0a',
+      }}
+    >
       <Box sx={{ textAlign: 'center' }}>
-        <CircularProgress sx={{ mb: 2 }} />
-        <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-          Signing you in...
+        <CircularProgress size={28} sx={{ color: 'var(--rl-accent)', mb: 2 }} />
+        <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.9rem' }}>
+          Signing you in…
         </Typography>
       </Box>
     </Box>
@@ -53,4 +57,3 @@ const GoogleCallback = () => {
 };
 
 export default GoogleCallback;
-

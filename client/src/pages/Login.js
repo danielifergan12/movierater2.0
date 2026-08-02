@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Container,
   Box,
   TextField,
   Button,
@@ -11,6 +10,7 @@ import {
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../config/axios';
+import AuthShell, { authFieldSx, authAccentBtn, authGhostBtn } from '../components/AuthShell';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -28,20 +28,21 @@ const Login = () => {
     } else if (errorParam === 'google_auth_failed') {
       setError('Google sign-in failed. Try again or use email and password.');
     }
-    api.get('/api/auth/providers').then((res) => {
-      setGoogleEnabled(Boolean(res.data?.google));
-    }).catch(() => setGoogleEnabled(false));
+    api
+      .get('/api/auth/providers')
+      .then((res) => setGoogleEnabled(Boolean(res.data?.google)))
+      .catch(() => setGoogleEnabled(false));
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    const result = await login(formData.email, formData.password);
+    const result = await login(formData.email.trim(), formData.password);
     if (result.success) {
       const redirect = new URLSearchParams(window.location.search).get('redirect');
       const needsOnboarding = !localStorage.getItem('onboardingComplete');
-      navigate(redirect?.startsWith('/') ? redirect : (needsOnboarding ? '/onboarding' : '/'));
+      navigate(redirect?.startsWith('/') ? redirect : needsOnboarding ? '/onboarding' : '/');
     } else {
       setError(result.message);
     }
@@ -49,42 +50,69 @@ const Login = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', position: 'relative', zIndex: 2 }}>
-      <Container maxWidth="xs" sx={{ py: 6 }}>
-        <Typography sx={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: '3.5rem', letterSpacing: '0.06em', color: 'var(--rl-cream)', textAlign: 'center', lineHeight: 1, mb: 1 }}>
-          ReelList
-        </Typography>
-        <Typography sx={{ color: 'var(--rl-muted)', textAlign: 'center', mb: 4 }}>
-          Welcome back
-        </Typography>
+    <AuthShell title="Welcome back" subtitle="Sign in to keep ranking and following friends.">
+      {error && (
+        <Alert
+          severity="error"
+          sx={{ mb: 2, bgcolor: 'rgba(229,115,115,0.1)', color: '#ffcdd2', '& .MuiAlert-icon': { color: '#ef9a9a' } }}
+        >
+          {error}
+        </Alert>
+      )}
 
-        <Box sx={{ p: 3, border: '1px solid rgba(244,239,230,0.12)', borderRadius: '8px', bgcolor: 'rgba(12,11,10,0.72)' }}>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          <Box component="form" onSubmit={handleSubmit}>
-            <TextField fullWidth label="Email" name="email" type="email" required margin="normal" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-            <TextField fullWidth label="Password" name="password" type="password" required margin="normal" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
-            <Button type="submit" fullWidth variant="contained" disabled={loading} sx={{ mt: 2, mb: 2, backgroundImage: 'none' }}>
-              {loading ? <CircularProgress size={22} /> : 'Sign in'}
-            </Button>
-          </Box>
-          {googleEnabled && (
-            <Button
-              fullWidth
-              variant="outlined"
-              href={`${process.env.REACT_APP_API_URL || ''}/api/auth/google`}
-              sx={{ mb: 2 }}
-            >
-              Continue with Google
-            </Button>
-          )}
-          <Typography sx={{ textAlign: 'center', color: 'var(--rl-muted)', fontSize: '0.9rem' }}>
-            No account? <Link to="/register" style={{ color: 'var(--rl-accent)' }}>Sign up</Link>
-            {' · '}
-            <Link to="/forgot-password" style={{ color: 'var(--rl-accent)' }}>Forgot password</Link>
-          </Typography>
-        </Box>
-      </Container>
-    </Box>
+      <Box component="form" onSubmit={handleSubmit}>
+        <TextField
+          fullWidth
+          label="Email"
+          name="email"
+          type="email"
+          required
+          margin="dense"
+          autoComplete="email"
+          autoFocus
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          sx={authFieldSx}
+        />
+        <TextField
+          fullWidth
+          label="Password"
+          name="password"
+          type="password"
+          required
+          margin="dense"
+          autoComplete="current-password"
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          sx={authFieldSx}
+        />
+        <Button type="submit" fullWidth variant="contained" disabled={loading} sx={{ ...authAccentBtn, mt: 2.5, mb: 1.5 }}>
+          {loading ? <CircularProgress size={22} sx={{ color: 'var(--rl-ink)' }} /> : 'Sign in'}
+        </Button>
+      </Box>
+
+      {googleEnabled && (
+        <Button
+          fullWidth
+          variant="outlined"
+          href={`${process.env.REACT_APP_API_URL || ''}/api/auth/google`}
+          sx={{ ...authGhostBtn, mb: 2 }}
+        >
+          Continue with Google
+        </Button>
+      )}
+
+      <Typography sx={{ textAlign: 'center', color: 'var(--rl-muted)', fontSize: '0.85rem' }}>
+        No account?{' '}
+        <Link to="/register" style={{ color: 'var(--rl-accent)', textDecoration: 'none', fontWeight: 600 }}>
+          Sign up
+        </Link>
+        {' · '}
+        <Link to="/forgot-password" style={{ color: 'var(--rl-accent)', textDecoration: 'none', fontWeight: 600 }}>
+          Forgot password
+        </Link>
+      </Typography>
+    </AuthShell>
   );
 };
 
