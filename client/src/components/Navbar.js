@@ -12,6 +12,7 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
+  Tooltip,
 } from '@mui/material';
 import {
   Movie as MovieIcon,
@@ -29,6 +30,19 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import AutocompleteSearch from './AutocompleteSearch';
 
+const iconNavSx = {
+  color: 'var(--rl-cream)',
+  p: 0.85,
+  '&:hover': { color: 'var(--rl-accent)', backgroundColor: 'rgba(244,239,230,0.06)' },
+};
+
+const textNavSx = {
+  textTransform: 'none',
+  color: 'var(--rl-cream)',
+  minWidth: 0,
+  px: 1,
+};
+
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -41,10 +55,24 @@ const Navbar = () => {
     navigate(path);
   };
 
+  const isActive = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`);
+
+  const activeIcon = (path) => ({
+    ...iconNavSx,
+    color: isActive(path) ? 'var(--rl-accent)' : 'var(--rl-cream)',
+  });
+
   return (
     <>
       {isAuthenticated && user?.username?.toLowerCase() === 'danielifergan' && (
-        <Box sx={{ position: 'fixed', top: { xs: 72, sm: 64 }, left: 12, zIndex: 1100 }}>
+        <Box
+          sx={{
+            position: 'fixed',
+            top: { xs: 'calc(112px + env(safe-area-inset-top, 0px))', sm: 'calc(72px + env(safe-area-inset-top, 0px))' },
+            left: 'max(12px, env(safe-area-inset-left, 0px))',
+            zIndex: 1100,
+          }}
+        >
           <Button
             size="small"
             startIcon={<AdminIcon />}
@@ -63,15 +91,37 @@ const Navbar = () => {
           backgroundColor: isMarketingHome ? 'transparent' : 'rgba(12, 11, 10, 0.92)',
           backdropFilter: isMarketingHome ? 'none' : 'blur(12px)',
           borderBottom: isMarketingHome ? '1px solid transparent' : '1px solid rgba(244, 239, 230, 0.08)',
+          pt: 'env(safe-area-inset-top, 0px)',
         }}
       >
-        <Toolbar sx={{ minHeight: { xs: 64, sm: 72 }, px: { xs: 2, sm: 3 }, gap: 1.5 }}>
+        <Toolbar
+          sx={{
+            minHeight: { xs: 56, sm: 72 },
+            px: {
+              xs: 'max(12px, env(safe-area-inset-left, 0px))',
+              sm: 3,
+            },
+            pr: {
+              xs: 'max(8px, env(safe-area-inset-right, 0px))',
+              sm: 3,
+            },
+            gap: { xs: 0.25, sm: 1.5 },
+          }}
+        >
           <Box
             onClick={() => go('/')}
-            sx={{ display: isMarketingHome ? 'none' : 'flex', alignItems: 'center', cursor: 'pointer', mr: 1 }}
+            sx={{ display: isMarketingHome ? 'none' : 'flex', alignItems: 'center', cursor: 'pointer', mr: { xs: 0.25, sm: 1 }, flexShrink: 0 }}
           >
-            <MovieIcon sx={{ mr: 1, color: 'var(--rl-accent)', fontSize: '1.4rem' }} />
-            <Typography sx={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: '1.45rem', letterSpacing: '0.06em', color: 'var(--rl-cream)' }}>
+            <MovieIcon sx={{ mr: { xs: 0.5, sm: 1 }, color: 'var(--rl-accent)', fontSize: { xs: '1.25rem', sm: '1.4rem' } }} />
+            <Typography
+              sx={{
+                fontFamily: '"Bebas Neue", sans-serif',
+                fontSize: { xs: '1.25rem', sm: '1.45rem' },
+                letterSpacing: '0.06em',
+                color: 'var(--rl-cream)',
+                display: { xs: 'none', sm: 'block' },
+              }}
+            >
               ReelList
             </Typography>
           </Box>
@@ -82,21 +132,45 @@ const Navbar = () => {
             </Box>
           )}
 
-          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 0.5 } }}>
             {isAuthenticated ? (
               <>
-                <Button color="inherit" startIcon={<StarIcon />} onClick={() => go('/rankings')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', sm: 'inline-flex' } }}>
+                {/* iPhone / compact: icon-only shortcuts always visible */}
+                <Tooltip title="Rankings">
+                  <IconButton onClick={() => go('/rankings')} aria-label="Rankings" sx={{ ...activeIcon('/rankings'), display: { xs: 'inline-flex', sm: 'none' } }}>
+                    <StarIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Lists">
+                  <IconButton onClick={() => go('/lists')} aria-label="Lists" sx={{ ...activeIcon('/lists'), display: { xs: 'inline-flex', sm: 'none' } }}>
+                    <ListIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Discover">
+                  <IconButton onClick={() => go('/discover')} aria-label="Discover" sx={{ ...activeIcon('/discover'), display: { xs: 'inline-flex', md: 'none' } }}>
+                    <PeopleIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Feed">
+                  <IconButton onClick={() => go('/feed')} aria-label="Feed" sx={{ ...activeIcon('/feed'), display: { xs: 'inline-flex', md: 'none' } }}>
+                    <FeedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+
+                {/* Tablet / desktop: labeled buttons */}
+                <Button color="inherit" startIcon={<StarIcon />} onClick={() => go('/rankings')} sx={{ ...textNavSx, display: { xs: 'none', sm: 'inline-flex' }, color: isActive('/rankings') ? 'var(--rl-accent)' : 'var(--rl-cream)' }}>
                   Rankings
                 </Button>
-                <Button color="inherit" startIcon={<ListIcon />} onClick={() => go('/lists')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', sm: 'inline-flex' } }}>
+                <Button color="inherit" startIcon={<ListIcon />} onClick={() => go('/lists')} sx={{ ...textNavSx, display: { xs: 'none', sm: 'inline-flex' }, color: isActive('/lists') ? 'var(--rl-accent)' : 'var(--rl-cream)' }}>
                   Lists
                 </Button>
-                <Button color="inherit" startIcon={<PeopleIcon />} onClick={() => go('/discover')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', md: 'inline-flex' } }}>
+                <Button color="inherit" startIcon={<PeopleIcon />} onClick={() => go('/discover')} sx={{ ...textNavSx, display: { xs: 'none', md: 'inline-flex' }, color: isActive('/discover') ? 'var(--rl-accent)' : 'var(--rl-cream)' }}>
                   Discover
                 </Button>
-                <Button color="inherit" startIcon={<FeedIcon />} onClick={() => go('/feed')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', md: 'inline-flex' } }}>
+                <Button color="inherit" startIcon={<FeedIcon />} onClick={() => go('/feed')} sx={{ ...textNavSx, display: { xs: 'none', md: 'inline-flex' }, color: isActive('/feed') ? 'var(--rl-accent)' : 'var(--rl-cream)' }}>
                   Feed
                 </Button>
+
                 <Typography sx={{ color: 'var(--rl-muted)', mx: 1, display: { xs: 'none', lg: 'block' }, fontSize: '0.9rem' }}>
                   {user?.username}
                 </Typography>
@@ -109,10 +183,6 @@ const Navbar = () => {
                   onClose={() => setAnchorEl(null)}
                   PaperProps={{ sx: { bgcolor: '#171512', border: '1px solid rgba(244,239,230,0.1)', minWidth: 200 } }}
                 >
-                  <MenuItem onClick={() => go('/rankings')} sx={{ display: { sm: 'none' } }}><ListItemIcon><StarIcon fontSize="small" /></ListItemIcon><ListItemText>Rankings</ListItemText></MenuItem>
-                  <MenuItem onClick={() => go('/lists')} sx={{ display: { sm: 'none' } }}><ListItemIcon><ListIcon fontSize="small" /></ListItemIcon><ListItemText>Lists</ListItemText></MenuItem>
-                  <MenuItem onClick={() => go('/discover')} sx={{ display: { md: 'none' } }}><ListItemIcon><PeopleIcon fontSize="small" /></ListItemIcon><ListItemText>Discover</ListItemText></MenuItem>
-                  <MenuItem onClick={() => go('/feed')} sx={{ display: { md: 'none' } }}><ListItemIcon><FeedIcon fontSize="small" /></ListItemIcon><ListItemText>Feed</ListItemText></MenuItem>
                   <MenuItem onClick={() => go('/watchlist')}><ListItemIcon><BookmarkIcon fontSize="small" /></ListItemIcon><ListItemText>Watchlist</ListItemText></MenuItem>
                   <MenuItem onClick={() => go('/following')}><ListItemIcon><FavoriteIcon fontSize="small" /></ListItemIcon><ListItemText>Following</ListItemText></MenuItem>
                   <MenuItem onClick={() => go('/onboarding')}><ListItemIcon><TasteIcon fontSize="small" /></ListItemIcon><ListItemText>Taste setup</ListItemText></MenuItem>
@@ -131,7 +201,14 @@ const Navbar = () => {
           </Box>
         </Toolbar>
         {isAuthenticated && (
-          <Box sx={{ display: { xs: 'block', md: 'none' }, px: 2, pb: 1.5 }}>
+          <Box
+            sx={{
+              display: { xs: 'block', md: 'none' },
+              px: { xs: 'max(12px, env(safe-area-inset-left, 0px))', sm: 2 },
+              pr: { xs: 'max(12px, env(safe-area-inset-right, 0px))', sm: 2 },
+              pb: 1.25,
+            }}
+          >
             <AutocompleteSearch onMovieSelect={(m) => go(`/movie/${m.id}`)} placeholder="Search movies" />
           </Box>
         )}
