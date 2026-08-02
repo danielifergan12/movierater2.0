@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import {
   Container,
   Typography,
-  Grid,
   Button,
   Box,
   CircularProgress,
@@ -297,108 +296,63 @@ const Home = () => {
     return (
       <Box
         sx={{
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          transition: 'transform 0.2s ease',
+          minWidth: 0,
+          transition: 'transform 0.15s ease',
           '&:hover': {
-            transform: { xs: 'none', sm: 'translateY(-4px)' },
-            '& .poster-frame': {
-              borderColor: 'rgba(212, 160, 23, 0.45)',
-            },
-            '& .poster-fade': {
-              opacity: 1,
-            },
-            '& .rate-btn': {
-              opacity: 1,
-            },
+            transform: { xs: 'none', sm: 'translateY(-2px)' },
+            '& .poster-frame': { borderColor: 'rgba(212, 160, 23, 0.5)' },
+            '& .rate-btn': { opacity: 1 },
           },
         }}
       >
         <Box
           className="poster-frame"
-          component={Link}
-          to={`/movie/${movie.id}`}
           sx={{
             position: 'relative',
-            display: 'block',
             aspectRatio: '2 / 3',
-            borderRadius: 1.5,
+            borderRadius: 1,
             overflow: 'hidden',
             border: '1px solid rgba(244, 239, 230, 0.12)',
             backgroundColor: 'rgba(244, 239, 230, 0.04)',
-            textDecoration: 'none',
-            transition: 'border-color 0.2s ease',
+            transition: 'border-color 0.15s ease',
           }}
         >
           <Box
-            component="img"
-            src={
-              movie.poster_path
-                ? `https://image.tmdb.org/t/p/w342${movie.poster_path}`
-                : '/placeholder-movie.jpg'
-            }
-            alt={movie.title}
-            loading="lazy"
-            sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
+            component={Link}
+            to={`/movie/${movie.id}`}
+            sx={{ display: 'block', width: '100%', height: '100%' }}
+          >
+            <Box
+              component="img"
+              src={
+                movie.poster_path
+                  ? `https://image.tmdb.org/t/p/w185${movie.poster_path}`
+                  : '/placeholder-movie.jpg'
+              }
+              alt={movie.title}
+              loading="lazy"
+              sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </Box>
           {score && (
             <Box
               sx={{
                 position: 'absolute',
-                top: 8,
-                right: 8,
-                px: 0.7,
-                py: 0.2,
-                borderRadius: 0.75,
-                fontSize: '0.7rem',
+                top: 5,
+                right: 5,
+                px: 0.5,
+                py: 0.1,
+                borderRadius: 0.5,
+                fontSize: '0.62rem',
                 fontWeight: 700,
+                lineHeight: 1.4,
                 color: 'var(--rl-cream)',
-                backgroundColor: 'rgba(12, 11, 10, 0.82)',
-                border: '1px solid rgba(244, 239, 230, 0.18)',
+                backgroundColor: 'rgba(12, 11, 10, 0.8)',
               }}
             >
               {score}
             </Box>
           )}
-          <Box
-            className="poster-fade"
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(180deg, transparent 55%, rgba(12,11,10,0.75) 100%)',
-              opacity: 0,
-              transition: 'opacity 0.2s ease',
-              pointerEvents: 'none',
-            }}
-          />
-        </Box>
-
-        <Box sx={{ pt: 1.1, px: 0.15, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-          <Typography
-            component={Link}
-            to={`/movie/${movie.id}`}
-            sx={{
-              color: 'var(--rl-cream)',
-              textDecoration: 'none',
-              fontWeight: 600,
-              fontSize: { xs: '0.82rem', sm: '0.9rem' },
-              lineHeight: 1.3,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              '&:hover': { color: 'var(--rl-accent)' },
-            }}
-          >
-            {movie.title}
-          </Typography>
-          {year && (
-            <Typography sx={{ color: 'rgba(244,239,230,0.45)', fontSize: '0.72rem', mt: 0.25 }}>
-              {year}
-            </Typography>
-          )}
-
           <Button
             className="rate-btn"
             size="small"
@@ -409,49 +363,91 @@ const Home = () => {
               if (!isAlreadyRated) handleRateClick(movie);
             }}
             sx={{
-              mt: 'auto',
-              pt: 1,
-              alignSelf: 'flex-start',
+              position: 'absolute',
+              left: 6,
+              right: 6,
+              bottom: 6,
               minWidth: 0,
-              px: 0,
+              py: 0.35,
+              px: 0.5,
               textTransform: 'none',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              color: isAlreadyRated ? 'rgba(244,239,230,0.35)' : 'var(--rl-accent)',
-              opacity: { xs: 1, sm: isAlreadyRated ? 1 : 0.85 },
-              transition: 'opacity 0.2s ease',
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              lineHeight: 1.2,
+              borderRadius: 0.75,
+              opacity: { xs: isAlreadyRated ? 0.9 : 1, sm: isAlreadyRated ? 0.9 : 0 },
+              transition: 'opacity 0.15s ease',
+              color: isAlreadyRated ? 'rgba(244,239,230,0.7)' : 'var(--rl-ink)',
+              backgroundColor: isAlreadyRated ? 'rgba(12,11,10,0.75)' : 'var(--rl-accent)',
               '&:hover': {
-                backgroundColor: 'transparent',
-                color: isAlreadyRated ? 'rgba(244,239,230,0.35)' : 'var(--rl-accent-hover)',
+                backgroundColor: isAlreadyRated ? 'rgba(12,11,10,0.85)' : 'var(--rl-accent-hover)',
               },
-              '&.Mui-disabled': { color: 'rgba(244,239,230,0.35)' },
+              '&.Mui-disabled': {
+                color: 'rgba(244,239,230,0.7)',
+                backgroundColor: 'rgba(12,11,10,0.75)',
+              },
             }}
           >
-            {isAlreadyRated ? 'Rated' : 'Rate →'}
+            {isAlreadyRated ? 'Rated' : 'Rate'}
           </Button>
         </Box>
+
+        <Typography
+          component={Link}
+          to={`/movie/${movie.id}`}
+          title={movie.title}
+          sx={{
+            display: 'block',
+            mt: 0.6,
+            color: 'var(--rl-cream)',
+            textDecoration: 'none',
+            fontWeight: 600,
+            fontSize: '0.72rem',
+            lineHeight: 1.25,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            '&:hover': { color: 'var(--rl-accent)' },
+          }}
+        >
+          {movie.title}
+        </Typography>
+        {year && (
+          <Typography sx={{ color: 'rgba(244,239,230,0.4)', fontSize: '0.65rem', lineHeight: 1.2 }}>
+            {year}
+          </Typography>
+        )}
       </Box>
     );
   };
 
+  const posterGridSx = {
+    display: 'grid',
+    gridTemplateColumns: {
+      xs: 'repeat(3, minmax(0, 1fr))',
+      sm: 'repeat(4, minmax(0, 1fr))',
+      md: 'repeat(6, minmax(0, 1fr))',
+    },
+    gap: { xs: 1, sm: 1.25 },
+  };
+
   const SuggestionSkeleton = () => (
-    <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+    <Box sx={posterGridSx}>
       {Array.from({ length: 8 }).map((_, i) => (
-        <Grid item xs={6} sm={4} md={3} key={i}>
+        <Box key={i}>
           <Skeleton
             variant="rectangular"
             sx={{
               aspectRatio: '2 / 3',
               width: '100%',
-              borderRadius: 1.5,
+              borderRadius: 1,
               bgcolor: 'rgba(244,239,230,0.06)',
             }}
           />
-          <Skeleton width="80%" sx={{ mt: 1, bgcolor: 'rgba(244,239,230,0.06)' }} />
-          <Skeleton width="40%" sx={{ bgcolor: 'rgba(244,239,230,0.04)' }} />
-        </Grid>
+          <Skeleton width="75%" height={12} sx={{ mt: 0.6, bgcolor: 'rgba(244,239,230,0.06)' }} />
+        </Box>
       ))}
-    </Grid>
+    </Box>
   );
 
   if (!isAuthenticated) {
@@ -473,35 +469,36 @@ const Home = () => {
       }}
     >
       <Container
-        maxWidth="lg"
+        maxWidth="md"
         sx={{
-          py: { xs: 3, sm: 4 },
+          py: { xs: 2.5, sm: 3 },
           px: { xs: 2, sm: 3 },
           position: 'relative',
           zIndex: 2,
         }}
       >
-        <Box sx={{ mb: { xs: 2.5, sm: 3 } }}>
-          <Typography
-            sx={{
-              fontFamily: '"Bebas Neue", sans-serif',
-              fontSize: { xs: '2.4rem', sm: '3.2rem' },
-              letterSpacing: '0.04em',
-              color: 'var(--rl-cream)',
-              lineHeight: 1,
-              mb: 0.75,
-            }}
-          >
-            For you
-          </Typography>
-          <Typography sx={{ color: 'var(--rl-muted)', maxWidth: 480, fontSize: '0.95rem' }}>
-            Picks based on your rankings{user?.username ? `, ${user.username}` : ''}.
+        <Box sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2, mb: 0.5 }}>
+            <Typography
+              sx={{
+                fontFamily: '"Bebas Neue", sans-serif',
+                fontSize: { xs: '2rem', sm: '2.5rem' },
+                letterSpacing: '0.04em',
+                color: 'var(--rl-cream)',
+                lineHeight: 1,
+              }}
+            >
+              For you
+            </Typography>
+          </Box>
+          <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem' }}>
+            From your rankings{user?.username ? ` · ${user.username}` : ''}
           </Typography>
           {rawRatings.length < 5 && (
             <Button
               component={Link}
               to="/onboarding"
-              sx={{ color: 'var(--rl-accent)', textTransform: 'none', px: 0, mt: 0.75, fontSize: '0.875rem' }}
+              sx={{ color: 'var(--rl-accent)', textTransform: 'none', px: 0, mt: 0.5, fontSize: '0.8rem' }}
             >
               Rank 5 films to sharpen these →
             </Button>
@@ -688,13 +685,11 @@ const Home = () => {
                 )}
               </Box>
             ) : (
-              <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+              <Box sx={posterGridSx}>
                 {moviesToShow.map((movie) => (
-                  <Grid item xs={6} sm={4} md={3} key={movie.id}>
-                    <MovieCard movie={movie} />
-                  </Grid>
+                  <MovieCard key={movie.id} movie={movie} />
                 ))}
-              </Grid>
+              </Box>
             )}
           </Box>
         )}
