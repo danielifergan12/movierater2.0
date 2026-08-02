@@ -84,7 +84,7 @@ const Onboarding = () => {
             Go to home
           </Button>
         ) : (
-          <Button component={Link} to="/rate" sx={{ color: 'var(--rl-muted)', textTransform: 'none', mb: 3, px: 0 }}>
+          <Button component={Link} to="/search" sx={{ color: 'var(--rl-muted)', textTransform: 'none', mb: 3, px: 0 }}>
             Or search any movie →
           </Button>
         )}

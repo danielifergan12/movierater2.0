@@ -88,9 +88,6 @@ const Navbar = () => {
                 <Button color="inherit" startIcon={<StarIcon />} onClick={() => go('/rankings')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', sm: 'inline-flex' } }}>
                   Rankings
                 </Button>
-                <Button color="inherit" startIcon={<MovieIcon />} onClick={() => go('/rate')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', sm: 'inline-flex' } }}>
-                  Rate
-                </Button>
                 <Button color="inherit" startIcon={<FeedIcon />} onClick={() => go('/feed')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', md: 'inline-flex' } }}>
                   Feed
                 </Button>

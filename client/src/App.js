@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -15,7 +15,6 @@ import Search from './pages/Search';
 import Feed from './pages/Feed';
 import MyRankings from './pages/MyRankings';
 import ProtectedRoute from './components/ProtectedRoute';
-import Rate from './pages/Rate';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import GoogleCallback from './pages/GoogleCallback';
@@ -186,11 +185,7 @@ function AppContent() {
             <Feed />
           </ProtectedRoute>
         } />
-        <Route path="/rate" element={
-          <ProtectedRoute>
-            <Rate />
-          </ProtectedRoute>
-        } />
+        <Route path="/rate" element={<Navigate to="/" replace />} />
         <Route path="/rankings" element={<MyRankings />} />
         <Route path="/watchlist" element={
           <ProtectedRoute>
