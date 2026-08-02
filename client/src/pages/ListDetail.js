@@ -4,7 +4,6 @@ import {
   Container,
   Typography,
   Box,
-  Grid,
   Button,
   IconButton,
   CircularProgress,
@@ -147,7 +146,6 @@ const ListDetail = () => {
       ...response.data,
       user: prev.user,
     }));
-    setToast({ open: true, message: `Added “${payload.title}”`, severity: 'success' });
     return response.data;
   };
 
@@ -164,6 +162,7 @@ const ListDetail = () => {
   }
 
   const isOwner = isAuthenticated && user && list.user._id === user._id;
+  const movies = list.movies || [];
 
   return (
     <Box
@@ -176,9 +175,9 @@ const ListDetail = () => {
       }}
     >
       <Container
-        maxWidth="lg"
+        maxWidth="md"
         sx={{
-          py: { xs: 2, sm: 3 },
+          py: { xs: 1.5, sm: 2.5 },
           px: { xs: 2, sm: 3 },
           position: 'relative',
           zIndex: 1,
@@ -188,245 +187,212 @@ const ListDetail = () => {
           flexDirection: 'column',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5, gap: 1.5, flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25, flexShrink: 0 }}>
           <IconButton
+            size="small"
             onClick={() => navigate('/lists')}
             sx={{
               color: 'var(--rl-cream)',
-              mt: 0.5,
               '&:hover': { color: 'var(--rl-accent)', backgroundColor: 'rgba(244,239,230,0.06)' },
             }}
           >
-            <ArrowBackIcon />
+            <ArrowBackIcon fontSize="small" />
           </IconButton>
-          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Typography sx={{ ...socialTitleSx, fontSize: { xs: '1.85rem', sm: '2.4rem' } }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              sx={{
+                ...socialTitleSx,
+                fontSize: { xs: '1.55rem', sm: '1.9rem' },
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {list.name}
             </Typography>
-            {list.description && (
-              <Typography sx={{ ...socialSubtitleSx, mt: 0.75, fontSize: '0.9rem' }}>
-                {list.description}
-              </Typography>
-            )}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, flexWrap: 'wrap' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Avatar src={list.user?.profilePicture} sx={{ width: 28, height: 28, fontSize: '0.85rem' }}>
-                  {list.user?.username?.charAt(0).toUpperCase()}
-                </Avatar>
-                <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem' }}>
-                  {list.user?.username}
-                </Typography>
-              </Box>
-              <Chip
-                label={list.isPublic ? 'Public' : 'Private'}
-                size="small"
-                sx={{
-                  backgroundColor: list.isPublic ? 'rgba(212, 160, 23, 0.2)' : 'rgba(244,239,230,0.08)',
-                  color: list.isPublic ? 'var(--rl-accent)' : 'var(--rl-muted)',
-                  fontWeight: 600,
-                  height: 24,
-                }}
-              />
-              <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem' }}>
-                {list.movies?.length || 0} {list.movies?.length === 1 ? 'movie' : 'movies'}
-              </Typography>
-              {copied && (
-                <Typography sx={{ color: 'var(--rl-accent)', fontSize: '0.8rem' }}>Link copied</Typography>
-              )}
-            </Box>
           </Box>
           {isOwner && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>
-              <IconButton
-                onClick={openEdit}
-                title="Edit list"
-                sx={{
-                  color: 'var(--rl-cream)',
-                  '&:hover': { color: 'var(--rl-accent)', backgroundColor: 'rgba(244,239,230,0.06)' },
-                }}
-              >
-                <EditIcon />
+              <IconButton size="small" onClick={openEdit} title="Edit list" sx={{ color: 'var(--rl-muted)', '&:hover': { color: 'var(--rl-accent)' } }}>
+                <EditIcon fontSize="small" />
               </IconButton>
-              <IconButton
-                onClick={handleShare}
-                title="Share list"
-                sx={{
-                  color: 'var(--rl-cream)',
-                  '&:hover': { color: 'var(--rl-accent)', backgroundColor: 'rgba(244,239,230,0.06)' },
-                }}
-              >
-                <ShareIcon />
+              <IconButton size="small" onClick={handleShare} title="Share" sx={{ color: 'var(--rl-muted)', '&:hover': { color: 'var(--rl-accent)' } }}>
+                <ShareIcon fontSize="small" />
               </IconButton>
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<AddIcon sx={{ fontSize: '1rem !important' }} />}
+                onClick={() => setAddOpen(true)}
+                sx={{ ...socialAccentBtn, py: 0.55, px: 1.5, fontSize: '0.78rem', ml: 0.5 }}
+              >
+                Add
+              </Button>
             </Box>
           )}
         </Box>
 
-        {isOwner && (
-          <Box sx={{ display: 'flex', gap: 1, mb: 1.5, flexShrink: 0, flexWrap: 'wrap' }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setAddOpen(true)}
-              sx={socialAccentBtn}
-            >
-              Add movies to your list
-            </Button>
-            <Button variant="outlined" startIcon={<EditIcon />} onClick={openEdit} sx={socialGhostBtn}>
-              Edit list
-            </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5, flexShrink: 0, flexWrap: 'wrap', pl: { xs: 5, sm: 5.5 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Avatar src={list.user?.profilePicture} sx={{ width: 22, height: 22, fontSize: '0.7rem' }}>
+              {list.user?.username?.charAt(0).toUpperCase()}
+            </Avatar>
+            <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.78rem' }}>{list.user?.username}</Typography>
           </Box>
+          <Chip
+            label={list.isPublic ? 'Public' : 'Private'}
+            size="small"
+            sx={{
+              height: 20,
+              fontSize: '0.65rem',
+              fontWeight: 600,
+              backgroundColor: list.isPublic ? 'rgba(212, 160, 23, 0.18)' : 'rgba(244,239,230,0.08)',
+              color: list.isPublic ? 'var(--rl-accent)' : 'var(--rl-muted)',
+            }}
+          />
+          <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.78rem' }}>
+            {movies.length} {movies.length === 1 ? 'movie' : 'movies'}
+          </Typography>
+          {copied && (
+            <Typography sx={{ color: 'var(--rl-accent)', fontSize: '0.75rem' }}>Link copied</Typography>
+          )}
+        </Box>
+
+        {list.description && (
+          <Typography sx={{ ...socialSubtitleSx, mb: 1.5, pl: { xs: 5, sm: 5.5 }, mt: 0, fontSize: '0.82rem' }}>
+            {list.description}
+          </Typography>
         )}
 
-        <CinemaScreen scrollable maxWidth={1100} sx={{ flex: 1, minHeight: 0, px: 0, pb: 0 }}>
-          {list.movies && list.movies.length > 0 ? (
-            <Grid container spacing={1.5}>
-              {list.movies.map((movie, index) => (
-                <Grid item xs={6} sm={4} md={3} key={movie.movieId || movie.tmdbId || index}>
+        <CinemaScreen scrollable maxWidth={820} sx={{ flex: 1, minHeight: 0, px: 0, pb: 0 }}>
+          {movies.length > 0 ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {movies.map((movie, index) => {
+                const id = movie.movieId || movie.tmdbId;
+                return (
                   <Box
+                    key={id || index}
                     sx={{
-                      position: 'relative',
-                      borderRadius: 1,
-                      overflow: 'hidden',
-                      border: '1px solid rgba(244,239,230,0.1)',
-                      bgcolor: 'rgba(244,239,230,0.03)',
-                      height: '100%',
                       display: 'flex',
-                      flexDirection: 'column',
-                      transition: 'border-color 0.2s ease',
-                      '&:hover': { borderColor: 'rgba(212, 160, 23, 0.4)' },
+                      alignItems: 'center',
+                      gap: 1.25,
+                      px: 0.75,
+                      py: 0.6,
+                      borderRadius: 1,
+                      border: '1px solid transparent',
+                      transition: 'background-color 0.15s ease, border-color 0.15s ease',
+                      '&:hover': {
+                        backgroundColor: 'rgba(244,239,230,0.04)',
+                        borderColor: 'rgba(244,239,230,0.08)',
+                      },
                     }}
                   >
-                    <Box sx={{ position: 'relative', aspectRatio: '2 / 3' }}>
+                    <Typography
+                      sx={{
+                        width: 28,
+                        flexShrink: 0,
+                        textAlign: 'right',
+                        fontFamily: '"Bebas Neue", sans-serif',
+                        fontSize: '1.05rem',
+                        letterSpacing: '0.02em',
+                        color: 'var(--rl-accent)',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {index + 1}
+                    </Typography>
+
+                    <Box
+                      component={Link}
+                      to={`/movie/${id}`}
+                      sx={{
+                        width: 36,
+                        height: 54,
+                        flexShrink: 0,
+                        borderRadius: '3px',
+                        overflow: 'hidden',
+                        border: '1px solid rgba(244,239,230,0.12)',
+                        display: 'block',
+                      }}
+                    >
                       <Box
-                        component={Link}
-                        to={`/movie/${movie.movieId || movie.tmdbId}`}
-                        sx={{ display: 'block', width: '100%', height: '100%' }}
-                      >
-                        <Box
-                          component="img"
-                          src={
-                            movie.posterPath
-                              ? `https://image.tmdb.org/t/p/w500${movie.posterPath}`
-                              : '/placeholder-movie.jpg'
-                          }
-                          alt={movie.title}
-                          sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                        />
-                      </Box>
-                      {isOwner && (
-                        <IconButton
-                          size="small"
-                          sx={{
-                            position: 'absolute',
-                            top: 6,
-                            right: 6,
-                            backgroundColor: 'rgba(12, 11, 10, 0.75)',
-                            color: 'var(--rl-muted)',
-                            '&:hover': {
-                              backgroundColor: 'rgba(12, 11, 10, 0.9)',
-                              color: '#e07050',
-                            },
-                          }}
-                          onClick={() => handleDeleteMovie(movie.movieId || movie.tmdbId)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                      <Chip
-                        label={`#${index + 1}`}
-                        size="small"
-                        sx={{
-                          position: 'absolute',
-                          top: 6,
-                          left: 6,
-                          backgroundColor: 'rgba(212, 160, 23, 0.9)',
-                          color: '#0c0b0a',
-                          fontWeight: 700,
-                          height: 22,
-                          fontSize: '0.7rem',
-                        }}
+                        component="img"
+                        src={
+                          movie.posterPath
+                            ? `https://image.tmdb.org/t/p/w92${movie.posterPath}`
+                            : '/placeholder-movie.jpg'
+                        }
+                        alt=""
+                        sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                       />
                     </Box>
-                    <Box sx={{ p: 1.25, flex: 1, display: 'flex', flexDirection: 'column' }}>
+
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography
                         component={Link}
-                        to={`/movie/${movie.movieId || movie.tmdbId}`}
+                        to={`/movie/${id}`}
                         sx={{
                           color: 'var(--rl-cream)',
                           textDecoration: 'none',
                           fontWeight: 600,
-                          fontSize: '0.85rem',
+                          fontSize: '0.88rem',
                           lineHeight: 1.3,
-                          mb: 0.35,
-                          '&:hover': { color: 'var(--rl-accent)' },
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
+                          display: 'block',
                           overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          '&:hover': { color: 'var(--rl-accent)' },
                         }}
                       >
                         {movie.title}
                       </Typography>
-                      {movie.releaseDate && (
-                        <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.75rem', mb: 0.75 }}>
-                          {new Date(movie.releaseDate).getFullYear()}
-                        </Typography>
-                      )}
-                      {movie.note && (
-                        <Typography
-                          sx={{
-                            color: 'var(--rl-muted)',
-                            fontStyle: 'italic',
-                            fontSize: '0.75rem',
-                            mb: 1,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          &ldquo;{movie.note}&rdquo;
-                        </Typography>
-                      )}
-                      <Button
-                        size="small"
-                        component={Link}
-                        to={`/movie/${movie.movieId || movie.tmdbId}`}
-                        sx={{ ...socialGhostBtn, mt: 'auto', alignSelf: 'flex-start', px: 1.25, py: 0.35, fontSize: '0.75rem' }}
-                      >
-                        View
-                      </Button>
+                      <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.72rem', mt: 0.15 }}>
+                        {movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : '—'}
+                        {movie.note ? ` · ${movie.note}` : ''}
+                      </Typography>
                     </Box>
+
+                    {isOwner && (
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteMovie(id)}
+                        sx={{
+                          color: 'rgba(244,239,230,0.35)',
+                          '&:hover': { color: '#e07050', backgroundColor: 'rgba(224,112,80,0.08)' },
+                        }}
+                        aria-label={`Remove ${movie.title}`}
+                      >
+                        <DeleteIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    )}
                   </Box>
-                </Grid>
-              ))}
-            </Grid>
+                );
+              })}
+            </Box>
           ) : (
-            <Box sx={{ textAlign: 'center', py: 6, px: 2 }}>
+            <Box sx={{ textAlign: 'center', py: 5, px: 2 }}>
               <Typography
                 sx={{
                   color: 'var(--rl-cream)',
                   fontFamily: '"Bebas Neue", sans-serif',
-                  fontSize: '1.5rem',
+                  fontSize: '1.35rem',
                   letterSpacing: '0.04em',
-                  mb: 1,
+                  mb: 0.75,
                 }}
               >
-                This list is empty
+                Empty list
               </Typography>
-              <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.9rem', mb: isOwner ? 2.5 : 0 }}>
-                {isOwner
-                  ? 'Add movies to your list to get started.'
-                  : "This list doesn't have any movies yet."}
+              <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem', mb: isOwner ? 2 : 0 }}>
+                {isOwner ? 'Add films from search or your rankings.' : 'No movies yet.'}
               </Typography>
               {isOwner && (
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={() => setAddOpen(true)}
-                  sx={socialAccentBtn}
+                  sx={{ ...socialAccentBtn, py: 0.7 }}
                 >
-                  Add movies to your list
+                  Add movies
                 </Button>
               )}
             </Box>
@@ -441,13 +407,14 @@ const ListDetail = () => {
         onAdded={handleAddMoviePayload}
       />
 
-      <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: dialogPaperSx }}>
-        <DialogTitle sx={{ color: 'var(--rl-cream)', fontFamily: '"Bebas Neue", sans-serif', letterSpacing: '0.04em' }}>
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="xs" PaperProps={{ sx: dialogPaperSx }}>
+        <DialogTitle sx={{ color: 'var(--rl-cream)', fontFamily: '"Bebas Neue", sans-serif', letterSpacing: '0.04em', fontSize: '1.4rem' }}>
           Edit list
         </DialogTitle>
         <DialogContent>
           <TextField
             fullWidth
+            size="small"
             label="List name"
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
@@ -462,14 +429,15 @@ const ListDetail = () => {
           />
           <TextField
             fullWidth
+            size="small"
             multiline
-            rows={3}
+            rows={2}
             label="Description"
             value={editDescription}
             onChange={(e) => setEditDescription(e.target.value)}
             inputProps={{ maxLength: 500 }}
             sx={{
-              mb: 2,
+              mb: 1.5,
               ...socialFieldSx,
               '& .MuiInputLabel-root': { color: 'var(--rl-muted)' },
               '& .MuiInputLabel-root.Mui-focused': { color: 'var(--rl-accent)' },
@@ -478,6 +446,7 @@ const ListDetail = () => {
           <FormControlLabel
             control={
               <Switch
+                size="small"
                 checked={editPublic}
                 onChange={(e) => setEditPublic(e.target.checked)}
                 sx={{
@@ -488,26 +457,26 @@ const ListDetail = () => {
                 }}
               />
             }
-            label="Public list"
+            label={<Typography sx={{ fontSize: '0.85rem' }}>Public list</Typography>}
             sx={{ color: 'var(--rl-cream)', ml: 0 }}
           />
           {editError && (
-            <Typography sx={{ color: '#e07050', mt: 1.5, fontSize: '0.9rem' }}>{editError}</Typography>
+            <Typography sx={{ color: '#e07050', mt: 1.5, fontSize: '0.85rem' }}>{editError}</Typography>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setEditOpen(false)} sx={{ ...socialGhostBtn, border: 'none' }}>
+        <DialogActions sx={{ px: 2.5, pb: 2 }}>
+          <Button onClick={() => setEditOpen(false)} sx={{ ...socialGhostBtn, border: 'none', py: 0.5 }}>
             Cancel
           </Button>
-          <Button variant="contained" onClick={handleSaveEdit} disabled={editSaving} sx={socialAccentBtn}>
-            {editSaving ? <CircularProgress size={20} sx={{ color: 'var(--rl-ink)' }} /> : 'Save'}
+          <Button variant="contained" onClick={handleSaveEdit} disabled={editSaving} sx={{ ...socialAccentBtn, py: 0.6 }}>
+            {editSaving ? <CircularProgress size={18} sx={{ color: 'var(--rl-ink)' }} /> : 'Save'}
           </Button>
         </DialogActions>
       </Dialog>
 
       <Snackbar
         open={toast.open}
-        autoHideDuration={2500}
+        autoHideDuration={2200}
         onClose={() => setToast((t) => ({ ...t, open: false }))}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
