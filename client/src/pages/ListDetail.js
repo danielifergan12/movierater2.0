@@ -30,7 +30,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import api from '../config/axios';
 import CinemaScreen from '../components/CinemaScreen';
-import AutocompleteSearch from '../components/AutocompleteSearch';
+import AddMoviesToListDialog from '../components/AddMoviesToListDialog';
 import {
   socialPageShellSx,
   socialTitleSx,
@@ -47,17 +47,6 @@ const dialogPaperSx = {
   boxShadow: '0 24px 64px rgba(0,0,0,0.55)',
 };
 
-const toPosterPath = (movie) => {
-  if (movie.poster_path) return movie.poster_path;
-  if (movie.posterPath) return movie.posterPath;
-  if (movie.posterUrl?.startsWith('http')) {
-    return movie.posterUrl
-      .replace('https://image.tmdb.org/t/p/w500', '')
-      .replace('https://image.tmdb.org/t/p/w780', '');
-  }
-  return '';
-};
-
 const ListDetail = () => {
   const { listId } = useParams();
   const { user, isAuthenticated } = useAuth();
@@ -65,8 +54,7 @@ const ListDetail = () => {
   const [list, setList] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
-  const [adding, setAdding] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -152,30 +140,15 @@ const ListDetail = () => {
     }
   };
 
-  const handleAddMovie = async (movie) => {
-    if (!movie?.id || adding) return;
-    setAdding(true);
-    try {
-      const response = await api.post(`/api/lists/${listId}/movies`, {
-        movieId: String(movie.id),
-        tmdbId: Number(movie.id),
-        title: movie.title,
-        posterPath: toPosterPath(movie),
-        releaseDate: movie.release_date || movie.releaseDate || null,
-      });
-      setList((prev) => ({
-        ...prev,
-        ...response.data,
-        user: prev.user,
-      }));
-      setToast({ open: true, message: `Added “${movie.title}”`, severity: 'success' });
-      setShowAdd(true);
-    } catch (error) {
-      const msg = error.response?.data?.message || 'Could not add movie';
-      setToast({ open: true, message: msg, severity: 'error' });
-    } finally {
-      setAdding(false);
-    }
+  const handleAddMoviePayload = async (payload) => {
+    const response = await api.post(`/api/lists/${listId}/movies`, payload);
+    setList((prev) => ({
+      ...prev,
+      ...response.data,
+      user: prev.user,
+    }));
+    setToast({ open: true, message: `Added “${payload.title}”`, severity: 'success' });
+    return response.data;
   };
 
   if (loading) {
@@ -293,43 +266,14 @@ const ListDetail = () => {
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => setShowAdd((v) => !v)}
+              onClick={() => setAddOpen(true)}
               sx={socialAccentBtn}
             >
-              {showAdd ? 'Hide search' : 'Add movies to your list'}
+              Add movies to your list
             </Button>
             <Button variant="outlined" startIcon={<EditIcon />} onClick={openEdit} sx={socialGhostBtn}>
               Edit list
             </Button>
-          </Box>
-        )}
-
-        {isOwner && showAdd && (
-          <Box
-            sx={{
-              mb: 1.5,
-              flexShrink: 0,
-              p: 1.5,
-              borderRadius: 1,
-              border: '1px solid rgba(244,239,230,0.12)',
-              bgcolor: 'rgba(244,239,230,0.03)',
-              position: 'relative',
-              zIndex: 5,
-            }}
-          >
-            <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem', mb: 1 }}>
-              Search and tap a film to add it.
-            </Typography>
-            <AutocompleteSearch
-              onMovieSelect={handleAddMovie}
-              placeholder="Add movies to your list…"
-            />
-            {adding && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                <CircularProgress size={16} sx={{ color: 'var(--rl-accent)' }} />
-                <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.8rem' }}>Adding…</Typography>
-              </Box>
-            )}
           </Box>
         )}
 
@@ -479,7 +423,7 @@ const ListDetail = () => {
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={() => setShowAdd(true)}
+                  onClick={() => setAddOpen(true)}
                   sx={socialAccentBtn}
                 >
                   Add movies to your list
@@ -489,6 +433,13 @@ const ListDetail = () => {
           )}
         </CinemaScreen>
       </Container>
+
+      <AddMoviesToListDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        list={list}
+        onAdded={handleAddMoviePayload}
+      />
 
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: dialogPaperSx }}>
         <DialogTitle sx={{ color: 'var(--rl-cream)', fontFamily: '"Bebas Neue", sans-serif', letterSpacing: '0.04em' }}>
