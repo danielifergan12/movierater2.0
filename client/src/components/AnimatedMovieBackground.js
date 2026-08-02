@@ -197,6 +197,8 @@ const AnimatedMovieBackground = () => {
     objectFit: 'cover',
     objectPosition: 'center 30%',
     filter: 'saturate(0.9) contrast(1.04)',
+    // No per-image scale — zoom lives on the wrapper so swaps never jump
+    transform: 'none',
   };
 
   return (
@@ -216,37 +218,53 @@ const AnimatedMovieBackground = () => {
         backgroundPosition: 'center 30%',
       }}
     >
+      {/* Continuous Ken Burns on a stable wrapper — never resets when images crossfade */}
       <Box
-        component="img"
-        src={current}
-        alt=""
-        decoding="async"
-        fetchPriority="high"
-        onLoad={() => setFirstReady(true)}
         sx={{
-          ...frameSx,
-          opacity: firstReady || current !== STARTER ? 1 : 0.001,
-          transform: 'scale(1.03)',
+          position: 'absolute',
+          inset: '-4%',
           zIndex: 0,
-          transition: 'opacity 0.35s ease',
+          animation: 'landingKenBurns 28s ease-in-out infinite alternate',
+          '@keyframes landingKenBurns': {
+            from: { transform: 'scale(1) translate(0, 0)' },
+            to: { transform: 'scale(1.06) translate(-1.2%, -0.8%)' },
+          },
+          '@media (prefers-reduced-motion: reduce)': {
+            animation: 'none',
+            inset: 0,
+          },
         }}
-      />
-
-      {incoming && (
+      >
         <Box
           component="img"
-          src={incoming}
+          src={current}
           alt=""
           decoding="async"
+          fetchPriority="high"
+          onLoad={() => setFirstReady(true)}
           sx={{
             ...frameSx,
-            opacity: incomingVisible ? 1 : 0,
-            transform: incomingVisible ? 'scale(1.03)' : 'scale(1)',
-            transition: 'opacity 0.75s ease, transform 2.8s ease-out',
-            zIndex: 1,
+            opacity: firstReady || current !== STARTER ? 1 : 0.001,
+            zIndex: 0,
+            transition: 'opacity 0.35s ease',
           }}
         />
-      )}
+
+        {incoming && (
+          <Box
+            component="img"
+            src={incoming}
+            alt=""
+            decoding="async"
+            sx={{
+              ...frameSx,
+              opacity: incomingVisible ? 1 : 0,
+              transition: 'opacity 0.75s ease',
+              zIndex: 1,
+            }}
+          />
+        )}
+      </Box>
 
       <Box
         sx={{
