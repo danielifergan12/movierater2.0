@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { MovieProvider } from './contexts/MovieContext';
+import { RatingsProvider } from './hooks/useRatings';
 import Navbar from './components/Navbar';
 import AnimatedMovieBackground from './components/AnimatedMovieBackground';
 import Home from './pages/Home';
@@ -227,9 +228,11 @@ function App() {
       <CssBaseline />
       <AuthProvider>
         <MovieProvider>
-          <Router>
-            <AppContent />
-          </Router>
+          <RatingsProvider>
+            <Router>
+              <AppContent />
+            </Router>
+          </RatingsProvider>
         </MovieProvider>
       </AuthProvider>
     </ThemeProvider>
