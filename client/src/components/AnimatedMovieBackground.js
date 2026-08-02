@@ -2,50 +2,59 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
 import api from '../config/axios';
 
-const tmdb = (path) => `https://image.tmdb.org/t/p/w780${path}`;
+/** High-res TMDB stills (w1280). Paths verified against the API. */
+const tmdb = (path) => `https://image.tmdb.org/t/p/w1280${path}`;
 
 const FAMOUS_BACKDROPS = [
   tmdb('/62HCnUTziyWcpDaBO2i1DX17ljH.jpg'), // The Dark Knight
   tmdb('/qJ2tW6WMUDux911r6m7haRef0WH.jpg'), // The Dark Knight Rises
-  tmdb('/9BUvAuEgjPIbOcZD4VaUymGm5P5.jpg'), // Interstellar
+  tmdb('/5XNQBqnBwPA9yT0jZ0p3s8bbLh0.jpg'), // Interstellar
   tmdb('/s3TBrRGB1iav7gFOCNx3H31MoES.jpg'), // Inception
   tmdb('/8ZTVqvKDQ8emSGUEMjsS4yHAwrp.jpg'), // The Matrix
   tmdb('/suaEOtk1N1sgg2MTM7oZd2cfVp3.jpg'), // Pulp Fiction
-  tmdb('/sR0SpCrXamlIwDaEKzX8Y7zR3l.jpg'), // Dune
-  tmdb('/xOMo8BhajgPeH3WoALzIxBo61bs.jpg'), // Dune: Part Two
+  tmdb('/qVgZu5BTx6pu4owCvVOm4zjTfOi.jpg'), // Dune
+  tmdb('/eZ239CUp1d6OryZEBPnO2n87gMG.jpg'), // Dune: Part Two
   tmdb('/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg'), // Oppenheimer
   tmdb('/nHf61UzkfFno5X1ofIhugCPus2R.jpg'), // Barbie
-  tmdb('/5YZbUmjbMa3KiaT5FCvjYgXEUO.jpg'), // Avengers: Endgame
+  tmdb('/91iy9F1JOG1dvM6M6JNYgvScZpK.jpg'), // Avengers: Endgame
   tmdb('/7RyHsO4yDXtBv1zUU3mTpHeQ0d5.jpg'), // Avengers: Infinity War
   tmdb('/2u7zbn8EudG6kLlBzUYqP8RyFU4.jpg'), // LOTR: Return of the King
-  tmdb('/x2RS3axTcjS7zlPCE7S6EclJbP7.jpg'), // LOTR: Fellowship
-  tmdb('/6oom5QYQ2kQIg1B86jcV7pJWfB9.jpg'), // Harry Potter
-  tmdb('/qdIMHd4sEfJSckfVJfKQvisLrpB.jpg'), // Forrest Gump
-  tmdb('/aKuFifDtsTfTdKk08pCCuHnMd9e.jpg'), // Parasite
-  tmdb('/2e7FcVW5CTyLpiRdM9ihzplOFw.jpg'), // Gladiator
+  tmdb('/mWDdRXTivGE7aaY2vo1Ie0PfCX5.jpg'), // LOTR: Fellowship
+  tmdb('/1XAC6RPT01UX9EQGy2JVn5c8pgy.jpg'), // Harry Potter
+  tmdb('/66Kn4XWhkuPkJxOJyPEx4U2CUfN.jpg'), // Forrest Gump
+  tmdb('/vbC0rzdrb7Ohc2TkbEbxtOABECe.jpg'), // Parasite
+  tmdb('/jhk6D8pim3yaByu1801kMoxXFaX.jpg'), // Gladiator
   tmdb('/yYrvN5WFeGYjJnRzhY0QXuo4Isw.jpg'), // Black Panther
-  tmdb('/14QbnygCuTO0vl7CAFmPf1fgZfP.jpg'), // Spider-Man: No Way Home
-  tmdb('/ulMscezy9VXBgHRKQfXb7aqZ6z0.jpg'), // Star Wars
+  tmdb('/AeK2MPOpYrOOgZNfFnfwp0L8tNn.jpg'), // Spider-Man: No Way Home
+  tmdb('/yUiXA68FfQeA8cRBhd0Ao0jIRZt.jpg'), // Star Wars
   tmdb('/5Iw7zQTHVRBOYpA0V6z0yypOPZh.jpg'), // The Empire Strikes Back
-  tmdb('/tmU7GeK8LuqYZ5TvV9C2lWWq1gA.jpg'), // Top Gun: Maverick
-  tmdb('/4GFaDkGJuAJfXUWj4WaCeYhqFy7.jpg'), // Joker
+  tmdb('/AaV1YIdWKnjAIAOe8UUKBFm327v.jpg'), // Top Gun: Maverick
+  tmdb('/rlay2M5QYvi6igbGcFjq8jxeusY.jpg'), // Joker
   tmdb('/vVpEOvdxVBP2aV166j5Xlvb5Cdc.jpg'), // John Wick
-  tmdb('/6ELC905MDLy25ZVIgyNlfTC1LNV.jpg'), // Spider-Verse
-  tmdb('/3bhkrj58Vtu7enJE8tqUynJsbCk.jpg'), // The Godfather
-  tmdb('/kXfqcdQKsCnkOJ8dyICmDxls7PA.jpg'), // The Shawshank Redemption
-  tmdb('/rSPw7tgCH9c6NqICZef4kNyF2Ac.jpg'), // The Godfather Part II
-  tmdb('/uXDfjJbdP4aqTLka38Z4KkZxTe.jpg'), // Spirited Away
-  tmdb('/fCayJrkfRaCRCTh8GqN30f8oyQF.jpg'), // Fight Club
-  tmdb('/pPHgeIAl1L0C3BEtd6n0uVoYDsE.jpg'), // Goodfellas
-  tmdb('/9guoVF7zayOX0bdm7SeZCyfPBso.jpg'), // 1917
-  tmdb('/kbHIb8v6Cb8slCjEV2GQJhEQo5G.jpg'), // Guardians of the Galaxy
-  tmdb('/AmO8I38bkHwKhgxPNrdIkXc7cKV.jpg'), // La La Land
-  tmdb('/qDQ8eIWcXjKPKcByVb08IUTlEJr.jpg'), // Whiplash
+  tmdb('/8mnXR9rey5uQ08rZAvzojKWbDQS.jpg'), // Spider-Verse
+  tmdb('/tSPT36ZKlP2WVHJLM4cQPLSzv3b.jpg'), // The Godfather
+  tmdb('/zfbjgQE1uSd9wiPTX4VzsLi0rGG.jpg'), // The Shawshank Redemption
+  tmdb('/kGzFbGhp99zva6oZODW5atUtnqi.jpg'), // The Godfather Part II
+  tmdb('/dyJvKsNs2KP8qQnAXbRwDjblViy.jpg'), // Spirited Away
+  tmdb('/c6OLXfKAk5BKeR6broC8pYiCquX.jpg'), // Fight Club
+  tmdb('/gILte6Zd7m1YneIr6MVhh30S9pr.jpg'), // Goodfellas
+  tmdb('/2lBOQK06tltt8SQaswgb8d657Mv.jpg'), // 1917
+  tmdb('/vmBSlRZYKfNdaDZ7wGkrSNbmdMI.jpg'), // Guardians of the Galaxy
+  tmdb('/nlPCdZlHtRNcF6C9hzUH4ebmV1w.jpg'), // La La Land
+  tmdb('/wbQa0EnWUyRzQ5d1pHLNRlmsCUP.jpg'), // Whiplash
   tmdb('/iNh3BivHyg5sQRPP1KOkzguEX0H.jpg'), // The Green Mile
-  tmdb('/mfwq2nMBxSlGJyo7oDxKjtD9WtA.jpg'), // The Departed
-  tmdb('/c7bglX1Id0r0Y6kfvJJdZBYdM8m.jpg'), // Titanic
-  tmdb('/dIWwZW7dJJtqCtyKg4RVOwQHmBZ.jpg'), // Howl's Moving Castle
+  tmdb('/6WRrGYalXXveItfpnipYdayFkQB.jpg'), // The Departed
+  tmdb('/xnHVX37XZEp33hhCbYlQFq7ux1J.jpg'), // Titanic
+  tmdb('/nv5wwZou159v5OC61i4ElR7OqyY.jpg'), // Howl's Moving Castle
 ];
+
+const STARTER = FAMOUS_BACKDROPS[3]; // Inception — always show a known-good still first
+
+// Kick off the first high-res download as soon as this module loads
+if (typeof window !== 'undefined') {
+  const warm = new Image();
+  warm.src = STARTER;
+}
 
 const shuffle = (items) => {
   const next = [...items];
@@ -69,17 +78,22 @@ const preload = (src) =>
   });
 
 const AnimatedMovieBackground = () => {
-  const poolRef = useRef(shuffle(FAMOUS_BACKDROPS));
-  const recentRef = useRef([]);
-  const [current, setCurrent] = useState(poolRef.current[0]);
+  const poolRef = useRef([...FAMOUS_BACKDROPS]);
+  const recentRef = useRef([STARTER]);
+  const readyRef = useRef(new Set([STARTER]));
+  const [current, setCurrent] = useState(STARTER);
   const [incoming, setIncoming] = useState(null);
   const [incomingVisible, setIncomingVisible] = useState(false);
+  const [firstReady, setFirstReady] = useState(false);
 
   const pickNextUrl = () => {
     const pool = poolRef.current;
     if (pool.length < 2) return pool[0];
     const avoid = new Set([current, incoming, ...recentRef.current].filter(Boolean));
-    let candidates = pool.filter((url) => !avoid.has(url));
+    let candidates = pool.filter((url) => !avoid.has(url) && readyRef.current.has(url));
+    if (candidates.length === 0) {
+      candidates = pool.filter((url) => url !== current && readyRef.current.has(url));
+    }
     if (candidates.length === 0) {
       candidates = pool.filter((url) => url !== current);
     }
@@ -88,10 +102,23 @@ const AnimatedMovieBackground = () => {
     return next;
   };
 
-  // Enrich pool with famous API titles (doesn't interrupt current image)
+  // Enrich + warm the rest of the pool (never interrupts the visible still)
   useEffect(() => {
     let cancelled = false;
+
+    const warmPool = async (urls) => {
+      for (const url of urls) {
+        if (cancelled) return;
+        if (readyRef.current.has(url)) continue;
+        const ok = await preload(url);
+        if (ok) readyRef.current.add(url);
+      }
+    };
+
     (async () => {
+      // Warm famous stills in the background
+      warmPool(shuffle(FAMOUS_BACKDROPS.filter((u) => u !== STARTER)));
+
       try {
         const [trending, popular] = await Promise.all([
           api.get('/api/movies/trending/week').catch(() => ({ data: { results: [] } })),
@@ -100,52 +127,59 @@ const AnimatedMovieBackground = () => {
         const fromApi = [...(trending.data?.results || []), ...(popular.data?.results || [])]
           .filter((m) => m?.backdrop_path && (m.vote_count || 0) >= 5000)
           .map((m) => tmdb(m.backdrop_path));
-        if (!cancelled) {
-          poolRef.current = shuffle([...new Set([...FAMOUS_BACKDROPS, ...fromApi])]);
-        }
+        if (cancelled) return;
+        const merged = [...new Set([...FAMOUS_BACKDROPS, ...fromApi])];
+        poolRef.current = merged;
+        warmPool(fromApi);
       } catch (e) {
         console.error('Error fetching hero backdrops:', e);
       }
     })();
+
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Preload first image, then rotate with dual-buffer (current stays until next is ready)
+  // Dual-buffer rotation: current stays up until the next high-res still is fully loaded
   useEffect(() => {
     let cancelled = false;
     let timer;
 
     const advance = async () => {
       const nextUrl = pickNextUrl();
-      const ok = await preload(nextUrl);
-      if (cancelled || !ok) {
-        timer = setTimeout(advance, 1200);
+      const ok = readyRef.current.has(nextUrl) || (await preload(nextUrl));
+      if (cancelled) return;
+      if (!ok) {
+        timer = setTimeout(advance, 800);
         return;
       }
+      readyRef.current.add(nextUrl);
 
       setIncoming(nextUrl);
-      // Let the browser paint the incoming img at opacity 0, then fade it in
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (cancelled) return;
           setIncomingVisible(true);
-          // After crossfade, promote incoming → current (no black gap)
           setTimeout(() => {
             if (cancelled) return;
             setCurrent(nextUrl);
             setIncoming(null);
             setIncomingVisible(false);
-            timer = setTimeout(advance, 2600);
-          }, 700);
+            timer = setTimeout(advance, 2800);
+          }, 750);
         });
       });
     };
 
     (async () => {
-      await preload(current);
-      if (!cancelled) timer = setTimeout(advance, 2400);
+      const ok = await preload(STARTER);
+      if (cancelled) return;
+      if (ok) {
+        readyRef.current.add(STARTER);
+        setFirstReady(true);
+      }
+      timer = setTimeout(advance, 2600);
     })();
 
     return () => {
@@ -162,7 +196,7 @@ const AnimatedMovieBackground = () => {
     height: '100%',
     objectFit: 'cover',
     objectPosition: 'center 30%',
-    filter: 'saturate(0.85) contrast(1.05)',
+    filter: 'saturate(0.9) contrast(1.04)',
   };
 
   return (
@@ -176,32 +210,39 @@ const AnimatedMovieBackground = () => {
         overflow: 'hidden',
         pointerEvents: 'none',
         backgroundColor: '#0c0b0a',
+        // Instant paint from CSS while the <img> decodes (same high-res URL, browser cache shared)
+        backgroundImage: `url(${STARTER})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center 30%',
       }}
     >
-      {/* Base frame — always fully visible */}
       <Box
         component="img"
         src={current}
         alt=""
+        decoding="async"
+        fetchPriority="high"
+        onLoad={() => setFirstReady(true)}
         sx={{
           ...frameSx,
-          opacity: 1,
+          opacity: firstReady || current !== STARTER ? 1 : 0.001,
           transform: 'scale(1.03)',
           zIndex: 0,
+          transition: 'opacity 0.35s ease',
         }}
       />
 
-      {/* Incoming frame fades over the base — never leaves a black hole */}
       {incoming && (
         <Box
           component="img"
           src={incoming}
           alt=""
+          decoding="async"
           sx={{
             ...frameSx,
             opacity: incomingVisible ? 1 : 0,
             transform: incomingVisible ? 'scale(1.03)' : 'scale(1)',
-            transition: 'opacity 0.7s ease, transform 2.6s ease-out',
+            transition: 'opacity 0.75s ease, transform 2.8s ease-out',
             zIndex: 1,
           }}
         />
