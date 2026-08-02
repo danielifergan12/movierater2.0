@@ -389,7 +389,7 @@ const MyRankings = () => {
   return (
     <Box
       sx={{
-        height: { xs: 'calc(100dvh - 64px)', sm: 'calc(100dvh - 72px)' },
+        height: { xs: 'calc(100dvh - 56px)', sm: 'calc(100dvh - 64px)' },
         bgcolor: '#0c0b0a',
         position: 'relative',
         overflow: 'hidden',
@@ -431,7 +431,7 @@ const MyRankings = () => {
       <Container
         maxWidth="lg"
         sx={{
-          py: { xs: 2, sm: 3 },
+          py: { xs: 1, sm: 1.5 },
           px: { xs: 2, sm: 3 },
           position: 'relative',
           zIndex: 1,
@@ -445,12 +445,12 @@ const MyRankings = () => {
           <Alert severity="success" onClose={() => setSnack({ open: false, message: '' })}>{snack.message}</Alert>
         </Snackbar>
 
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 2, flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 1.25, flexShrink: 0 }}>
           <Box>
-            <Typography sx={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: { xs: '2rem', sm: '2.6rem' }, letterSpacing: '0.04em', color: 'var(--rl-cream)', lineHeight: 1 }}>
+            <Typography sx={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: { xs: '1.85rem', sm: '2.35rem' }, letterSpacing: '0.04em', color: 'var(--rl-cream)', lineHeight: 1 }}>
               My Rankings
             </Typography>
-            <Typography sx={{ color: 'var(--rl-muted)', mt: 0.5, fontSize: '0.9rem' }}>
+            <Typography sx={{ color: 'var(--rl-muted)', mt: 0.35, fontSize: '0.85rem' }}>
               {filteredAndSortedRatings.length === rawRatings.length
                 ? `${rawRatings.length} movies · ordered by preference`
                 : `${filteredAndSortedRatings.length} of ${rawRatings.length} movies`}
@@ -480,7 +480,7 @@ const MyRankings = () => {
             ),
           }}
           sx={{
-            mb: 1.5,
+            mb: 0.75,
             flexShrink: 0,
             '& .MuiOutlinedInput-root': {
               backgroundColor: 'rgba(244,239,230,0.04)',
@@ -492,7 +492,7 @@ const MyRankings = () => {
         <Button
           onClick={() => setShowAdvancedFilters((v) => !v)}
           endIcon={showAdvancedFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          sx={{ color: 'var(--rl-muted)', textTransform: 'none', mb: 1, px: 0, flexShrink: 0, alignSelf: 'flex-start' }}
+          sx={{ color: 'var(--rl-muted)', textTransform: 'none', mb: 0.75, px: 0, flexShrink: 0, alignSelf: 'flex-start', minHeight: 32 }}
         >
           {showAdvancedFilters ? 'Hide filters' : 'More filters'}
         </Button>
@@ -511,7 +511,7 @@ const MyRankings = () => {
           </Alert>
         )}
 
-        <CinemaScreen scrollable maxWidth={1100} sx={{ flex: 1, minHeight: 0, px: 0 }}>
+        <CinemaScreen scrollable maxWidth={1100} sx={{ flex: 1, minHeight: 0, px: 0, pb: 0 }}>
           {filteredAndSortedRatings.length === 0 ? (
             <Typography sx={{ color: 'var(--rl-muted)', textAlign: 'center', py: 6 }}>
               No movies match your filters.
