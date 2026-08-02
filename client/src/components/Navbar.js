@@ -209,7 +209,7 @@ const Navbar = () => {
               pb: 1.25,
             }}
           >
-            <AutocompleteSearch onMovieSelect={(m) => go(`/movie/${m.id}`)} placeholder="Search movies" />
+            <AutocompleteSearch onMovieSelect={(m) => go(`/movie/${m.id}`)} placeholder="Search movies, actors, directors…" />
           </Box>
         )}
       </AppBar>
