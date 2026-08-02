@@ -12,7 +12,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import MovieDetail from './pages/MovieDetail';
-import Search from './pages/Search';
 import Feed from './pages/Feed';
 import MyRankings from './pages/MyRankings';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -180,7 +179,7 @@ function AppContent() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/auth/google/callback" element={<GoogleCallback />} />
-        <Route path="/search" element={<Search />} />
+        <Route path="/search" element={<Navigate to="/" replace />} />
         <Route path="/feed" element={
           <ProtectedRoute>
             <Feed />

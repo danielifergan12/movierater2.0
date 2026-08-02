@@ -830,7 +830,7 @@ const Home = () => {
                     ) : (
                       <Button
                         component={Link}
-                        to="/search"
+                        to="/onboarding"
                         sx={{
                           textTransform: 'none',
                           color: 'var(--rl-ink)',
@@ -839,7 +839,7 @@ const Home = () => {
                           '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
                         }}
                       >
-                        Search movies
+                        Rank movies
                       </Button>
                     )}
                   </Box>

@@ -94,10 +94,9 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
     }
   };
 
-  const navigateToSearchPage = () => {
-    if (query.trim().length >= 2) {
-      setShowSuggestions(false);
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+  const goToFirstSuggestion = () => {
+    if (suggestions.length > 0) {
+      handleMovieSelect(suggestions[selectedIndex >= 0 ? selectedIndex : 0]);
     }
   };
 
@@ -139,7 +138,7 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
               )}
               {query.trim().length >= 2 && (
                 <IconButton
-                  onClick={navigateToSearchPage}
+                  onClick={goToFirstSuggestion}
                   sx={{
                     color: '#00d4ff',
                     padding: { xs: 0.75, sm: 1 },

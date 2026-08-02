@@ -378,8 +378,8 @@ const MyRankings = () => {
           <Typography sx={{ color: 'var(--rl-muted)', mb: 3 }}>
             Rate a few movies to build your ordered list.
           </Typography>
-          <Button component={Link} to="/search" variant="contained" sx={{ backgroundImage: 'none', backgroundColor: 'var(--rl-accent)', color: '#140f0a' }}>
-            Search movies
+          <Button component={Link} to="/onboarding" variant="contained" sx={{ backgroundImage: 'none', backgroundColor: 'var(--rl-accent)', color: '#140f0a' }}>
+            Rank movies
           </Button>
         </Container>
       </Box>

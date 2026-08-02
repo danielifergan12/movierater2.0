@@ -300,7 +300,7 @@ const Watchlist = () => {
               <Button
                 variant="contained"
                 component={Link}
-                to="/search"
+                to="/"
                 sx={{
                   background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
                 }}

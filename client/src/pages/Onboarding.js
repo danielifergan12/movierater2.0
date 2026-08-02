@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -190,34 +190,11 @@ const Onboarding = () => {
               >
                 Enter ReelList
               </Button>
-              <Button
-                component={Link}
-                to="/search"
-                sx={{
-                  display: 'block',
-                  mt: 1.5,
-                  color: 'var(--rl-muted)',
-                  textTransform: 'none',
-                  fontSize: '0.85rem',
-                }}
-              >
-                Or keep ranking more films
-              </Button>
             </Box>
           </Fade>
         ) : (
           <Box sx={{ textAlign: 'center', mb: 2.5 }}>
-            <Button
-              component={Link}
-              to="/search"
-              sx={{ color: 'var(--rl-muted)', textTransform: 'none', fontSize: '0.82rem', mr: 1 }}
-            >
-              Search any movie
-            </Button>
-            <Typography component="span" sx={{ color: 'rgba(244,239,230,0.25)' }}>
-              ·
-            </Typography>
-            <Button onClick={skip} sx={{ color: 'var(--rl-muted)', textTransform: 'none', fontSize: '0.82rem', ml: 1 }}>
+            <Button onClick={skip} sx={{ color: 'var(--rl-muted)', textTransform: 'none', fontSize: '0.82rem' }}>
               Skip for now
             </Button>
           </Box>
