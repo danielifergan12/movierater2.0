@@ -154,17 +154,35 @@ const Lists = () => {
             {activeTab === 0 ? 'My Lists' : 'Public Lists'}
           </Typography>
           {activeTab === 0 && isAuthenticated && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              component={Link}
-              to="/lists/create"
-              sx={{
-                background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-              }}
-            >
-              Create List
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button
+                variant="outlined"
+                component={Link}
+                to="/lists/from"
+                sx={{
+                  borderColor: 'rgba(0, 212, 255, 0.45)',
+                  color: '#00d4ff',
+                  textTransform: 'none',
+                  '&:hover': {
+                    borderColor: '#00d4ff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.08)',
+                  },
+                }}
+              >
+                From your list
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                component={Link}
+                to="/lists/create"
+                sx={{
+                  background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                }}
+              >
+                Create List
+              </Button>
+            </Box>
           )}
         </Box>
 
@@ -204,16 +222,30 @@ const Lists = () => {
                 : 'No public lists available yet. Be the first to create one!'}
             </Typography>
             {activeTab === 0 && isAuthenticated && (
-              <Button
-                variant="contained"
-                component={Link}
-                to="/lists/create"
-                sx={{
-                  background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                }}
-              >
-                Create Your First List
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Button
+                  variant="outlined"
+                  component={Link}
+                  to="/lists/from"
+                  sx={{
+                    borderColor: 'rgba(0, 212, 255, 0.45)',
+                    color: '#00d4ff',
+                    textTransform: 'none',
+                  }}
+                >
+                  From your list
+                </Button>
+                <Button
+                  variant="contained"
+                  component={Link}
+                  to="/lists/create"
+                  sx={{
+                    background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                  }}
+                >
+                  Create empty list
+                </Button>
+              </Box>
             )}
           </Card>
         ) : (
