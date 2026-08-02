@@ -10,21 +10,53 @@ import {
   CircularProgress,
   Chip,
   Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControlLabel,
+  Switch,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
   Share as ShareIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../config/axios';
 import CinemaScreen from '../components/CinemaScreen';
+import AutocompleteSearch from '../components/AutocompleteSearch';
 import {
   socialPageShellSx,
   socialTitleSx,
   socialSubtitleSx,
   socialGhostBtn,
+  socialAccentBtn,
+  socialFieldSx,
 } from '../components/SocialPageShell';
+
+const dialogPaperSx = {
+  backgroundColor: 'rgba(12, 11, 10, 0.97)',
+  border: '1px solid rgba(244, 239, 230, 0.12)',
+  borderRadius: 1.5,
+  boxShadow: '0 24px 64px rgba(0,0,0,0.55)',
+};
+
+const toPosterPath = (movie) => {
+  if (movie.poster_path) return movie.poster_path;
+  if (movie.posterPath) return movie.posterPath;
+  if (movie.posterUrl?.startsWith('http')) {
+    return movie.posterUrl
+      .replace('https://image.tmdb.org/t/p/w500', '')
+      .replace('https://image.tmdb.org/t/p/w780', '');
+  }
+  return '';
+};
 
 const ListDetail = () => {
   const { listId } = useParams();
@@ -33,6 +65,15 @@ const ListDetail = () => {
   const [list, setList] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editPublic, setEditPublic] = useState(true);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     fetchList();
@@ -79,6 +120,64 @@ const ListDetail = () => {
     }
   };
 
+  const openEdit = () => {
+    setEditName(list.name || '');
+    setEditDescription(list.description || '');
+    setEditPublic(list.isPublic !== false);
+    setEditError('');
+    setEditOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) {
+      setEditError('List name is required');
+      return;
+    }
+    setEditSaving(true);
+    setEditError('');
+    try {
+      const response = await api.put(`/api/lists/${listId}`, {
+        name: editName.trim(),
+        description: editDescription.trim(),
+        isPublic: editPublic,
+      });
+      setList((prev) => ({ ...prev, ...response.data, user: prev.user }));
+      setEditOpen(false);
+      setToast({ open: true, message: 'List updated', severity: 'success' });
+    } catch (error) {
+      console.error('Error updating list:', error);
+      setEditError(error.response?.data?.message || 'Could not update list');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleAddMovie = async (movie) => {
+    if (!movie?.id || adding) return;
+    setAdding(true);
+    try {
+      const response = await api.post(`/api/lists/${listId}/movies`, {
+        movieId: String(movie.id),
+        tmdbId: Number(movie.id),
+        title: movie.title,
+        posterPath: toPosterPath(movie),
+        releaseDate: movie.release_date || movie.releaseDate || null,
+      });
+      setList((prev) => ({
+        ...prev,
+        ...response.data,
+        user: prev.user,
+      }));
+      setToast({ open: true, message: `Added “${movie.title}”`, severity: 'success' });
+      setShowAdd(true);
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Could not add movie';
+      setToast({ open: true, message: msg, severity: 'error' });
+    } finally {
+      setAdding(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ ...socialPageShellSx, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -116,7 +215,7 @@ const ListDetail = () => {
           flexDirection: 'column',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2, gap: 1.5, flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1.5, gap: 1.5, flexShrink: 0 }}>
           <IconButton
             onClick={() => navigate('/lists')}
             sx={{
@@ -164,17 +263,75 @@ const ListDetail = () => {
             </Box>
           </Box>
           {isOwner && (
-            <IconButton
-              onClick={handleShare}
-              sx={{
-                color: 'var(--rl-cream)',
-                '&:hover': { color: 'var(--rl-accent)', backgroundColor: 'rgba(244,239,230,0.06)' },
-              }}
-            >
-              <ShareIcon />
-            </IconButton>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0 }}>
+              <IconButton
+                onClick={openEdit}
+                title="Edit list"
+                sx={{
+                  color: 'var(--rl-cream)',
+                  '&:hover': { color: 'var(--rl-accent)', backgroundColor: 'rgba(244,239,230,0.06)' },
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+              <IconButton
+                onClick={handleShare}
+                title="Share list"
+                sx={{
+                  color: 'var(--rl-cream)',
+                  '&:hover': { color: 'var(--rl-accent)', backgroundColor: 'rgba(244,239,230,0.06)' },
+                }}
+              >
+                <ShareIcon />
+              </IconButton>
+            </Box>
           )}
         </Box>
+
+        {isOwner && (
+          <Box sx={{ display: 'flex', gap: 1, mb: 1.5, flexShrink: 0, flexWrap: 'wrap' }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setShowAdd((v) => !v)}
+              sx={socialAccentBtn}
+            >
+              {showAdd ? 'Hide search' : 'Add movies to your list'}
+            </Button>
+            <Button variant="outlined" startIcon={<EditIcon />} onClick={openEdit} sx={socialGhostBtn}>
+              Edit list
+            </Button>
+          </Box>
+        )}
+
+        {isOwner && showAdd && (
+          <Box
+            sx={{
+              mb: 1.5,
+              flexShrink: 0,
+              p: 1.5,
+              borderRadius: 1,
+              border: '1px solid rgba(244,239,230,0.12)',
+              bgcolor: 'rgba(244,239,230,0.03)',
+              position: 'relative',
+              zIndex: 5,
+            }}
+          >
+            <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem', mb: 1 }}>
+              Search and tap a film to add it.
+            </Typography>
+            <AutocompleteSearch
+              onMovieSelect={handleAddMovie}
+              placeholder="Add movies to your list…"
+            />
+            {adding && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                <CircularProgress size={16} sx={{ color: 'var(--rl-accent)' }} />
+                <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.8rem' }}>Adding…</Typography>
+              </Box>
+            )}
+          </Box>
+        )}
 
         <CinemaScreen scrollable maxWidth={1100} sx={{ flex: 1, minHeight: 0, px: 0, pb: 0 }}>
           {list.movies && list.movies.length > 0 ? (
@@ -313,13 +470,104 @@ const ListDetail = () => {
               >
                 This list is empty
               </Typography>
-              <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.9rem' }}>
-                {isOwner ? 'Start adding movies to your list.' : "This list doesn't have any movies yet."}
+              <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.9rem', mb: isOwner ? 2.5 : 0 }}>
+                {isOwner
+                  ? 'Add movies to your list to get started.'
+                  : "This list doesn't have any movies yet."}
               </Typography>
+              {isOwner && (
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setShowAdd(true)}
+                  sx={socialAccentBtn}
+                >
+                  Add movies to your list
+                </Button>
+              )}
             </Box>
           )}
         </CinemaScreen>
       </Container>
+
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: dialogPaperSx }}>
+        <DialogTitle sx={{ color: 'var(--rl-cream)', fontFamily: '"Bebas Neue", sans-serif', letterSpacing: '0.04em' }}>
+          Edit list
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="List name"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            inputProps={{ maxLength: 100 }}
+            sx={{
+              mt: 1,
+              mb: 2,
+              ...socialFieldSx,
+              '& .MuiInputLabel-root': { color: 'var(--rl-muted)' },
+              '& .MuiInputLabel-root.Mui-focused': { color: 'var(--rl-accent)' },
+            }}
+          />
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label="Description"
+            value={editDescription}
+            onChange={(e) => setEditDescription(e.target.value)}
+            inputProps={{ maxLength: 500 }}
+            sx={{
+              mb: 2,
+              ...socialFieldSx,
+              '& .MuiInputLabel-root': { color: 'var(--rl-muted)' },
+              '& .MuiInputLabel-root.Mui-focused': { color: 'var(--rl-accent)' },
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={editPublic}
+                onChange={(e) => setEditPublic(e.target.checked)}
+                sx={{
+                  '& .MuiSwitch-switchBase.Mui-checked': { color: 'var(--rl-accent)' },
+                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                    backgroundColor: 'var(--rl-accent)',
+                  },
+                }}
+              />
+            }
+            label="Public list"
+            sx={{ color: 'var(--rl-cream)', ml: 0 }}
+          />
+          {editError && (
+            <Typography sx={{ color: '#e07050', mt: 1.5, fontSize: '0.9rem' }}>{editError}</Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setEditOpen(false)} sx={{ ...socialGhostBtn, border: 'none' }}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={handleSaveEdit} disabled={editSaving} sx={socialAccentBtn}>
+            {editSaving ? <CircularProgress size={20} sx={{ color: 'var(--rl-ink)' }} /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={2500}
+        onClose={() => setToast((t) => ({ ...t, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity={toast.severity}
+          onClose={() => setToast((t) => ({ ...t, open: false }))}
+          sx={{ bgcolor: toast.severity === 'success' ? 'rgba(212,160,23,0.15)' : undefined }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
