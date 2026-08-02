@@ -529,11 +529,21 @@ router.get('/admin/all', auth, async (req, res) => {
 
     const total = await User.countDocuments();
 
+    const heardAboutSummary = await User.aggregate([
+      { $match: { heardAboutUs: { $exists: true, $nin: [null, ''] } } },
+      { $group: { _id: '$heardAboutUs', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+    ]);
+
     res.json({
       users,
       totalPages: Math.ceil(total / limit),
       currentPage: parseInt(page),
-      total
+      total,
+      heardAboutSummary: heardAboutSummary.map((row) => ({
+        source: row._id,
+        count: row.count,
+      })),
     });
   } catch (error) {
     console.error('Get all users (admin) error:', error);

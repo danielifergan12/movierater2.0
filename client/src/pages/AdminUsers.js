@@ -39,6 +39,7 @@ const AdminUsers = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [heardAboutSummary, setHeardAboutSummary] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -58,6 +59,7 @@ const AdminUsers = () => {
       setUsers(response.data.users || []);
       setTotalPages(response.data.totalPages || 1);
       setTotal(response.data.total || 0);
+      setHeardAboutSummary(response.data.heardAboutSummary || []);
     } catch (err) {
       console.error('Error fetching users:', err);
       setError(err.response?.data?.message || 'Failed to load users. You may not have admin access.');
@@ -178,6 +180,24 @@ const AdminUsers = () => {
           </Typography>
         </Box>
 
+        {heardAboutSummary.length > 0 && (
+          <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+            {heardAboutSummary.map((row) => (
+              <Chip
+                key={row.source}
+                label={`${row.source}: ${row.count}`}
+                size="small"
+                sx={{
+                  backgroundColor: 'rgba(212, 160, 23, 0.12)',
+                  color: '#d4a017',
+                  border: '1px solid rgba(212, 160, 23, 0.35)',
+                  fontWeight: 600,
+                }}
+              />
+            ))}
+          </Box>
+        )}
+
         {users.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <PersonIcon sx={{ fontSize: 60, color: '#ff6b35', mb: 2 }} />
@@ -202,6 +222,7 @@ const AdminUsers = () => {
                   <TableRow>
                     <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }}>User</TableCell>
                     <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }}>Email</TableCell>
+                    <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }}>Heard about</TableCell>
                     <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }} align="center">Movies Rated</TableCell>
                     <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }} align="center">Followers</TableCell>
                     <TableCell sx={{ color: '#00d4ff', fontWeight: 600, fontSize: { xs: '0.875rem', sm: '1rem' } }} align="center">Following</TableCell>
@@ -253,6 +274,22 @@ const AdminUsers = () => {
                       </TableCell>
                       <TableCell sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                         {user.email}
+                      </TableCell>
+                      <TableCell sx={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: { xs: '0.8rem', sm: '0.9rem' }, maxWidth: 180 }}>
+                        {user.heardAboutUs ? (
+                          <Box>
+                            <Typography sx={{ color: '#ffffff', fontWeight: 600, fontSize: 'inherit' }}>
+                              {user.heardAboutUs}
+                            </Typography>
+                            {user.heardAboutUs === 'Other' && user.heardAboutUsDetail && (
+                              <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.75rem' }}>
+                                {user.heardAboutUsDetail}
+                              </Typography>
+                            )}
+                          </Box>
+                        ) : (
+                          <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: 'inherit' }}>—</Typography>
+                        )}
                       </TableCell>
                       <TableCell align="center">
                         <Chip

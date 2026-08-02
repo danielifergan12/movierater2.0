@@ -105,7 +105,19 @@ const userSchema = new mongoose.Schema({
     posterPath: String,
     releaseDate: Date,
     addedAt: { type: Date, default: Date.now }
-  }]
+  }],
+  heardAboutUs: {
+    type: String,
+    default: '',
+    trim: true,
+    maxlength: 80
+  },
+  heardAboutUsDetail: {
+    type: String,
+    default: '',
+    trim: true,
+    maxlength: 200
+  }
 }, {
   timestamps: true
 });

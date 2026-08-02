@@ -7,10 +7,23 @@ import {
   Typography,
   Alert,
   CircularProgress,
+  MenuItem,
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../config/axios';
 import AuthShell, { authFieldSx, authAccentBtn, authGhostBtn } from '../components/AuthShell';
+
+const HEAR_OPTIONS = [
+  'Friend',
+  'Instagram',
+  'TikTok',
+  'Twitter/X',
+  'Reddit',
+  'Google',
+  'Letterboxd',
+  'Campus',
+  'Other',
+];
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -18,6 +31,8 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    heardAboutUs: '',
+    heardAboutUsDetail: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -54,7 +69,25 @@ const Register = () => {
       return;
     }
 
-    const result = await register(formData.username.trim(), formData.email.trim(), formData.password);
+    if (!formData.heardAboutUs) {
+      setError('Please tell us how you heard about ReelList.');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.heardAboutUs === 'Other' && !formData.heardAboutUsDetail.trim()) {
+      setError('Please add a short note for “Other”.');
+      setLoading(false);
+      return;
+    }
+
+    const result = await register(
+      formData.username.trim(),
+      formData.email.trim(),
+      formData.password,
+      formData.heardAboutUs,
+      formData.heardAboutUsDetail.trim()
+    );
 
     if (result.success) {
       localStorage.removeItem('onboardingComplete');
@@ -127,6 +160,59 @@ const Register = () => {
           autoComplete="new-password"
           sx={authFieldSx}
         />
+
+        <TextField
+          select
+          fullWidth
+          required
+          label="How did you hear about us?"
+          name="heardAboutUs"
+          value={formData.heardAboutUs}
+          onChange={handleChange}
+          margin="dense"
+          sx={{
+            ...authFieldSx,
+            mt: 1.5,
+            '& .MuiSelect-select': { color: 'var(--rl-cream)' },
+            '& .MuiSvgIcon-root': { color: 'var(--rl-muted)' },
+          }}
+          SelectProps={{
+            MenuProps: {
+              PaperProps: {
+                sx: {
+                  bgcolor: '#171512',
+                  border: '1px solid rgba(244,239,230,0.12)',
+                  '& .MuiMenuItem-root': { color: 'var(--rl-cream)' },
+                  '& .MuiMenuItem-root:hover': { bgcolor: 'rgba(212,160,23,0.1)' },
+                  '& .Mui-selected': { bgcolor: 'rgba(212,160,23,0.18) !important' },
+                },
+              },
+            },
+          }}
+        >
+          <MenuItem value="" disabled>
+            Select one
+          </MenuItem>
+          {HEAR_OPTIONS.map((option) => (
+            <MenuItem key={option} value={option}>
+              {option}
+            </MenuItem>
+          ))}
+        </TextField>
+
+        {formData.heardAboutUs === 'Other' && (
+          <TextField
+            fullWidth
+            label="Tell us more"
+            name="heardAboutUsDetail"
+            value={formData.heardAboutUsDetail}
+            onChange={handleChange}
+            margin="dense"
+            required
+            placeholder="Podcast, article, classmate…"
+            sx={authFieldSx}
+          />
+        )}
 
         <Button type="submit" fullWidth variant="contained" disabled={loading} sx={{ ...authAccentBtn, mt: 2.5, mb: 1.5 }}>
           {loading ? <CircularProgress size={22} sx={{ color: 'var(--rl-ink)' }} /> : 'Continue'}

@@ -11,7 +11,9 @@ const router = express.Router();
 router.post('/register', [
   body('username').isLength({ min: 3, max: 20 }).trim().escape(),
   body('email').isEmail().normalizeEmail(),
-  body('password').isLength({ min: 6 })
+  body('password').isLength({ min: 6 }),
+  body('heardAboutUs').optional({ checkFalsy: true }).isLength({ max: 80 }).trim().escape(),
+  body('heardAboutUsDetail').optional({ checkFalsy: true }).isLength({ max: 200 }).trim().escape(),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -19,7 +21,7 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, email, password } = req.body;
+    const { username, email, password, heardAboutUs, heardAboutUsDetail } = req.body;
 
     // Normalize email to lowercase (since database stores emails in lowercase)
     // Note: express-validator's normalizeEmail() already normalized it, but we'll do it again to be safe
@@ -54,11 +56,27 @@ router.post('/register', [
 
     console.log('No existing user found, proceeding with registration');
 
+    const allowedSources = new Set([
+      'Friend',
+      'Instagram',
+      'TikTok',
+      'Twitter/X',
+      'Reddit',
+      'Google',
+      'Letterboxd',
+      'Campus',
+      'Other',
+    ]);
+    const source = typeof heardAboutUs === 'string' ? heardAboutUs.trim() : '';
+    const detail = typeof heardAboutUsDetail === 'string' ? heardAboutUsDetail.trim() : '';
+
     // Create new user (email will be lowercased by schema, but use normalized values)
     const user = new User({ 
       username: normalizedUsername, 
       email: normalizedEmail, 
-      password 
+      password,
+      heardAboutUs: allowedSources.has(source) ? source : '',
+      heardAboutUsDetail: source === 'Other' ? detail.slice(0, 200) : '',
     });
     await user.save();
 
@@ -75,7 +93,8 @@ router.post('/register', [
         id: user._id,
         username: user.username,
         email: user.email,
-        profilePicture: user.profilePicture
+        profilePicture: user.profilePicture,
+        heardAboutUs: user.heardAboutUs,
       }
     });
   } catch (error) {
