@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   TextField,
   Box,
@@ -26,7 +25,6 @@ import { useAuth } from '../contexts/AuthContext';
 const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." }) => {
   const { rawRatings } = useRatings();
   const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
