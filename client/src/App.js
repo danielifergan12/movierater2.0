@@ -28,7 +28,6 @@ import GenreMovies from './pages/GenreMovies';
 import Watchlist from './pages/Watchlist';
 import Lists from './pages/Lists';
 import CreateList from './pages/CreateList';
-import BuildListFrom from './pages/BuildListFrom';
 import ListDetail from './pages/ListDetail';
 import Onboarding from './pages/Onboarding';
 import TasteMatch from './pages/TasteMatch';
@@ -197,11 +196,6 @@ function AppContent() {
         <Route path="/lists/create" element={
           <ProtectedRoute>
             <CreateList />
-          </ProtectedRoute>
-        } />
-        <Route path="/lists/from" element={
-          <ProtectedRoute>
-            <BuildListFrom />
           </ProtectedRoute>
         } />
         <Route path="/list/:listId" element={<ListDetail />} />

@@ -156,22 +156,7 @@ const ListDetail = () => {
             </Box>
           </Box>
           {isOwner && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              {list.movies?.length > 0 && (
-                <Button
-                  size="small"
-                  onClick={() => navigate(`/lists/from?source=${list._id}`)}
-                  sx={{
-                    textTransform: 'none',
-                    color: '#00d4ff',
-                    borderColor: 'rgba(0, 212, 255, 0.4)',
-                    mr: 0.5,
-                  }}
-                  variant="outlined"
-                >
-                  New list from this
-                </Button>
-              )}
+            <Box>
               <IconButton
                 onClick={() => handleShare()}
                 sx={{ color: '#00d4ff' }}

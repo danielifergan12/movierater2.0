@@ -200,27 +200,6 @@ const CreateList = () => {
                 {loading ? <CircularProgress size={24} /> : 'Create List'}
               </Button>
             </Box>
-
-            <Typography sx={{ color: 'rgba(255,255,255,0.55)', mt: 3, textAlign: 'center', fontSize: '0.9rem' }}>
-              Or{' '}
-              <Box
-                component="button"
-                type="button"
-                onClick={() => navigate('/lists/from')}
-                sx={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#00d4ff',
-                  cursor: 'pointer',
-                  p: 0,
-                  font: 'inherit',
-                  textDecoration: 'underline',
-                }}
-              >
-                build a list from your rankings
-              </Box>
-              {' '}— add or skip each movie.
-            </Typography>
           </form>
         </Card>
       </Container>
