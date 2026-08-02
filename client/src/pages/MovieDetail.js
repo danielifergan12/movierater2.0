@@ -1,35 +1,79 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
   Container,
-  Grid,
-  Card,
-  CardMedia,
-  CardContent,
   Typography,
   Box,
   Button,
   CircularProgress,
   Chip,
   Rating,
+  Avatar,
+  IconButton,
 } from '@mui/material';
-import { Star, Bookmark, BookmarkBorder, Edit as EditIcon, Person as PersonIcon } from '@mui/icons-material';
+import {
+  Star,
+  Bookmark,
+  BookmarkBorder,
+  Edit as EditIcon,
+  Person as PersonIcon,
+  List as ListIcon,
+} from '@mui/icons-material';
 import { useMovies } from '../contexts/MovieContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
 import ReviewForm from '../components/ReviewForm';
 import AddToListDialog from '../components/AddToListDialog';
-import { Link } from 'react-router-dom';
-import { Avatar, Divider } from '@mui/material';
-import { List as ListIcon } from '@mui/icons-material';
 import api from '../config/axios';
+
+const sectionTitleSx = {
+  fontFamily: '"Bebas Neue", sans-serif',
+  fontSize: { xs: '1.35rem', sm: '1.55rem' },
+  letterSpacing: '0.04em',
+  color: 'var(--rl-cream)',
+  mb: 2,
+};
+
+const ghostBtn = {
+  textTransform: 'none',
+  fontWeight: 600,
+  borderRadius: 1,
+  borderColor: 'rgba(244, 239, 230, 0.22)',
+  color: 'var(--rl-cream)',
+  px: 2,
+  py: 0.85,
+  fontSize: '0.85rem',
+  boxShadow: 'none',
+  '&:hover': {
+    borderColor: 'rgba(212, 160, 23, 0.55)',
+    backgroundColor: 'rgba(212, 160, 23, 0.08)',
+    boxShadow: 'none',
+  },
+};
+
+const accentBtn = {
+  textTransform: 'none',
+  fontWeight: 700,
+  borderRadius: 1,
+  backgroundImage: 'none',
+  backgroundColor: 'var(--rl-accent)',
+  color: 'var(--rl-ink)',
+  px: 2.25,
+  py: 0.85,
+  fontSize: '0.85rem',
+  boxShadow: 'none',
+  '&:hover': {
+    backgroundColor: 'var(--rl-accent-hover)',
+    boxShadow: 'none',
+  },
+};
 
 const MovieDetail = () => {
   const { movieId } = useParams();
   const { getMovieDetails } = useMovies();
   const { isAuthenticated } = useAuth();
-  const { ratings, rawRatings, computeScore } = useRatings();
+  const { rawRatings, computeScore } = useRatings();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -41,17 +85,15 @@ const MovieDetail = () => {
   const [similarMovies, setSimilarMovies] = useState([]);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [userReview, setUserReview] = useState(null);
-  const [loadingExtras, setLoadingExtras] = useState(false);
   const [showAddToListDialog, setShowAddToListDialog] = useState(false);
-  
-  // Check if movie is already rated (handle both number and string IDs)
-  const movieIdNum = parseInt(movieId);
-  const movieRating = rawRatings.find(r => {
-    const rId = typeof r.id === 'string' ? parseInt(r.id) : r.id;
+
+  const movieIdNum = parseInt(movieId, 10);
+  const movieRating = rawRatings.find((r) => {
+    const rId = typeof r.id === 'string' ? parseInt(r.id, 10) : r.id;
     return rId === movieIdNum || r.id?.toString() === movieId?.toString();
   });
-  const ratingIndex = rawRatings.findIndex(r => {
-    const rId = typeof r.id === 'string' ? parseInt(r.id) : r.id;
+  const ratingIndex = rawRatings.findIndex((r) => {
+    const rId = typeof r.id === 'string' ? parseInt(r.id, 10) : r.id;
     return rId === movieIdNum || r.id?.toString() === movieId?.toString();
   });
   const currentScore = ratingIndex >= 0 ? computeScore(ratingIndex, rawRatings.length) : null;
@@ -76,22 +118,21 @@ const MovieDetail = () => {
 
   const fetchExtras = async () => {
     if (!movieId || !movie?._id) return;
-    setLoadingExtras(true);
     try {
       const [creditsRes, similarRes, reviewsRes] = await Promise.all([
         api.get(`/api/movies/${movieId}/credits`).catch(() => ({ data: { cast: [], crew: [] } })),
         api.get(`/api/movies/${movieId}/similar`).catch(() => ({ data: { results: [] } })),
-        api.get(`/api/reviews/movie/${movie._id}`).catch(() => ({ data: { reviews: [] } }))
+        api.get(`/api/reviews/movie/${movie._id}`).catch(() => ({ data: { reviews: [] } })),
       ]);
-      
+
       setCast(creditsRes.data.cast?.slice(0, 10) || []);
-      setCrew(creditsRes.data.crew?.filter(c => ['Director', 'Producer', 'Writer'].includes(c.job)).slice(0, 5) || []);
+      setCrew(
+        creditsRes.data.crew?.filter((c) => ['Director', 'Producer', 'Writer'].includes(c.job)).slice(0, 5) || []
+      );
       setSimilarMovies(similarRes.data.results?.slice(0, 6) || []);
       setReviews(reviewsRes.data.reviews || []);
     } catch (error) {
       console.error('Error fetching extras:', error);
-    } finally {
-      setLoadingExtras(false);
     }
   };
 
@@ -133,7 +174,7 @@ const MovieDetail = () => {
           tmdbId: movie.tmdbId || movie.id,
           title: movie.title,
           posterPath: movie.posterPath,
-          releaseDate: movie.releaseDate
+          releaseDate: movie.releaseDate,
         });
         setInWatchlist(true);
       }
@@ -142,10 +183,6 @@ const MovieDetail = () => {
     } finally {
       setWatchlistLoading(false);
     }
-  };
-
-  const handleRatingComplete = () => {
-    setShowRatingModal(false);
   };
 
   const handleRateClick = () => {
@@ -168,301 +205,488 @@ const MovieDetail = () => {
     }
   };
 
+  const year = movie?.releaseDate
+    ? new Date(movie.releaseDate).getFullYear()
+    : movie?.release_date
+      ? new Date(movie.release_date).getFullYear()
+      : null;
+
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3 } }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#0c0b0a' }}>
+        <CircularProgress sx={{ color: 'var(--rl-accent)' }} size={28} />
+      </Box>
     );
   }
 
   if (!movie) {
     return (
-      <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3 } }}>
-        <Typography variant="h4" sx={{ fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' } }}>
-          Movie not found
-        </Typography>
-      </Container>
+      <Box sx={{ minHeight: '60vh', bgcolor: '#0c0b0a', display: 'flex', alignItems: 'center' }}>
+        <Container maxWidth="sm" sx={{ textAlign: 'center', py: 8 }}>
+          <Typography sx={{ color: 'var(--rl-cream)', fontFamily: '"Bebas Neue", sans-serif', fontSize: '1.8rem', mb: 1 }}>
+            Movie not found
+          </Typography>
+          <Button component={Link} to="/" sx={{ ...ghostBtn, mt: 1 }} variant="outlined">
+            Back home
+          </Button>
+        </Container>
+      </Box>
     );
   }
 
-  return (
-    <Box sx={{ 
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
-      position: 'relative',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.1) 0%, transparent 50%)',
-        pointerEvents: 'none',
-      }
-    }}>
-      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
-        <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
-          <Grid item xs={12} md={4}>
-            <Card sx={{
-              background: 'rgba(26, 26, 26, 0.8)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(0, 212, 255, 0.2)',
-              borderRadius: 4,
-            }}>
-              <CardMedia
-                component="img"
-                height={{ xs: 400, sm: 500, md: 600 }}
-                image={movie.posterPath ? `https://image.tmdb.org/t/p/w500${movie.posterPath}` : '/placeholder-movie.jpg'}
-                alt={movie.title}
-                sx={{ borderRadius: 4 }}
-              />
-            </Card>
-          </Grid>
+  const otherReviews = reviews.filter((r) => !userReview || r._id !== userReview._id);
 
-          <Grid item xs={12} md={8}>
-            <Typography variant="h3" gutterBottom sx={{ 
-              color: '#ffffff',
-              mb: { xs: 2, sm: 3 },
-              fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
-            }}>
+  return (
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: '#0c0b0a',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(ellipse 70% 45% at 15% 0%, rgba(212,160,23,0.09), transparent 60%), radial-gradient(ellipse 50% 40% at 90% 20%, rgba(244,239,230,0.04), transparent 55%)',
+          pointerEvents: 'none',
+        },
+      }}
+    >
+      <Container maxWidth="md" sx={{ py: { xs: 3, sm: 5 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: '160px 1fr', md: '200px 1fr' },
+            gap: { xs: 2.5, sm: 3.5 },
+            alignItems: 'start',
+            mb: { xs: 4, sm: 5 },
+          }}
+        >
+          <Box
+            sx={{
+              width: { xs: 148, sm: '100%' },
+              mx: { xs: 'auto', sm: 0 },
+              aspectRatio: '2 / 3',
+              borderRadius: 1,
+              overflow: 'hidden',
+              border: '1px solid rgba(244, 239, 230, 0.12)',
+              boxShadow: '0 16px 40px rgba(0,0,0,0.45)',
+              backgroundColor: 'rgba(244,239,230,0.04)',
+            }}
+          >
+            <Box
+              component="img"
+              src={movie.posterPath ? `https://image.tmdb.org/t/p/w500${movie.posterPath}` : '/placeholder-movie.jpg'}
+              alt={movie.title}
+              sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </Box>
+
+          <Box sx={{ minWidth: 0, textAlign: { xs: 'center', sm: 'left' } }}>
+            <Typography
+              sx={{
+                fontFamily: '"Bebas Neue", sans-serif',
+                fontSize: { xs: '2rem', sm: '2.45rem', md: '2.75rem' },
+                letterSpacing: '0.03em',
+                color: 'var(--rl-cream)',
+                lineHeight: 1.05,
+                mb: 1,
+              }}
+            >
               {movie.title}
             </Typography>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, gap: 2 }}>
-              {movie.imdbRating ? (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: { xs: 'center', sm: 'flex-start' },
+                flexWrap: 'wrap',
+                gap: 1.25,
+                mb: 2,
+                color: 'var(--rl-muted)',
+                fontSize: '0.85rem',
+              }}
+            >
+              {year && <Typography component="span" sx={{ color: 'var(--rl-muted)', fontSize: 'inherit' }}>{year}</Typography>}
+              {movie.imdbRating != null && (
                 <>
-                  <Box
-                    component="img"
-                    src="https://upload.wikimedia.org/wikipedia/commons/6/69/IMDB_Logo_2016.svg"
-                    alt="IMDB"
-                    sx={{
-                      height: 32,
-                      width: 'auto',
-                    }}
-                  />
-                  <Typography variant="h5" sx={{ 
-                    color: '#f5c518',
-                    fontWeight: 700,
-                  }}>
-                    {movie.imdbRating.toFixed(1)}
+                  {year && <Box component="span" sx={{ opacity: 0.4 }}>·</Box>}
+                  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6 }}>
+                    <Typography component="span" sx={{ color: 'var(--rl-accent)', fontWeight: 700, fontSize: 'inherit' }}>
+                      {Number(movie.imdbRating).toFixed(1)}
+                    </Typography>
+                    <Typography component="span" sx={{ color: 'var(--rl-muted)', fontSize: 'inherit' }}>
+                      IMDb
+                    </Typography>
+                  </Box>
+                </>
+              )}
+              {movieRating && currentScore != null && (
+                <>
+                  <Box component="span" sx={{ opacity: 0.4 }}>·</Box>
+                  <Typography component="span" sx={{ color: 'var(--rl-cream)', fontWeight: 600, fontSize: 'inherit' }}>
+                    Yours {currentScore.toFixed(1)} · #{ratingIndex + 1}
                   </Typography>
                 </>
-              ) : (
-                <Typography variant="body1" sx={{ 
-                  color: 'rgba(255, 255, 255, 0.6)',
-                }}>
-                  IMDB rating not available
-                </Typography>
               )}
             </Box>
 
-            <Typography variant="h6" gutterBottom sx={{ 
-              color: '#ffffff',
-              mb: 2,
-            }}>
-              Description
-            </Typography>
-            <Typography variant="body1" paragraph sx={{ 
-              color: 'rgba(255, 255, 255, 0.8)',
-              lineHeight: 1.8,
-              mb: 4,
-            }}>
-              {movie.overview}
-            </Typography>
+            {movie.overview && (
+              <Typography
+                sx={{
+                  color: 'rgba(244,239,230,0.72)',
+                  fontSize: { xs: '0.88rem', sm: '0.95rem' },
+                  lineHeight: 1.65,
+                  mb: 2.5,
+                  maxWidth: 560,
+                  mx: { xs: 'auto', sm: 0 },
+                }}
+              >
+                {movie.overview}
+              </Typography>
+            )}
 
-            {movieRating && currentScore !== null ? (
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-                  <Chip
-                    label={`Your Rating: ${currentScore.toFixed(1)}/10`}
-                    sx={{
-                      background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                      color: '#ffffff',
-                      fontWeight: 600,
-                      fontSize: { xs: '0.875rem', sm: '1rem' },
-                      px: 2,
-                      py: 2.5,
-                    }}
-                  />
-                  <Chip
-                    label={`Rank: #${ratingIndex + 1}`}
-                    sx={{
-                      backgroundColor: 'rgba(0, 212, 255, 0.2)',
-                      color: '#00d4ff',
-                      border: '1px solid rgba(0, 212, 255, 0.5)',
-                      fontWeight: 600,
-                      fontSize: { xs: '0.875rem', sm: '1rem' },
-                    }}
-                  />
-                </Box>
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 1,
+                justifyContent: { xs: 'center', sm: 'flex-start' },
+              }}
+            >
+              <Button
+                variant="contained"
+                startIcon={<Star sx={{ fontSize: '1rem !important' }} />}
+                onClick={handleRateClick}
+                sx={accentBtn}
+              >
+                {!isAuthenticated
+                  ? 'Sign in to rate'
+                  : movieRating
+                    ? 'Re-rank'
+                    : 'Rate'}
+              </Button>
+
+              {isAuthenticated && (
+                <>
                   <Button
                     variant="outlined"
-                    startIcon={<Star />}
-                    size="large"
-                    onClick={handleRateClick}
+                    startIcon={
+                      inWatchlist
+                        ? <Bookmark sx={{ fontSize: '1rem !important' }} />
+                        : <BookmarkBorder sx={{ fontSize: '1rem !important' }} />
+                    }
+                    onClick={handleWatchlistToggle}
+                    disabled={watchlistLoading}
                     sx={{
-                      borderColor: '#00d4ff',
-                      color: '#00d4ff',
-                      px: { xs: 3, sm: 4 },
-                      py: { xs: 1.25, sm: 1.5 },
-                      fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
-                      fontWeight: 600,
-                      width: { xs: '100%', sm: 'auto' },
-                      '&:hover': {
-                        borderColor: '#66e0ff',
-                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                      },
+                      ...ghostBtn,
+                      ...(inWatchlist
+                        ? {
+                            borderColor: 'rgba(212, 160, 23, 0.45)',
+                            color: 'var(--rl-accent)',
+                            backgroundColor: 'rgba(212, 160, 23, 0.08)',
+                          }
+                        : {}),
                     }}
                   >
-                    {!isAuthenticated ? 'Sign in to Rate' : 'Rerate This Movie'}
+                    {inWatchlist ? 'Watchlist' : 'Watchlist'}
                   </Button>
-                  {isAuthenticated && (
-                    <>
-                      <Button
-                        variant={inWatchlist ? "contained" : "outlined"}
-                        startIcon={inWatchlist ? <Bookmark /> : <BookmarkBorder />}
-                        size="large"
-                        onClick={handleWatchlistToggle}
-                        disabled={watchlistLoading}
-                        sx={{
-                          ...(inWatchlist ? {
-                            background: 'linear-gradient(45deg, #ff6b35, #e64a19)',
-                            '&:hover': {
-                              background: 'linear-gradient(45deg, #e64a19, #cc3d0f)',
-                            },
-                          } : {
-                            borderColor: '#ff6b35',
-                            color: '#ff6b35',
-                            '&:hover': {
-                              borderColor: '#ff8a65',
-                              backgroundColor: 'rgba(255, 107, 53, 0.1)',
-                            },
-                          }),
-                          px: { xs: 3, sm: 4 },
-                          py: { xs: 1.25, sm: 1.5 },
-                          fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
-                          fontWeight: 600,
-                          width: { xs: '100%', sm: 'auto' },
-                        }}
-                      >
-                        {inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        startIcon={<ListIcon />}
-                        size="large"
-                        onClick={() => setShowAddToListDialog(true)}
-                        sx={{
-                          borderColor: '#00d4ff',
-                          color: '#00d4ff',
-                          px: { xs: 3, sm: 4 },
-                          py: { xs: 1.25, sm: 1.5 },
-                          fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
-                          fontWeight: 600,
-                          width: { xs: '100%', sm: 'auto' },
-                          '&:hover': {
-                            borderColor: '#66e0ff',
-                            backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                          },
-                        }}
-                      >
-                        Add to List
-                      </Button>
-                    </>
-                  )}
-                </Box>
-              </Box>
-            ) : (
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 3 }}>
-                <Button
-                  variant={movieRating ? "outlined" : "contained"}
-                  startIcon={<Star />}
-                  size="large"
-                  onClick={handleRateClick}
-                  disabled={!!movieRating && isAuthenticated}
-                  sx={{
-                    ...(movieRating ? {
-                      borderColor: 'rgba(0, 212, 255, 0.3)',
-                      color: 'rgba(0, 212, 255, 0.5)',
-                      cursor: 'not-allowed',
-                    } : {
-                      background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                      '&:hover': {
-                        background: 'linear-gradient(45deg, #00a8cc, #e64a19)',
-                      },
-                    }),
-                    px: { xs: 3, sm: 4 },
-                    py: { xs: 1.25, sm: 1.5 },
-                    fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
-                    fontWeight: 600,
-                    width: { xs: '100%', sm: 'auto' },
-                  }}
-                >
-                  {!isAuthenticated ? 'Sign in to Rate This Movie' : (movieRating ? 'Already Rated' : 'Rate This Movie')}
-                </Button>
-                {isAuthenticated && (
-                  <>
-                    <Button
-                      variant={inWatchlist ? "contained" : "outlined"}
-                      startIcon={inWatchlist ? <Bookmark /> : <BookmarkBorder />}
-                      size="large"
-                      onClick={handleWatchlistToggle}
-                      disabled={watchlistLoading}
+                  <Button
+                    variant="outlined"
+                    startIcon={<ListIcon sx={{ fontSize: '1rem !important' }} />}
+                    onClick={() => setShowAddToListDialog(true)}
+                    sx={ghostBtn}
+                  >
+                    Add to list
+                  </Button>
+                </>
+              )}
+            </Box>
+          </Box>
+        </Box>
+
+        {(cast.length > 0 || crew.length > 0) && (
+          <Box sx={{ mb: { xs: 4, sm: 5 } }}>
+            <Typography sx={sectionTitleSx}>Cast & crew</Typography>
+            {cast.length > 0 && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 1.5,
+                  overflowX: 'auto',
+                  pb: 1.5,
+                  mb: crew.length > 0 ? 2.5 : 0,
+                  mx: { xs: -2, sm: 0 },
+                  px: { xs: 2, sm: 0 },
+                  '&::-webkit-scrollbar': { height: 4 },
+                  '&::-webkit-scrollbar-thumb': { background: 'rgba(244,239,230,0.15)', borderRadius: 2 },
+                }}
+              >
+                {cast.map((actor) => (
+                  <Box key={actor.id} sx={{ minWidth: 88, maxWidth: 88, textAlign: 'center', flexShrink: 0 }}>
+                    <Avatar
+                      src={actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : undefined}
                       sx={{
-                        ...(inWatchlist ? {
-                          background: 'linear-gradient(45deg, #ff6b35, #e64a19)',
-                          '&:hover': {
-                            background: 'linear-gradient(45deg, #e64a19, #cc3d0f)',
-                          },
-                        } : {
-                          borderColor: '#ff6b35',
-                          color: '#ff6b35',
-                          '&:hover': {
-                            borderColor: '#ff8a65',
-                            backgroundColor: 'rgba(255, 107, 53, 0.1)',
-                          },
-                        }),
-                        px: { xs: 3, sm: 4 },
-                        py: { xs: 1.25, sm: 1.5 },
-                        fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
-                        fontWeight: 600,
-                        width: { xs: '100%', sm: 'auto' },
+                        width: 72,
+                        height: 72,
+                        mx: 'auto',
+                        mb: 0.75,
+                        border: '1px solid rgba(244,239,230,0.12)',
+                        bgcolor: 'rgba(244,239,230,0.06)',
                       }}
                     >
-                      {inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      startIcon={<ListIcon />}
-                      size="large"
-                      onClick={() => setShowAddToListDialog(true)}
+                      <PersonIcon sx={{ color: 'var(--rl-muted)' }} />
+                    </Avatar>
+                    <Typography
                       sx={{
-                        borderColor: '#00d4ff',
-                        color: '#00d4ff',
-                        px: { xs: 3, sm: 4 },
-                        py: { xs: 1.25, sm: 1.5 },
-                        fontSize: { xs: '0.875rem', sm: '1rem', md: '1.1rem' },
+                        color: 'var(--rl-cream)',
                         fontWeight: 600,
-                        width: { xs: '100%', sm: 'auto' },
-                        '&:hover': {
-                          borderColor: '#66e0ff',
-                          backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                        },
+                        fontSize: '0.72rem',
+                        lineHeight: 1.25,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
                       }}
                     >
-                      Add to List
-                    </Button>
-                  </>
-                )}
+                      {actor.name}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        color: 'var(--rl-muted)',
+                        fontSize: '0.65rem',
+                        lineHeight: 1.25,
+                        mt: 0.25,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {actor.character}
+                    </Typography>
+                  </Box>
+                ))}
               </Box>
             )}
-          </Grid>
-        </Grid>
+            {crew.length > 0 && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                {crew.map((member) => (
+                  <Chip
+                    key={`${member.id}-${member.job}`}
+                    label={`${member.name} · ${member.job}`}
+                    size="small"
+                    sx={{
+                      bgcolor: 'rgba(244,239,230,0.05)',
+                      color: 'var(--rl-muted)',
+                      border: '1px solid rgba(244,239,230,0.1)',
+                      fontSize: '0.72rem',
+                      height: 26,
+                    }}
+                  />
+                ))}
+              </Box>
+            )}
+          </Box>
+        )}
+
+        <Box sx={{ mb: { xs: 4, sm: 5 } }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 2,
+              gap: 1,
+            }}
+          >
+            <Typography sx={{ ...sectionTitleSx, mb: 0 }}>
+              Reviews{reviews.length > 0 ? ` (${reviews.length})` : ''}
+            </Typography>
+            {isAuthenticated && (
+              <Button
+                size="small"
+                startIcon={userReview ? <EditIcon sx={{ fontSize: '0.95rem !important' }} /> : <Star sx={{ fontSize: '0.95rem !important' }} />}
+                onClick={() => setShowReviewForm(true)}
+                sx={{ ...ghostBtn, py: 0.55, px: 1.5, fontSize: '0.78rem' }}
+                variant="outlined"
+              >
+                {userReview ? 'Edit' : 'Write'}
+              </Button>
+            )}
+          </Box>
+
+          {userReview && (
+            <Box
+              sx={{
+                mb: 1.5,
+                p: 2,
+                borderRadius: 1,
+                border: '1px solid rgba(212, 160, 23, 0.25)',
+                backgroundColor: 'rgba(212, 160, 23, 0.05)',
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                <Box>
+                  <Typography sx={{ color: 'var(--rl-accent)', fontWeight: 700, fontSize: '0.78rem', mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    Your review
+                  </Typography>
+                  <Rating value={userReview.rating} readOnly size="small" sx={{ '& .MuiRating-iconFilled': { color: 'var(--rl-accent)' } }} />
+                </Box>
+                <IconButton size="small" onClick={() => setShowReviewForm(true)} sx={{ color: 'var(--rl-muted)' }}>
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Box>
+              {userReview.reviewText && (
+                <Typography sx={{ color: 'rgba(244,239,230,0.8)', fontSize: '0.9rem', lineHeight: 1.55 }}>
+                  {userReview.reviewText}
+                </Typography>
+              )}
+              {userReview.mood && (
+                <Chip
+                  label={userReview.mood}
+                  size="small"
+                  sx={{ mt: 1.25, bgcolor: 'rgba(212,160,23,0.12)', color: 'var(--rl-accent)', height: 24, fontSize: '0.7rem' }}
+                />
+              )}
+            </Box>
+          )}
+
+          {otherReviews.length === 0 && !userReview ? (
+            <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.88rem', py: 1 }}>
+              No reviews yet.
+            </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+              {otherReviews.map((review) => (
+                <Box
+                  key={review._id}
+                  sx={{
+                    p: 2,
+                    borderRadius: 1,
+                    border: '1px solid rgba(244,239,230,0.08)',
+                    backgroundColor: 'rgba(244,239,230,0.03)',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.25, gap: 1.25 }}>
+                    <Avatar
+                      src={review.user?.profilePicture}
+                      sx={{ width: 32, height: 32, bgcolor: 'rgba(244,239,230,0.08)', fontSize: '0.8rem' }}
+                    >
+                      {review.user?.username?.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography sx={{ color: 'var(--rl-cream)', fontWeight: 600, fontSize: '0.85rem' }}>
+                        {review.user?.username}
+                      </Typography>
+                      <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.7rem' }}>
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </Typography>
+                    </Box>
+                    <Rating value={review.rating} readOnly size="small" sx={{ '& .MuiRating-iconFilled': { color: 'var(--rl-accent)' } }} />
+                  </Box>
+                  {review.reviewText && (
+                    <Typography sx={{ color: 'rgba(244,239,230,0.78)', fontSize: '0.88rem', lineHeight: 1.55, mb: review.mood || review.tags?.length ? 1 : 0 }}>
+                      {review.reviewText}
+                    </Typography>
+                  )}
+                  <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                    {review.mood && (
+                      <Chip
+                        label={review.mood}
+                        size="small"
+                        sx={{ bgcolor: 'rgba(212,160,23,0.1)', color: 'var(--rl-accent)', height: 22, fontSize: '0.68rem' }}
+                      />
+                    )}
+                    {review.tags?.map((tag, idx) => (
+                      <Chip
+                        key={idx}
+                        label={tag}
+                        size="small"
+                        variant="outlined"
+                        sx={{ borderColor: 'rgba(244,239,230,0.15)', color: 'var(--rl-muted)', height: 22, fontSize: '0.68rem' }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+
+        {similarMovies.length > 0 && (
+          <Box sx={{ mb: 2 }}>
+            <Typography sx={sectionTitleSx}>Similar</Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: 'repeat(3, minmax(0, 1fr))',
+                  sm: 'repeat(4, minmax(0, 1fr))',
+                  md: 'repeat(6, minmax(0, 1fr))',
+                },
+                gap: { xs: 1, sm: 1.25 },
+              }}
+            >
+              {similarMovies.map((similarMovie) => (
+                <Box
+                  key={similarMovie.id}
+                  component={Link}
+                  to={`/movie/${similarMovie.id}`}
+                  sx={{
+                    textDecoration: 'none',
+                    minWidth: 0,
+                    '&:hover .poster': { borderColor: 'rgba(212, 160, 23, 0.55)' },
+                    '&:hover .title': { color: 'var(--rl-accent)' },
+                  }}
+                >
+                  <Box
+                    className="poster"
+                    sx={{
+                      aspectRatio: '2 / 3',
+                      borderRadius: 0.75,
+                      overflow: 'hidden',
+                      border: '1px solid rgba(244, 239, 230, 0.12)',
+                      backgroundColor: 'rgba(244,239,230,0.04)',
+                      transition: 'border-color 0.15s ease',
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={
+                        similarMovie.poster_path
+                          ? `https://image.tmdb.org/t/p/w185${similarMovie.poster_path}`
+                          : '/placeholder-movie.jpg'
+                      }
+                      alt={similarMovie.title}
+                      loading="lazy"
+                      sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                  </Box>
+                  <Typography
+                    className="title"
+                    sx={{
+                      mt: 0.6,
+                      color: 'var(--rl-cream)',
+                      fontWeight: 600,
+                      fontSize: '0.68rem',
+                      lineHeight: 1.25,
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      transition: 'color 0.15s ease',
+                    }}
+                  >
+                    {similarMovie.title}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        )}
 
         {showRatingModal && (
           <RatingModal
@@ -475,253 +699,11 @@ const MovieDetail = () => {
               genres: movie.genres || null,
             }}
             onClose={() => setShowRatingModal(false)}
-            onComplete={handleRatingComplete}
+            onComplete={() => setShowRatingModal(false)}
             allowRerate={true}
           />
         )}
 
-        {/* Cast & Crew Section */}
-        {(cast.length > 0 || crew.length > 0) && (
-          <Box sx={{ mt: 6 }}>
-            <Typography variant="h4" sx={{ color: '#ffffff', mb: 3 }}>
-              Cast & Crew
-            </Typography>
-            {cast.length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" sx={{ color: '#00d4ff', mb: 2 }}>
-                  Cast
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2 }}>
-                  {cast.map((actor) => (
-                    <Box key={actor.id} sx={{ minWidth: 120, textAlign: 'center' }}>
-                      <Avatar
-                        src={actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : undefined}
-                        sx={{ width: 120, height: 120, mx: 'auto', mb: 1 }}
-                      >
-                        <PersonIcon />
-                      </Avatar>
-                      <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 600 }}>
-                        {actor.name}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                        {actor.character}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              </Box>
-            )}
-            {crew.length > 0 && (
-              <Box>
-                <Typography variant="h6" sx={{ color: '#00d4ff', mb: 2 }}>
-                  Crew
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                  {crew.map((member) => (
-                    <Chip
-                      key={`${member.id}-${member.job}`}
-                      label={`${member.name} - ${member.job}`}
-                      sx={{
-                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                        color: '#00d4ff',
-                        border: '1px solid rgba(0, 212, 255, 0.3)',
-                      }}
-                    />
-                  ))}
-                </Box>
-              </Box>
-            )}
-          </Box>
-        )}
-
-        {/* Reviews Section */}
-        <Box sx={{ mt: 6 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h4" sx={{ color: '#ffffff' }}>
-              Reviews ({reviews.length})
-            </Typography>
-            {isAuthenticated && (
-              <Button
-                variant="contained"
-                startIcon={userReview ? <EditIcon /> : <Star />}
-                onClick={() => setShowReviewForm(true)}
-                sx={{
-                  background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                }}
-              >
-                {userReview ? 'Edit Review' : 'Write Review'}
-              </Button>
-            )}
-          </Box>
-
-          {userReview && (
-            <Card sx={{
-              background: 'rgba(26, 26, 26, 0.8)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(0, 212, 255, 0.2)',
-              borderRadius: 4,
-              p: 3,
-              mb: 3,
-            }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-                <Box>
-                  <Typography variant="h6" sx={{ color: '#ffffff', mb: 1 }}>
-                    Your Review
-                  </Typography>
-                  <Rating value={userReview.rating} readOnly size="small" />
-                </Box>
-                <Button
-                  size="small"
-                  startIcon={<EditIcon />}
-                  onClick={() => setShowReviewForm(true)}
-                  sx={{ color: '#00d4ff' }}
-                >
-                  Edit
-                </Button>
-              </Box>
-              {userReview.reviewText && (
-                <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-                  {userReview.reviewText}
-                </Typography>
-              )}
-              {userReview.mood && (
-                <Chip
-                  label={userReview.mood}
-                  size="small"
-                  sx={{ mt: 2, backgroundColor: 'rgba(255, 107, 53, 0.2)', color: '#ff6b35' }}
-                />
-              )}
-            </Card>
-          )}
-
-          {reviews.filter(r => !userReview || r._id !== userReview._id).length === 0 && !userReview ? (
-            <Card sx={{
-              background: 'rgba(26, 26, 26, 0.8)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(0, 212, 255, 0.2)',
-              borderRadius: 4,
-              p: 4,
-              textAlign: 'center',
-            }}>
-              <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                No reviews yet. Be the first to review this movie!
-              </Typography>
-            </Card>
-          ) : (
-            <Box>
-              {reviews.filter(r => !userReview || r._id !== userReview._id).map((review) => (
-                <Card
-                  key={review._id}
-                  sx={{
-                    background: 'rgba(26, 26, 26, 0.8)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid rgba(0, 212, 255, 0.2)',
-                    borderRadius: 4,
-                    p: 3,
-                    mb: 2,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Avatar
-                      src={review.user?.profilePicture}
-                      sx={{ mr: 2 }}
-                    >
-                      {review.user?.username?.charAt(0).toUpperCase()}
-                    </Avatar>
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="subtitle1" sx={{ color: '#ffffff', fontWeight: 600 }}>
-                        {review.user?.username}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </Typography>
-                    </Box>
-                    <Rating value={review.rating} readOnly size="small" />
-                  </Box>
-                  {review.reviewText && (
-                    <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 2 }}>
-                      {review.reviewText}
-                    </Typography>
-                  )}
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    {review.mood && (
-                      <Chip
-                        label={review.mood}
-                        size="small"
-                        sx={{ backgroundColor: 'rgba(255, 107, 53, 0.2)', color: '#ff6b35' }}
-                      />
-                    )}
-                    {review.tags?.map((tag, idx) => (
-                      <Chip
-                        key={idx}
-                        label={tag}
-                        size="small"
-                        variant="outlined"
-                        sx={{ borderColor: 'rgba(0, 212, 255, 0.3)', color: '#00d4ff' }}
-                      />
-                    ))}
-                  </Box>
-                </Card>
-              ))}
-            </Box>
-          )}
-        </Box>
-
-        {/* Similar Movies Section */}
-        {similarMovies.length > 0 && (
-          <Box sx={{ mt: 6 }}>
-            <Typography variant="h4" sx={{ color: '#ffffff', mb: 3 }}>
-              Similar Movies
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2 }}>
-              {similarMovies.map((similarMovie) => (
-                <Card
-                  key={similarMovie.id}
-                  component={Link}
-                  to={`/movie/${similarMovie.id}`}
-                  sx={{
-                    minWidth: 150,
-                    background: 'rgba(26, 26, 26, 0.8)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid rgba(0, 212, 255, 0.2)',
-                    borderRadius: 4,
-                    textDecoration: 'none',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 8px 24px rgba(0, 212, 255, 0.3)',
-                    }
-                  }}
-                >
-                  <CardMedia
-                    component="img"
-                    height="225"
-                    image={similarMovie.poster_path ? `https://image.tmdb.org/t/p/w300${similarMovie.poster_path}` : '/placeholder-movie.jpg'}
-                    alt={similarMovie.title}
-                    sx={{ objectFit: 'cover' }}
-                  />
-                  <CardContent>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: '#ffffff',
-                        fontWeight: 600,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {similarMovie.title}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
-          </Box>
-        )}
-
-        {/* Review Form Modal */}
         {showReviewForm && movie?._id && (
           <ReviewForm
             open={showReviewForm}
@@ -731,7 +713,7 @@ const MovieDetail = () => {
               fetchExtras();
             }}
             movie={{
-              id: movie._id, // Use MongoDB _id for reviews
+              id: movie._id,
               title: movie.title,
               posterUrl: movie.posterPath ? `https://image.tmdb.org/t/p/w500${movie.posterPath}` : '/placeholder-movie.jpg',
             }}
@@ -743,7 +725,6 @@ const MovieDetail = () => {
           />
         )}
 
-        {/* Add to List Dialog */}
         {showAddToListDialog && movie && (
           <AddToListDialog
             open={showAddToListDialog}
@@ -754,7 +735,7 @@ const MovieDetail = () => {
               title: movie.title,
               posterPath: movie.posterPath,
               posterUrl: movie.posterPath ? `https://image.tmdb.org/t/p/w500${movie.posterPath}` : '/placeholder-movie.jpg',
-              releaseDate: movie.releaseDate
+              releaseDate: movie.releaseDate,
             }}
           />
         )}
