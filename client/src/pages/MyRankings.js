@@ -21,6 +21,10 @@ import {
   InputAdornment,
   CircularProgress,
   Collapse,
+  Card,
+  Chip,
+  Rating,
+  Divider,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -43,25 +47,32 @@ import AddToListDialog from '../components/AddToListDialog';
 import ShareCard from '../components/ShareCard';
 import api from '../config/axios';
 
-const TIER_DEFS = [
-  { id: 'S', label: 'S — Top picks', maxRatio: 0.1, minCount: 1, color: '#d4a017' },
-  { id: 'A', label: 'A — Favorites', maxRatio: 0.3, minCount: 0, color: '#c9c4b8' },
-  { id: 'B', label: 'B — Strong', maxRatio: 0.6, minCount: 0, color: '#8a9ba8' },
-  { id: 'C', label: 'C — Solid', maxRatio: 0.85, minCount: 0, color: '#6b7280' },
-  { id: 'D', label: 'D — The rest', maxRatio: 1, minCount: 0, color: '#4b5563' },
-];
+const getRankingColor = (position) => {
+  if (position === 0) return '#ffd700';
+  if (position < 3) return '#c0c0c0';
+  if (position < 5) return '#cd7f32';
+  return '#00d4ff';
+};
 
-function assignTier(total) {
-  if (total <= 0) return [];
-  if (total <= 5) {
-    return Array.from({ length: total }, () => ({ id: 'ALL', label: 'Your rankings', color: '#d4a017' }));
-  }
-  return Array.from({ length: total }, (_, index) => {
-    const ratio = (index + 1) / total;
-    const tier = TIER_DEFS.find((t) => ratio <= t.maxRatio) || TIER_DEFS[TIER_DEFS.length - 1];
-    return tier;
-  });
-}
+const computeEvenScore = (index, total) => {
+  if (total <= 1) return 10.0;
+  const raw = 10 - (9 * index) / (total - 1);
+  return Math.round(raw * 10) / 10;
+};
+
+const pageShellSx = {
+  minHeight: '100vh',
+  background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
+  position: 'relative',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    inset: 0,
+    background:
+      'radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.1) 0%, transparent 50%)',
+    pointerEvents: 'none',
+  },
+};
 
 const MyRankings = () => {
   const { rawRatings, setRatingsArray } = useRatings();
@@ -247,7 +258,6 @@ const MyRankings = () => {
   }, [rawRatings.length]);
 
   const enhancedRatings = useMemo(() => {
-    const tiers = assignTier(rawRatings.length);
     return rawRatings.map((rating, index) => {
       const cached = movieDetailsCache[rating.id];
       return {
@@ -256,7 +266,7 @@ const MyRankings = () => {
         genres: rating.genres || cached?.genres || [],
         originalIndex: index,
         rankNumber: index + 1,
-        tier: tiers[index],
+        computedScore: computeEvenScore(index, rawRatings.length),
       };
     });
   }, [rawRatings, movieDetailsCache]);
@@ -329,37 +339,29 @@ const MyRankings = () => {
     return filtered;
   }, [enhancedRatings, filters]);
 
-  const groupedByTier = useMemo(() => {
-    if (!canReorder || filters.sortBy !== 'rating') {
-      return [{ id: 'ALL', label: 'Results', color: '#d4a017', items: filteredAndSortedRatings }];
-    }
-    const groups = [];
-    let current = null;
-    filteredAndSortedRatings.forEach((item) => {
-      const tierId = item.tier?.id || 'ALL';
-      if (!current || current.id !== tierId) {
-        current = {
-          id: tierId,
-          label: item.tier?.label || 'Your rankings',
-          color: item.tier?.color || '#d4a017',
-          items: [],
-        };
-        groups.push(current);
-      }
-      current.items.push(item);
-    });
-    return groups;
-  }, [filteredAndSortedRatings, canReorder, filters.sortBy]);
-
   if (!isAuthenticated) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: '#0c0b0a', display: 'flex', alignItems: 'center' }}>
-        <Container maxWidth="sm" sx={{ textAlign: 'center', py: 8 }}>
-          <MovieIcon sx={{ fontSize: 64, color: 'var(--rl-accent)', mb: 2 }} />
-          <Typography variant="h4" sx={{ color: 'var(--rl-cream)', mb: 2, fontFamily: '"Bebas Neue", sans-serif' }}>
+      <Box sx={{ ...pageShellSx, display: 'flex', alignItems: 'center' }}>
+        <Container maxWidth="sm" sx={{ textAlign: 'center', py: 8, position: 'relative', zIndex: 1 }}>
+          <MovieIcon sx={{ fontSize: 64, color: '#00d4ff', mb: 2 }} />
+          <Typography
+            variant="h4"
+            sx={{
+              mb: 2,
+              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
             Sign in to see your rankings
           </Typography>
-          <Button component={Link} to="/login" variant="contained" sx={{ backgroundImage: 'none', backgroundColor: 'var(--rl-accent)', color: '#140f0a' }}>
+          <Button
+            component={Link}
+            to="/login"
+            variant="contained"
+            sx={{ background: 'linear-gradient(45deg, #00d4ff, #ff6b35)' }}
+          >
             Sign in
           </Button>
         </Container>
@@ -369,15 +371,29 @@ const MyRankings = () => {
 
   if (rawRatings.length === 0) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: '#0c0b0a', display: 'flex', alignItems: 'center' }}>
-        <Container maxWidth="sm" sx={{ textAlign: 'center', py: 8 }}>
-          <Typography variant="h4" sx={{ color: 'var(--rl-cream)', mb: 2, fontFamily: '"Bebas Neue", sans-serif', letterSpacing: '0.04em' }}>
+      <Box sx={{ ...pageShellSx, display: 'flex', alignItems: 'center' }}>
+        <Container maxWidth="sm" sx={{ textAlign: 'center', py: 8, position: 'relative', zIndex: 1 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              mb: 2,
+              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
             No rankings yet
           </Typography>
-          <Typography sx={{ color: 'var(--rl-muted)', mb: 3 }}>
+          <Typography sx={{ color: 'rgba(255,255,255,0.7)', mb: 3 }}>
             Rate a few movies to build your ordered list.
           </Typography>
-          <Button component={Link} to="/rate" variant="contained" sx={{ backgroundImage: 'none', backgroundColor: 'var(--rl-accent)', color: '#140f0a' }}>
+          <Button
+            component={Link}
+            to="/rate"
+            variant="contained"
+            sx={{ background: 'linear-gradient(45deg, #00d4ff, #ff6b35)' }}
+          >
             Start ranking
           </Button>
         </Container>
@@ -386,31 +402,57 @@ const MyRankings = () => {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#0c0b0a', pb: 8 }}>
-      <Container maxWidth="md" sx={{ py: { xs: 3, sm: 5 }, px: { xs: 2, sm: 3 } }}>
-        <Snackbar open={snack.open} autoHideDuration={3000} onClose={() => setSnack({ open: false, message: '' })} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-          <Alert severity="success" onClose={() => setSnack({ open: false, message: '' })}>{snack.message}</Alert>
+    <Box sx={{ ...pageShellSx, pb: 8 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
+        <Snackbar
+          open={snack.open}
+          autoHideDuration={3000}
+          onClose={() => setSnack({ open: false, message: '' })}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert onClose={() => setSnack({ open: false, message: '' })} severity="success" sx={{ width: '100%' }}>
+            {snack.message}
+          </Alert>
         </Snackbar>
 
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 3 }}>
-          <Box>
-            <Typography sx={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: { xs: '2.2rem', sm: '3rem' }, letterSpacing: '0.04em', color: 'var(--rl-cream)', lineHeight: 1 }}>
-              My Rankings
+        <Box sx={{ textAlign: 'center', mb: { xs: 3, sm: 5 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, mb: 1.5 }}>
+            <Typography
+              variant="h2"
+              sx={{
+                background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
+              }}
+            >
+              My Movie Rankings
             </Typography>
-            <Typography sx={{ color: 'var(--rl-muted)', mt: 0.5 }}>
-              {filteredAndSortedRatings.length === rawRatings.length
-                ? `${rawRatings.length} movies · ordered by preference`
-                : `${filteredAndSortedRatings.length} of ${rawRatings.length} movies`}
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            <IconButton onClick={handleUndo} disabled={ratingsHistory.length === 0} title="Undo" sx={{ color: 'var(--rl-cream)' }}>
+            <IconButton
+              onClick={handleUndo}
+              disabled={ratingsHistory.length === 0}
+              title="Undo last change"
+              sx={{
+                color: ratingsHistory.length === 0 ? 'rgba(255,255,255,0.3)' : '#00d4ff',
+                '&:hover': { backgroundColor: ratingsHistory.length === 0 ? 'transparent' : 'rgba(0, 212, 255, 0.1)' },
+              }}
+            >
               <UndoIcon />
             </IconButton>
-            <IconButton onClick={handleShareClick} title="Share" sx={{ color: 'var(--rl-cream)' }}>
+            <IconButton
+              onClick={handleShareClick}
+              title="Share"
+              sx={{ color: '#00d4ff', '&:hover': { backgroundColor: 'rgba(0, 212, 255, 0.1)' } }}
+            >
               <ShareIcon />
             </IconButton>
           </Box>
+          <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: { xs: '0.95rem', sm: '1.1rem' } }}>
+            {filteredAndSortedRatings.length === rawRatings.length
+              ? `Your personal ranking of ${rawRatings.length} rated movies`
+              : `Showing ${filteredAndSortedRatings.length} of ${rawRatings.length} movies`}
+          </Typography>
         </Box>
 
         <TextField
@@ -422,15 +464,18 @@ const MyRankings = () => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon sx={{ color: 'var(--rl-muted)' }} />
+                <SearchIcon sx={{ color: 'rgba(255,255,255,0.45)' }} />
               </InputAdornment>
             ),
           }}
           sx={{
             mb: 2,
             '& .MuiOutlinedInput-root': {
-              backgroundColor: 'rgba(244,239,230,0.04)',
-              borderRadius: '4px',
+              color: '#fff',
+              backgroundColor: 'rgba(26,26,26,0.65)',
+              '& fieldset': { borderColor: 'rgba(0, 212, 255, 0.25)' },
+              '&:hover fieldset': { borderColor: 'rgba(0, 212, 255, 0.45)' },
+              '&.Mui-focused fieldset': { borderColor: '#00d4ff' },
             },
           }}
         />
@@ -438,7 +483,7 @@ const MyRankings = () => {
         <Button
           onClick={() => setShowAdvancedFilters((v) => !v)}
           endIcon={showAdvancedFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          sx={{ color: 'var(--rl-muted)', textTransform: 'none', mb: 1, px: 0 }}
+          sx={{ color: 'rgba(255,255,255,0.65)', textTransform: 'none', mb: 1, px: 0 }}
         >
           {showAdvancedFilters ? 'Hide filters' : 'More filters'}
         </Button>
@@ -452,132 +497,237 @@ const MyRankings = () => {
         </Collapse>
 
         {!canReorder && (
-          <Alert severity="info" sx={{ mb: 2, bgcolor: 'rgba(212,160,23,0.08)', color: 'var(--rl-cream)' }}>
-            Drag to reorder is available when viewing rank order with no filters.
+          <Alert severity="info" sx={{ mb: 2, bgcolor: 'rgba(0, 212, 255, 0.08)', color: '#fff' }}>
+            Clear search/filters and sort by ranking to drag and reorder.
           </Alert>
         )}
 
+        <Typography
+          variant="h4"
+          sx={{
+            color: '#fff',
+            mb: { xs: 2, sm: 3 },
+            textAlign: 'center',
+            fontSize: { xs: '1.35rem', sm: '1.75rem' },
+          }}
+        >
+          {filteredAndSortedRatings.length === rawRatings.length ? 'Complete Rankings' : 'Filtered Rankings'}
+        </Typography>
+
         {filteredAndSortedRatings.length === 0 ? (
-          <Typography sx={{ color: 'var(--rl-muted)', textAlign: 'center', py: 6 }}>
-            No movies match your filters.
-          </Typography>
+          <Card
+            sx={{
+              background: 'rgba(26, 26, 26, 0.8)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(0, 212, 255, 0.2)',
+              borderRadius: 4,
+              p: 4,
+              textAlign: 'center',
+            }}
+          >
+            <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.8)', mb: 1 }}>
+              No movies match your filters
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
+              Try adjusting your filter criteria
+            </Typography>
+          </Card>
         ) : (
-          groupedByTier.map((group) => (
-            <Box key={group.id} sx={{ mb: 4 }}>
-              <Typography
-                sx={{
-                  fontFamily: '"Manrope", sans-serif',
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: group.color,
-                  mb: 1.5,
-                  pb: 1,
-                  borderBottom: `1px solid ${group.color}44`,
-                }}
-              >
-                {group.label}
-              </Typography>
-              <List sx={{ p: 0 }}>
-                {group.items.map((ranking) => {
-                  const originalIndex = ranking.originalIndex;
-                  const isDragging = draggedIndex === originalIndex;
-                  const isDragOver = dragOverIndex === originalIndex;
-                  return (
+          <Card
+            sx={{
+              background: 'rgba(26, 26, 26, 0.8)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(0, 212, 255, 0.2)',
+              borderRadius: 4,
+            }}
+          >
+            <List sx={{ p: 0 }}>
+              {filteredAndSortedRatings.map((ranking, displayIndex) => {
+                const originalIndex = ranking.originalIndex;
+                const score = ranking.computedScore || computeEvenScore(originalIndex, rawRatings.length);
+                const isDragging = draggedIndex === originalIndex;
+                const isDragOver = dragOverIndex === originalIndex;
+
+                return (
+                  <React.Fragment key={ranking.id}>
                     <ListItem
-                      key={ranking.id}
                       data-ranking-index={originalIndex}
                       onMouseDown={(e) => handleMouseDown(e, originalIndex)}
-                      secondaryAction={
-                        <Box sx={{ display: 'flex', gap: 0.5 }}>
-                          <IconButton
-                            edge="end"
-                            title="Add to list"
-                            onClick={() => setListMovie(ranking)}
-                            sx={{ color: 'var(--rl-muted)' }}
-                          >
-                            <PlaylistAddIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            edge="end"
-                            title="Re-rank"
-                            onClick={() => setRerankMovie(ranking)}
-                            sx={{ color: 'var(--rl-muted)' }}
-                          >
-                            <ReplayIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            edge="end"
-                            title="Remove"
-                            onClick={() => setDeleteDialog({ open: true, movieId: ranking.id })}
-                            sx={{ color: 'var(--rl-muted)' }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      }
                       sx={{
-                        py: 1.5,
-                        px: 1,
-                        mb: 0.5,
-                        borderRadius: '4px',
+                        py: { xs: 1.5, sm: 2 },
+                        px: { xs: 1.5, sm: 3 },
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        alignItems: { xs: 'flex-start', sm: 'center' },
                         cursor: canReorder ? (isDragging ? 'grabbing' : 'grab') : 'default',
-                        opacity: isDragging ? 0.7 : 1,
-                        backgroundColor: isDragOver ? 'rgba(212,160,23,0.12)' : 'transparent',
-                        border: isDragOver ? '1px solid rgba(212,160,23,0.4)' : '1px solid transparent',
-                        '&:hover': { backgroundColor: 'rgba(244,239,230,0.04)' },
+                        opacity: isDragging ? 0.85 : 1,
+                        transform: isDragging ? 'scale(1.02)' : 'none',
+                        boxShadow: isDragging ? '0 8px 24px rgba(0, 212, 255, 0.25)' : 'none',
+                        backgroundColor: isDragOver ? 'rgba(0, 212, 255, 0.08)' : 'transparent',
+                        border: isDragOver ? '2px solid rgba(0, 212, 255, 0.4)' : '2px solid transparent',
+                        transition: 'background-color 0.15s ease, border-color 0.15s ease',
+                        userSelect: 'none',
+                        '&:hover': {
+                          backgroundColor:
+                            draggedIndex === null ? 'rgba(0, 212, 255, 0.05)' : isDragOver ? 'rgba(0, 212, 255, 0.08)' : 'transparent',
+                        },
                       }}
                     >
                       {canReorder && (
-                        <DragIndicatorIcon sx={{ mr: 1, color: 'rgba(244,239,230,0.35)', fontSize: '1.1rem' }} />
+                        <Box sx={{ mr: { xs: 1, sm: 1.5 }, display: 'flex', color: 'rgba(255,255,255,0.45)', pointerEvents: 'none' }}>
+                          <DragIndicatorIcon sx={{ fontSize: { xs: '1.15rem', sm: '1.35rem' } }} />
+                        </Box>
                       )}
-                      <Typography
-                        sx={{
-                          width: 36,
-                          flexShrink: 0,
-                          fontFamily: '"Bebas Neue", sans-serif',
-                          fontSize: '1.35rem',
-                          color: group.color,
-                          mr: 1.5,
-                        }}
-                      >
-                        #{ranking.rankNumber}
-                      </Typography>
-                      <ListItemAvatar sx={{ minWidth: 56 }}>
-                        <Avatar
-                          variant="rounded"
-                          src={ranking.posterUrl || undefined}
-                          component={Link}
-                          to={`/movie/${ranking.id}`}
-                          sx={{ width: 44, height: 66, borderRadius: '3px' }}
-                        >
-                          <MovieIcon />
-                        </Avatar>
+
+                      <ListItemAvatar sx={{ mr: { xs: 1.5, sm: 2 }, mb: { xs: 1, sm: 0 }, minWidth: 'auto' }}>
+                        <Box sx={{ position: 'relative' }}>
+                          <Avatar
+                            variant="rounded"
+                            src={ranking.posterUrl || undefined}
+                            component={Link}
+                            to={`/movie/${ranking.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            sx={{
+                              width: { xs: 48, sm: 56 },
+                              height: { xs: 72, sm: 84 },
+                              borderRadius: 1.5,
+                              backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                            }}
+                          >
+                            <MovieIcon />
+                          </Avatar>
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: -6,
+                              right: -6,
+                              backgroundColor: getRankingColor(originalIndex),
+                              color: originalIndex < 3 ? '#000' : '#fff',
+                              borderRadius: '50%',
+                              width: { xs: 22, sm: 26 },
+                              height: { xs: 22, sm: 26 },
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                              fontWeight: 'bold',
+                              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                            }}
+                          >
+                            {originalIndex + 1}
+                          </Box>
+                        </Box>
                       </ListItemAvatar>
+
                       <ListItemText
                         primary={
                           <Typography
                             component={Link}
                             to={`/movie/${ranking.id}`}
-                            sx={{ color: 'var(--rl-cream)', textDecoration: 'none', fontWeight: 600, '&:hover': { color: 'var(--rl-accent)' } }}
+                            onClick={(e) => e.stopPropagation()}
+                            sx={{
+                              color: '#fff',
+                              textDecoration: 'none',
+                              fontWeight: 600,
+                              fontSize: { xs: '0.95rem', sm: '1.1rem' },
+                              '&:hover': { color: '#66e0ff' },
+                            }}
                           >
                             {ranking.title}
                           </Typography>
                         }
                         secondary={
-                          ranking.releaseDate
-                            ? String(new Date(ranking.releaseDate).getFullYear())
-                            : null
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap', mt: 0.5 }}>
+                            <Rating
+                              precision={0.1}
+                              value={score / 2}
+                              readOnly
+                              size="small"
+                              sx={{ '& .MuiRating-iconFilled': { color: '#00d4ff' }, fontSize: '0.95rem' }}
+                            />
+                            <Typography sx={{ color: '#00d4ff', fontWeight: 600, fontSize: '0.8rem' }}>
+                              {score.toFixed(1)}/10
+                            </Typography>
+                            <Chip
+                              label={`#${originalIndex + 1}`}
+                              size="small"
+                              sx={{
+                                backgroundColor: getRankingColor(originalIndex),
+                                color: originalIndex < 3 ? '#000' : '#fff',
+                                fontWeight: 'bold',
+                                height: 22,
+                                fontSize: '0.7rem',
+                              }}
+                            />
+                            {ranking.releaseDate && (
+                              <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.75rem' }}>
+                                {new Date(ranking.releaseDate).getFullYear()}
+                              </Typography>
+                            )}
+                          </Box>
                         }
-                        secondaryTypographyProps={{ sx: { color: 'var(--rl-muted)' } }}
+                        secondaryTypographyProps={{ component: 'div' }}
                       />
+
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          gap: 0.75,
+                          mt: { xs: 1.5, sm: 0 },
+                          width: { xs: '100%', sm: 'auto' },
+                          justifyContent: { xs: 'flex-end', sm: 'flex-start' },
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          variant="outlined"
+                          component={Link}
+                          to={`/movie/${ranking.id}`}
+                          size="small"
+                          sx={{
+                            borderColor: '#00d4ff',
+                            color: '#00d4ff',
+                            fontSize: '0.75rem',
+                            minWidth: 0,
+                            px: 1.25,
+                            '&:hover': { borderColor: '#66e0ff', backgroundColor: 'rgba(0, 212, 255, 0.1)' },
+                          }}
+                        >
+                          View
+                        </Button>
+                        <IconButton
+                          size="small"
+                          title="Add to list"
+                          onClick={() => setListMovie(ranking)}
+                          sx={{ color: 'rgba(255,255,255,0.55)' }}
+                        >
+                          <PlaylistAddIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          title="Re-rank"
+                          onClick={() => setRerankMovie(ranking)}
+                          sx={{ color: 'rgba(255,255,255,0.55)' }}
+                        >
+                          <ReplayIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          title="Remove"
+                          onClick={() => setDeleteDialog({ open: true, movieId: ranking.id })}
+                          sx={{ color: '#ff6b35' }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
                     </ListItem>
-                  );
-                })}
-              </List>
-            </Box>
-          ))
+                    {displayIndex < filteredAndSortedRatings.length - 1 && (
+                      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.08)' }} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </List>
+          </Card>
         )}
       </Container>
 
