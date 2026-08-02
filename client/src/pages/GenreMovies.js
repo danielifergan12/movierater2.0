@@ -83,12 +83,14 @@ const GenreMovies = () => {
       }}
     >
       <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4.5 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
+        <Box sx={{ position: 'relative', textAlign: 'center', mb: 1, px: { xs: 4, sm: 5 } }}>
           <IconButton
             onClick={() => navigate('/?tab=2')}
             size="small"
             sx={{
-              mt: 0.35,
+              position: 'absolute',
+              left: 0,
+              top: 0.25,
               color: 'var(--rl-muted)',
               '&:hover': { color: 'var(--rl-cream)', backgroundColor: 'rgba(244,239,230,0.06)' },
             }}
@@ -96,22 +98,20 @@ const GenreMovies = () => {
           >
             <ArrowBackIcon fontSize="small" />
           </IconButton>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              sx={{
-                fontFamily: '"Bebas Neue", sans-serif',
-                fontSize: { xs: '2rem', sm: '2.5rem' },
-                letterSpacing: '0.04em',
-                color: 'var(--rl-cream)',
-                lineHeight: 1.05,
-              }}
-            >
-              {genreName}
-            </Typography>
-            <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem', mt: 0.5 }}>
-              Highly rated {genreName.toLowerCase()} films
-            </Typography>
-          </Box>
+          <Typography
+            sx={{
+              fontFamily: '"Bebas Neue", sans-serif',
+              fontSize: { xs: '2rem', sm: '2.5rem' },
+              letterSpacing: '0.04em',
+              color: 'var(--rl-cream)',
+              lineHeight: 1.05,
+            }}
+          >
+            {genreName}
+          </Typography>
+          <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem', mt: 0.5 }}>
+            Highly rated {genreName.toLowerCase()} films
+          </Typography>
         </Box>
 
         {loading && movies.length === 0 ? (
@@ -135,6 +135,9 @@ const GenreMovies = () => {
                 },
                 gap: { xs: 1, sm: 1.25, md: 1.5 },
                 mt: { xs: 2.5, sm: 3 },
+                mx: 'auto',
+                justifyItems: 'center',
+                maxWidth: 1100,
               }}
             >
               {movies.map((movie) => {
@@ -146,6 +149,7 @@ const GenreMovies = () => {
                     key={movie.id}
                     sx={{
                       minWidth: 0,
+                      width: '100%',
                       '&:hover .action-btn': { opacity: 1 },
                       '&:hover .poster-frame': { borderColor: 'rgba(212, 160, 23, 0.55)' },
                       '&:hover .title': { color: 'var(--rl-accent)' },

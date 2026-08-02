@@ -736,7 +736,7 @@ const Home = () => {
                   Unable to load genres. Try refreshing.
                 </Typography>
               ) : (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
                   {genres.map((genre) => (
                     <Button
                       key={genre.id}
