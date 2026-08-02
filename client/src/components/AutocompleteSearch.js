@@ -14,326 +14,377 @@ import {
   Fade,
   Button,
   IconButton,
-  InputAdornment
+  Chip,
 } from '@mui/material';
-import { Search as SearchIcon, Star as StarIcon } from '@mui/icons-material';
+import {
+  Search as SearchIcon,
+  Star as StarIcon,
+  ArrowBack as ArrowBackIcon,
+  Person as PersonIcon,
+} from '@mui/icons-material';
 import api from '../config/axios';
 import RatingModal from './RatingModal';
 import { useRatings } from '../hooks/useRatings';
 import { useAuth } from '../contexts/AuthContext';
 
-const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." }) => {
+/**
+ * Main movie search — also finds actors/directors, then drills into their films.
+ */
+const AutocompleteSearch = ({ onMovieSelect, placeholder = 'Search movies, actors, directors…' }) => {
   const { rawRatings } = useRatings();
   const { isAuthenticated } = useAuth();
   const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
+  const [movies, setMovies] = useState([]);
+  const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [ratingMovie, setRatingMovie] = useState(null);
+  const [personView, setPersonView] = useState(null); // { id, name, role, movies[] }
+  const [personLoading, setPersonLoading] = useState(false);
   const searchRef = useRef(null);
-  const suggestionsRef = useRef(null);
 
   useEffect(() => {
-    const searchMovies = async () => {
+    if (personView) return undefined;
+
+    const run = async () => {
       if (query.length < 2) {
-        setSuggestions([]);
+        setMovies([]);
+        setPeople([]);
         setShowSuggestions(false);
         return;
       }
-
       setLoading(true);
       try {
         const response = await api.get(`/api/movies/search?query=${encodeURIComponent(query)}&page=1`);
-        setSuggestions(response.data.results.slice(0, 8)); // Limit to 8 suggestions
+        setMovies((response.data.results || []).slice(0, 6));
+        setPeople(response.data.people || []);
         setShowSuggestions(true);
       } catch (error) {
         console.error('Search error:', error);
-        setSuggestions([]);
+        setMovies([]);
+        setPeople([]);
       } finally {
         setLoading(false);
       }
     };
 
-    const debounceTimer = setTimeout(searchMovies, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [query]);
+    const t = setTimeout(run, 280);
+    return () => clearTimeout(t);
+  }, [query, personView]);
 
-  const handleInputChange = (event) => {
-    setQuery(event.target.value);
-    setSelectedIndex(-1);
-  };
-
-  const handleKeyDown = (event) => {
-    switch (event.key) {
-      case 'ArrowDown':
-        if (showSuggestions && suggestions.length > 0) {
-          event.preventDefault();
-          setSelectedIndex(prev => 
-            prev < suggestions.length - 1 ? prev + 1 : prev
-          );
-        }
-        break;
-      case 'ArrowUp':
-        if (showSuggestions && suggestions.length > 0) {
-          event.preventDefault();
-          setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
-        }
-        break;
-      case 'Enter':
-        // Removed - search happens automatically as user types
-        break;
-      case 'Escape':
-        setShowSuggestions(false);
-        setSelectedIndex(-1);
-        break;
-      default:
-        break;
-    }
-  };
-
-  const goToFirstSuggestion = () => {
-    if (suggestions.length > 0) {
-      handleMovieSelect(suggestions[selectedIndex >= 0 ? selectedIndex : 0]);
-    }
-  };
+  const flatItems = personView
+    ? (personView.movies || []).map((m) => ({ type: 'movie', data: m }))
+    : [
+        ...people.map((p) => ({ type: 'person', data: p })),
+        ...movies.map((m) => ({ type: 'movie', data: m })),
+      ];
 
   const handleMovieSelect = (movie) => {
-    setQuery(movie.title);
+    setQuery(movie.title || '');
     setShowSuggestions(false);
     setSelectedIndex(-1);
+    setPersonView(null);
     onMovieSelect(movie);
   };
 
-  const handleClickOutside = (event) => {
-    if (searchRef.current && !searchRef.current.contains(event.target)) {
-      setShowSuggestions(false);
+  const openPerson = async (person) => {
+    setPersonLoading(true);
+    setShowSuggestions(true);
+    try {
+      const res = await api.get(`/api/movies/person/${person.id}/movies`);
+      setPersonView({
+        id: person.id,
+        name: res.data.person?.name || person.name,
+        role: person.role,
+        movies: (res.data.results || []).slice(0, 20),
+      });
+      setSelectedIndex(-1);
+    } catch (e) {
+      console.error('Person filmography error:', e);
+    } finally {
+      setPersonLoading(false);
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (!showSuggestions || flatItems.length === 0) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setSelectedIndex((prev) => Math.min(prev + 1, flatItems.length - 1));
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setSelectedIndex((prev) => Math.max(prev - 1, -1));
+    } else if (event.key === 'Enter' && selectedIndex >= 0) {
+      event.preventDefault();
+      const item = flatItems[selectedIndex];
+      if (item.type === 'person') openPerson(item.data);
+      else handleMovieSelect(item.data);
+    } else if (event.key === 'Escape') {
+      if (personView) setPersonView(null);
+      else {
+        setShowSuggestions(false);
+        setSelectedIndex(-1);
+      }
     }
   };
 
   useEffect(() => {
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    const onDown = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
   }, []);
+
+  const showPanel = showSuggestions && (flatItems.length > 0 || personLoading || personView);
 
   return (
     <Box ref={searchRef} sx={{ position: 'relative', width: '100%' }}>
       <TextField
         fullWidth
+        size="small"
         placeholder={placeholder}
         value={query}
-        onChange={handleInputChange}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setSelectedIndex(-1);
+          if (personView) setPersonView(null);
+        }}
         onKeyDown={handleKeyDown}
-        onFocus={() => query.length >= 2 && setShowSuggestions(true)}
+        onFocus={() => (query.length >= 2 || personView) && setShowSuggestions(true)}
         InputProps={{
-          startAdornment: (
-            <SearchIcon sx={{ color: '#00d4ff', mr: 1 }} />
-          ),
-          endAdornment: (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              {loading && (
-                <CircularProgress size={20} sx={{ color: '#00d4ff' }} />
-              )}
-              {query.trim().length >= 2 && (
-                <IconButton
-                  onClick={goToFirstSuggestion}
-                  sx={{
-                    color: '#00d4ff',
-                    padding: { xs: 0.75, sm: 1 },
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                    },
-                  }}
-                  aria-label="Search"
-                >
-                  <SearchIcon sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
-                </IconButton>
-              )}
-            </Box>
-          ),
+          startAdornment: <SearchIcon sx={{ color: 'var(--rl-muted)', mr: 1, fontSize: 20 }} />,
+          endAdornment: loading || personLoading ? (
+            <CircularProgress size={18} sx={{ color: 'var(--rl-accent)' }} />
+          ) : query.trim().length >= 2 ? (
+            <IconButton
+              size="small"
+              onClick={() => {
+                if (flatItems[0]?.type === 'movie') handleMovieSelect(flatItems[0].data);
+                else if (flatItems[0]?.type === 'person') openPerson(flatItems[0].data);
+              }}
+              sx={{ color: 'var(--rl-accent)' }}
+              aria-label="Search"
+            >
+              <SearchIcon fontSize="small" />
+            </IconButton>
+          ) : null,
         }}
         sx={{
           '& .MuiOutlinedInput-root': {
-            backgroundColor: 'rgba(0, 212, 255, 0.05)',
-            borderRadius: 3,
-            backdropFilter: 'blur(10px)',
-            '& fieldset': {
-              borderColor: 'rgba(0, 212, 255, 0.3)',
-            },
-            '&:hover fieldset': {
-              borderColor: 'rgba(0, 212, 255, 0.6)',
-              boxShadow: '0 0 20px rgba(0, 212, 255, 0.2)',
-            },
-            '&.Mui-focused fieldset': {
-              borderColor: '#00d4ff',
-              boxShadow: '0 0 25px rgba(0, 212, 255, 0.3)',
-            },
+            backgroundColor: 'rgba(244,239,230,0.04)',
+            borderRadius: 1,
+            color: 'var(--rl-cream)',
+            '& fieldset': { borderColor: 'rgba(244,239,230,0.14)' },
+            '&:hover fieldset': { borderColor: 'rgba(212,160,23,0.4)' },
+            '&.Mui-focused fieldset': { borderColor: 'rgba(212,160,23,0.65)' },
           },
-          '& .MuiInputBase-input::placeholder': {
-            color: 'rgba(255, 255, 255, 0.6)',
-          },
+          '& .MuiInputBase-input::placeholder': { color: 'var(--rl-muted)', opacity: 1 },
         }}
       />
 
-      <Fade in={showSuggestions && suggestions.length > 0}>
+      <Fade in={showPanel}>
         <Paper
-          ref={suggestionsRef}
           sx={{
             position: 'absolute',
             top: '100%',
             left: 0,
             right: 0,
-            zIndex: 1000,
-            mt: 1,
-            backgroundColor: 'rgba(26, 26, 26, 0.95)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(0, 212, 255, 0.3)',
-            borderRadius: 3,
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-            maxHeight: { xs: 300, sm: 400 },
+            zIndex: 1300,
+            mt: 0.75,
+            backgroundColor: 'rgba(12, 11, 10, 0.98)',
+            border: '1px solid rgba(244,239,230,0.12)',
+            borderRadius: 1.5,
+            boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
+            maxHeight: { xs: 340, sm: 420 },
             overflowY: 'auto',
-            overflowX: 'hidden',
           }}
         >
+          {personView && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                px: 1.5,
+                py: 1,
+                borderBottom: '1px solid rgba(244,239,230,0.1)',
+                position: 'sticky',
+                top: 0,
+                bgcolor: 'rgba(12,11,10,0.98)',
+                zIndex: 1,
+              }}
+            >
+              <IconButton size="small" onClick={() => setPersonView(null)} sx={{ color: 'var(--rl-cream)' }}>
+                <ArrowBackIcon fontSize="small" />
+              </IconButton>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography sx={{ color: 'var(--rl-cream)', fontWeight: 600, fontSize: '0.9rem' }}>
+                  {personView.name}
+                </Typography>
+                <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.72rem' }}>
+                  {personView.role} · films
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          {!personView && people.length > 0 && (
+            <Typography sx={{ px: 1.75, pt: 1.25, pb: 0.5, color: 'var(--rl-muted)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              People
+            </Typography>
+          )}
+
           <List sx={{ p: 0 }}>
-            {suggestions.map((movie, index) => (
-              <ListItem
-                key={movie.id}
-                disablePadding
-                sx={{
-                  backgroundColor: selectedIndex === index 
-                    ? 'rgba(0, 212, 255, 0.1)' 
-                    : 'transparent',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                  '&:last-child': {
-                    borderBottom: 'none',
-                  },
-                }}
-              >
-                <ListItemButton
-                  onClick={() => handleMovieSelect(movie)}
-                  sx={{
-                    py: { xs: 1.5, sm: 2 },
-                    px: { xs: 2, sm: 3 },
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                    },
-                  }}
-                >
-                  <ListItemAvatar sx={{ mr: { xs: 1, sm: 2 } }}>
-                    <Avatar
-                      src={movie.poster_path ? `https://image.tmdb.org/t/p/w92${movie.poster_path}` : null}
-                      sx={{ 
-                        width: { xs: 40, sm: 60 }, 
-                        height: { xs: 60, sm: 90 },
-                        borderRadius: 2,
-                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                      }}
-                    >
-                      🎬
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Typography
-                        variant="subtitle1"
-                        sx={{
-                          color: '#ffffff',
-                          fontWeight: 600,
-                          mb: 0.5,
-                          fontSize: { xs: '0.875rem', sm: '1rem' },
-                        }}
+            {!personView &&
+              people.map((person, index) => (
+                <ListItem key={`p-${person.id}`} disablePadding>
+                  <ListItemButton
+                    selected={selectedIndex === index}
+                    onClick={() => openPerson(person)}
+                    sx={{
+                      py: 1,
+                      px: 1.75,
+                      '&.Mui-selected': { bgcolor: 'rgba(212,160,23,0.1)' },
+                      '&:hover': { bgcolor: 'rgba(244,239,230,0.05)' },
+                    }}
+                  >
+                    <ListItemAvatar sx={{ minWidth: 48 }}>
+                      <Avatar
+                        src={person.profile_path ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : null}
+                        sx={{ width: 36, height: 36, bgcolor: 'rgba(244,239,230,0.08)' }}
                       >
-                        {movie.title}
-                      </Typography>
-                    }
-                    secondary={
-                      <Box>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: 'rgba(255, 255, 255, 0.7)',
-                            mb: 0.5,
-                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                          }}
-                        >
-                          {new Date(movie.release_date).getFullYear()}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: 'rgba(255, 255, 255, 0.6)',
-                            display: { xs: 'none', sm: '-webkit-box' },
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                          }}
-                        >
-                          {movie.overview}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1, flexWrap: 'wrap', gap: 0.5 }}>
-                          <Typography
-                            variant="caption"
+                        <PersonIcon sx={{ fontSize: 18, color: 'var(--rl-muted)' }} />
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography sx={{ color: 'var(--rl-cream)', fontWeight: 600, fontSize: '0.88rem' }}>
+                            {person.name}
+                          </Typography>
+                          <Chip
+                            label={person.role}
+                            size="small"
                             sx={{
-                              color: '#00d4ff',
-                              fontWeight: 600,
-                              mr: 1,
-                              fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                              height: 18,
+                              fontSize: '0.62rem',
+                              fontWeight: 700,
+                              bgcolor: 'rgba(212,160,23,0.18)',
+                              color: 'var(--rl-accent)',
+                            }}
+                          />
+                        </Box>
+                      }
+                      secondary={
+                        person.known_for?.length ? (
+                          <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.72rem' }}>
+                            {person.known_for.map((k) => k.title).join(' · ')}
+                          </Typography>
+                        ) : null
+                      }
+                    />
+                  </ListItemButton>
+                </ListItem>
+              ))}
+
+            {!personView && movies.length > 0 && people.length > 0 && (
+              <Typography sx={{ px: 1.75, pt: 1, pb: 0.5, color: 'var(--rl-muted)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                Movies
+              </Typography>
+            )}
+
+            {(personView ? personView.movies : movies).map((movie, index) => {
+              const flatIndex = personView ? index : people.length + index;
+              const isAlreadyRated = rawRatings.some((r) => String(r.id) === String(movie.id));
+              const year = movie.release_date ? String(movie.release_date).slice(0, 4) : '';
+              return (
+                <ListItem key={`m-${movie.id}`} disablePadding>
+                  <ListItemButton
+                    selected={selectedIndex === flatIndex}
+                    onClick={() => handleMovieSelect(movie)}
+                    sx={{
+                      py: 1,
+                      px: 1.75,
+                      '&.Mui-selected': { bgcolor: 'rgba(212,160,23,0.1)' },
+                      '&:hover': { bgcolor: 'rgba(244,239,230,0.05)' },
+                    }}
+                  >
+                    <ListItemAvatar sx={{ minWidth: 52 }}>
+                      <Avatar
+                        variant="rounded"
+                        src={movie.poster_path ? `https://image.tmdb.org/t/p/w92${movie.poster_path}` : null}
+                        sx={{ width: 34, height: 51, borderRadius: '3px', bgcolor: 'rgba(244,239,230,0.06)' }}
+                      />
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Typography sx={{ color: 'var(--rl-cream)', fontWeight: 600, fontSize: '0.88rem' }}>
+                          {movie.title}
+                        </Typography>
+                      }
+                      secondary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.25, flexWrap: 'wrap' }}>
+                          <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.72rem' }}>
+                            {[year, movie.credit, movie.vote_average ? `★ ${Number(movie.vote_average).toFixed(1)}` : null]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </Typography>
+                          <Button
+                            size="small"
+                            startIcon={<StarIcon sx={{ fontSize: '0.85rem !important' }} />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isAuthenticated) {
+                                const currentUrl = window.location.pathname + window.location.search;
+                                window.location.href = `/login?redirect=${encodeURIComponent(currentUrl)}`;
+                                return;
+                              }
+                              if (!isAlreadyRated) {
+                                setRatingMovie({
+                                  id: movie.id,
+                                  title: movie.title,
+                                  posterUrl: movie.poster_path
+                                    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+                                    : '/placeholder-movie.jpg',
+                                });
+                                setShowSuggestions(false);
+                              }
+                            }}
+                            disabled={isAlreadyRated}
+                            sx={{
+                              textTransform: 'none',
+                              fontSize: '0.68rem',
+                              py: 0.15,
+                              px: 0.75,
+                              minWidth: 0,
+                              color: isAlreadyRated ? 'var(--rl-muted)' : 'var(--rl-ink)',
+                              bgcolor: isAlreadyRated ? 'transparent' : 'var(--rl-accent)',
+                              border: isAlreadyRated ? '1px solid rgba(244,239,230,0.2)' : 'none',
+                              '&:hover': {
+                                bgcolor: isAlreadyRated ? 'rgba(244,239,230,0.04)' : 'var(--rl-accent-hover)',
+                              },
                             }}
                           >
-                            ⭐ {movie.vote_average.toFixed(1)}
-                          </Typography>
-                          {(() => {
-                            const isAlreadyRated = rawRatings.some(r => r.id?.toString() === movie.id?.toString());
-                            return (
-                              <Button
-                                size="small"
-                                variant={isAlreadyRated ? "outlined" : "contained"}
-                                startIcon={<StarIcon sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }} />}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (!isAuthenticated) {
-                                    const currentUrl = window.location.pathname + window.location.search;
-                                    window.location.href = `/login?redirect=${encodeURIComponent(currentUrl)}`;
-                                    return;
-                                  }
-                                  if (!isAlreadyRated) {
-                                    setRatingMovie({
-                                      id: movie.id,
-                                      title: movie.title,
-                                      posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'
-                                    });
-                                    setShowSuggestions(false);
-                                  }
-                                }}
-                                disabled={isAlreadyRated}
-                                sx={{
-                                  ...(isAlreadyRated ? {
-                                    borderColor: 'rgba(0, 212, 255, 0.3)',
-                                    color: 'rgba(0, 212, 255, 0.5)',
-                                    cursor: 'not-allowed',
-                                  } : {
-                                    background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                                  }),
-                                  fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                                  py: { xs: 0.25, sm: 0.5 },
-                                  px: { xs: 1, sm: 1.5 },
-                                  minWidth: 'auto',
-                                }}
-                              >
-                                {isAlreadyRated ? 'Rated' : 'Rate'}
-                              </Button>
-                            );
-                          })()}
+                            {isAlreadyRated ? 'Ranked' : 'Rank'}
+                          </Button>
                         </Box>
-                      </Box>
-                    }
-                  />
-                </ListItemButton>
-              </ListItem>
-            ))}
+                      }
+                    />
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
           </List>
+
+          {personLoading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+              <CircularProgress size={22} sx={{ color: 'var(--rl-accent)' }} />
+            </Box>
+          )}
         </Paper>
       </Fade>
 
@@ -350,4 +401,3 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = "Search movies..." })
 };
 
 export default AutocompleteSearch;
-

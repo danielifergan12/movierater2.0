@@ -1,10 +1,45 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const List = require('../models/List');
+const User = require('../models/User');
 const auth = require('../middleware/auth');
 const crypto = require('crypto');
 
 const router = express.Router();
+
+/** Global rank index in user's preference order, or -1 if unranked. */
+const globalRankIndex = (ratings, movieId, tmdbId) => {
+  const idStr = String(movieId);
+  const tmdbStr = tmdbId != null ? String(tmdbId) : null;
+  return ratings.findIndex((r) => {
+    const rid = String(r.id);
+    return rid === idStr || (tmdbStr && rid === tmdbStr);
+  });
+};
+
+/**
+ * Insert so list order mirrors the user's overall ranking.
+ * Ranked films stay sorted by global preference; unranked films stay after them.
+ */
+const insertMovieByRanking = (listMovies, newMovie, ratings) => {
+  const newRank = globalRankIndex(ratings, newMovie.movieId, newMovie.tmdbId);
+  if (newRank === -1) {
+    listMovies.push(newMovie);
+    return listMovies.length - 1;
+  }
+
+  let insertAt = listMovies.length;
+  for (let i = 0; i < listMovies.length; i += 1) {
+    const m = listMovies[i];
+    const mRank = globalRankIndex(ratings, m.movieId, m.tmdbId);
+    if (mRank === -1 || mRank > newRank) {
+      insertAt = i;
+      break;
+    }
+  }
+  listMovies.splice(insertAt, 0, newMovie);
+  return insertAt;
+};
 
 // Get user's lists
 router.get('/my', auth, async (req, res) => {
@@ -159,7 +194,7 @@ router.delete('/:listId', auth, async (req, res) => {
   }
 });
 
-// Add movie to list
+// Add movie to list (inserted by user's global ranking when already ranked)
 router.post('/:listId/movies', auth, [
   body('movieId').notEmpty(),
   body('tmdbId').isInt(),
@@ -185,7 +220,7 @@ router.post('/:listId/movies', auth, [
       return res.status(400).json({ message: 'Movie already in list' });
     }
 
-    list.movies.push({
+    const newMovie = {
       movieId,
       tmdbId,
       title,
@@ -193,15 +228,19 @@ router.post('/:listId/movies', auth, [
       releaseDate: releaseDate ? new Date(releaseDate) : null,
       note: note || '',
       addedAt: new Date()
-    });
+    };
 
-    // Update cover image if list is empty
+    const user = await User.findById(req.userId).select('ratings');
+    const ratings = user?.ratings || [];
+    const insertAt = insertMovieByRanking(list.movies, newMovie, ratings);
+
+    // Update cover image if list had no cover
     if (!list.coverImage && posterPath) {
       list.coverImage = posterPath;
     }
 
     await list.save();
-    res.json(list);
+    res.json({ ...list.toObject(), insertedAt: insertAt, placedByRanking: globalRankIndex(ratings, movieId, tmdbId) !== -1 });
   } catch (error) {
     console.error('Add movie to list error:', error);
     res.status(500).json({ message: 'Error adding movie to list' });

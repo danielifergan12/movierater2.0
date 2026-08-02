@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 
 const router = express.Router();
 
-// Search movies from TMDB
+// Search movies (+ people for actor/director discovery) from TMDB
 router.get('/search', async (req, res) => {
   try {
     const { query, page = 1 } = req.query;
@@ -14,41 +14,137 @@ router.get('/search', async (req, res) => {
       return res.status(400).json({ message: 'Query parameter is required' });
     }
 
-    const response = await axios.get(
-      `https://api.themoviedb.org/3/search/movie`,
-      {
+    const [movieResponse, personResponse] = await Promise.all([
+      axios.get(`https://api.themoviedb.org/3/search/movie`, {
         params: {
           api_key: process.env.TMDB_API_KEY,
           query,
           page,
-          language: 'en-US'
-        }
-      }
-    );
+          language: 'en-US',
+        },
+      }),
+      axios
+        .get(`https://api.themoviedb.org/3/search/person`, {
+          params: {
+            api_key: process.env.TMDB_API_KEY,
+            query,
+            page: 1,
+            language: 'en-US',
+            include_adult: false,
+          },
+        })
+        .catch(() => ({ data: { results: [] } })),
+    ]);
 
-    // Sort results by popularity to ensure well-known movies come first
-    // Prioritize vote_count (how many people have seen/rated it) as the main indicator of "known"
-    // Then consider popularity and vote_average
-    const sortedResults = response.data.results.sort((a, b) => {
-      // Primary sort: vote_count (indicates how well-known the movie is)
+    // Sort movie results by how well-known they are
+    const sortedResults = movieResponse.data.results.sort((a, b) => {
       if (b.vote_count !== a.vote_count) {
         return (b.vote_count || 0) - (a.vote_count || 0);
       }
-      // Secondary sort: popularity (TMDB's popularity metric)
       if (Math.abs((b.popularity || 0) - (a.popularity || 0)) > 1) {
         return (b.popularity || 0) - (a.popularity || 0);
       }
-      // Tertiary sort: vote_average (rating quality)
       return (b.vote_average || 0) - (a.vote_average || 0);
     });
 
+    const people = (personResponse.data.results || [])
+      .filter((p) => p && (p.known_for_department === 'Acting' || p.known_for_department === 'Directing' || (p.known_for || []).length > 0))
+      .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+      .slice(0, 6)
+      .map((p) => {
+        const dept = p.known_for_department || '';
+        let role = 'Person';
+        if (dept === 'Directing') role = 'Director';
+        else if (dept === 'Acting') role = 'Actor';
+        else if (dept === 'Writing') role = 'Writer';
+        return {
+          id: p.id,
+          name: p.name,
+          profile_path: p.profile_path,
+          known_for_department: dept,
+          role,
+          known_for: (p.known_for || [])
+            .filter((k) => k.media_type === 'movie')
+            .slice(0, 3)
+            .map((k) => ({ id: k.id, title: k.title })),
+        };
+      });
+
     res.json({
-      ...response.data,
-      results: sortedResults
+      ...movieResponse.data,
+      results: sortedResults,
+      people,
     });
   } catch (error) {
     console.error('Movie search error:', error);
     res.status(500).json({ message: 'Error searching movies' });
+  }
+});
+
+// Filmography for an actor/director (used after picking a person in search)
+router.get('/person/:personId/movies', async (req, res) => {
+  try {
+    const personId = parseInt(req.params.personId, 10);
+    if (Number.isNaN(personId)) {
+      return res.status(400).json({ message: 'Invalid person id' });
+    }
+
+    const [creditsRes, personRes] = await Promise.all([
+      axios.get(`https://api.themoviedb.org/3/person/${personId}/movie_credits`, {
+        params: { api_key: process.env.TMDB_API_KEY, language: 'en-US' },
+      }),
+      axios
+        .get(`https://api.themoviedb.org/3/person/${personId}`, {
+          params: { api_key: process.env.TMDB_API_KEY, language: 'en-US' },
+        })
+        .catch(() => ({ data: {} })),
+    ]);
+
+    const cast = creditsRes.data.cast || [];
+    const crew = creditsRes.data.crew || [];
+    const directed = crew.filter((c) => c.job === 'Director');
+
+    const byId = new Map();
+    [...cast, ...directed].forEach((m) => {
+      if (!m?.id) return;
+      const existing = byId.get(m.id);
+      const credit =
+        m.job === 'Director'
+          ? 'Director'
+          : m.character
+            ? `as ${m.character}`
+            : 'Actor';
+      if (!existing || (m.job === 'Director' && existing.credit !== 'Director')) {
+        byId.set(m.id, {
+          id: m.id,
+          title: m.title,
+          poster_path: m.poster_path,
+          release_date: m.release_date,
+          vote_count: m.vote_count || 0,
+          popularity: m.popularity || 0,
+          vote_average: m.vote_average || 0,
+          credit,
+        });
+      }
+    });
+
+    const results = [...byId.values()].sort((a, b) => {
+      if (b.vote_count !== a.vote_count) return (b.vote_count || 0) - (a.vote_count || 0);
+      return (b.popularity || 0) - (a.popularity || 0);
+    });
+
+    res.json({
+      person: {
+        id: personId,
+        name: personRes.data.name || null,
+        profile_path: personRes.data.profile_path || null,
+        known_for_department: personRes.data.known_for_department || null,
+      },
+      results,
+    });
+  } catch (error) {
+    console.error('Person movies error:', error);
+    res.status(500).json({ message: 'Error fetching person filmography' });
   }
 });
 

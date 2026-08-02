@@ -128,7 +128,7 @@ const Navbar = () => {
 
           {isAuthenticated && (
             <Box sx={{ flexGrow: 1, maxWidth: 480, display: { xs: 'none', md: 'block' } }}>
-              <AutocompleteSearch onMovieSelect={(m) => go(`/movie/${m.id}`)} placeholder="Search movies" />
+              <AutocompleteSearch onMovieSelect={(m) => go(`/movie/${m.id}`)} placeholder="Search movies, actors, directors…" />
             </Box>
           )}
 

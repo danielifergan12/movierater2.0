@@ -65,10 +65,10 @@ const CreateList = () => {
     <Box sx={socialPageShellSx}>
       <Container maxWidth="xs" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
         <Typography sx={{ ...socialTitleSx, fontSize: { xs: '1.75rem', sm: '2.1rem' }, mb: 0.35 }}>
-          New list
+          New ranking list
         </Typography>
         <Typography sx={{ ...socialSubtitleSx, mb: 2.5 }}>
-          Name it — then pick films right away.
+          e.g. comedies, Nolan films — order follows your taste.
         </Typography>
 
         <Box sx={{ ...socialCardSx, p: { xs: 2, sm: 2.5 } }}>
@@ -134,7 +134,7 @@ const CreateList = () => {
                 Cancel
               </Button>
               <Button type="submit" variant="contained" disabled={loading} sx={{ ...socialAccentBtn, flex: 1, py: 0.75 }}>
-                {loading ? <CircularProgress size={20} sx={{ color: 'var(--rl-ink)' }} /> : 'Create & add movies'}
+                {loading ? <CircularProgress size={20} sx={{ color: 'var(--rl-ink)' }} /> : 'Create & rank films'}
               </Button>
             </Box>
           </Box>

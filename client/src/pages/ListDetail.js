@@ -428,7 +428,9 @@ const ListDetail = () => {
                 Empty list
               </Typography>
               <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem', mb: isOwner ? 2 : 0 }}>
-                {isOwner ? 'Add films from your rankings or search.' : 'No movies yet.'}
+                {isOwner
+                  ? 'Add films — if you’ve ranked them, they’ll slot into place automatically.'
+                  : 'No movies yet.'}
               </Typography>
               {isOwner && (
                 <Button

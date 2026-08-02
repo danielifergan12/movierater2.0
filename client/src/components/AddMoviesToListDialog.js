@@ -111,16 +111,22 @@ const AddMoviesToListDialog = ({ open, onClose, list, onAdded }) => {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
+  const [people, setPeople] = useState([]);
+  const [personView, setPersonView] = useState(null);
   const [searching, setSearching] = useState(false);
   const [rankFilter, setRankFilter] = useState('');
+  const [statusNote, setStatusNote] = useState('');
 
   useEffect(() => {
     if (!open) return;
     setTab(rawRatings.length > 0 ? 0 : 1);
     setQuery('');
     setResults([]);
+    setPeople([]);
+    setPersonView(null);
     setRankFilter('');
     setError('');
+    setStatusNote('');
     setJustAdded(new Set());
     setAddedCount(0);
     setPulseId(null);
@@ -128,9 +134,10 @@ const AddMoviesToListDialog = ({ open, onClose, list, onAdded }) => {
   }, [open, rawRatings.length]);
 
   useEffect(() => {
-    if (!open || tab !== 1) return undefined;
+    if (!open || tab !== 1 || personView) return undefined;
     if (query.trim().length < 2) {
       setResults([]);
+      setPeople([]);
       setSearching(false);
       return undefined;
     }
@@ -139,9 +146,15 @@ const AddMoviesToListDialog = ({ open, onClose, list, onAdded }) => {
       setSearching(true);
       try {
         const response = await api.get(`/api/movies/search?query=${encodeURIComponent(query.trim())}&page=1`);
-        if (!cancelled) setResults((response.data.results || []).slice(0, 10));
+        if (!cancelled) {
+          setResults((response.data.results || []).slice(0, 8));
+          setPeople(response.data.people || []);
+        }
       } catch (e) {
-        if (!cancelled) setResults([]);
+        if (!cancelled) {
+          setResults([]);
+          setPeople([]);
+        }
       } finally {
         if (!cancelled) setSearching(false);
       }
@@ -150,8 +163,24 @@ const AddMoviesToListDialog = ({ open, onClose, list, onAdded }) => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [query, open, tab]);
+  }, [query, open, tab, personView]);
 
+  const openPerson = async (person) => {
+    setSearching(true);
+    try {
+      const res = await api.get(`/api/movies/person/${person.id}/movies`);
+      setPersonView({
+        id: person.id,
+        name: res.data.person?.name || person.name,
+        role: person.role,
+        movies: (res.data.results || []).slice(0, 24),
+      });
+    } catch (e) {
+      setError('Could not load filmography');
+    } finally {
+      setSearching(false);
+    }
+  };
   const inListIds = useMemo(() => {
     const set = new Set();
     (list?.movies || []).forEach((m) => {
@@ -186,13 +215,18 @@ const AddMoviesToListDialog = ({ open, onClose, list, onAdded }) => {
     setAddingId(id);
     setError('');
     try {
-      await onAdded({
+      const updated = await onAdded({
         movieId: id,
         tmdbId: Number(movie.tmdbId || movie.id || movie.movieId),
         title: movie.title,
         posterPath: toPosterPath(movie),
         releaseDate: movie.release_date || movie.releaseDate || null,
       });
+      if (updated?.placedByRanking) {
+        setStatusNote(`Placed by your ranking · #${(updated.insertedAt ?? 0) + 1}`);
+      } else {
+        setStatusNote('Added at the end (not ranked yet)');
+      }
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || 'Could not add movie';
       if (!/already/i.test(msg)) {
@@ -289,7 +323,7 @@ const AddMoviesToListDialog = ({ open, onClose, list, onAdded }) => {
         }}
       >
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          Add movies
+          Add to ranking
           <Typography sx={{ color: 'var(--rl-muted)', fontFamily: '"Manrope", sans-serif', fontSize: '0.75rem', letterSpacing: 0, mt: 0.15, fontWeight: 400 }}>
             {list?.name}
             {addedCount > 0 ? ` · ${addedCount} added` : ''}
@@ -326,10 +360,15 @@ const AddMoviesToListDialog = ({ open, onClose, list, onAdded }) => {
         {error && (
           <Typography sx={{ color: '#e07050', fontSize: '0.8rem', mb: 1, px: 0.5 }}>{error}</Typography>
         )}
+        {statusNote && !error && (
+          <Typography sx={{ color: 'var(--rl-accent)', fontSize: '0.78rem', mb: 1, px: 0.5 }}>{statusNote}</Typography>
+        )}
 
         {tab === 0 && (
           <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
-            {rawRatings.length === 0 ? (
+            <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.78rem', px: 0.5, mb: 1 }}>
+              Already ranked films drop into the right spot in this list.
+            </Typography>            {rawRatings.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4, px: 2 }}>
                 <Typography sx={{ color: 'var(--rl-muted)', mb: 2, fontSize: '0.85rem' }}>
                   No ranked films yet.
@@ -426,37 +465,90 @@ const AddMoviesToListDialog = ({ open, onClose, list, onAdded }) => {
 
         {tab === 1 && (
           <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
-            <TextField
-              size="small"
-              fullWidth
-              autoFocus
-              placeholder="Search any movie…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: 'var(--rl-muted)', fontSize: 18 }} />
-                  </InputAdornment>
-                ),
-                endAdornment: searching ? (
-                  <InputAdornment position="end">
-                    <CircularProgress size={16} sx={{ color: 'var(--rl-accent)' }} />
-                  </InputAdornment>
-                ) : null,
-              }}
-              sx={{
-                mb: 0.75,
-                px: 0.5,
-                ...socialFieldSx,
-                '& .MuiOutlinedInput-root': {
-                  ...socialFieldSx['& .MuiOutlinedInput-root'],
-                  fontSize: '0.85rem',
-                },
-              }}
-            />
+            {personView ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 0.5, mb: 1 }}>
+                <Button
+                  size="small"
+                  onClick={() => setPersonView(null)}
+                  sx={{ ...socialGhostBtn, py: 0.35, px: 1, fontSize: '0.75rem' }}
+                >
+                  Back
+                </Button>
+                <Typography sx={{ color: 'var(--rl-cream)', fontSize: '0.85rem', fontWeight: 600 }}>
+                  {personView.name}
+                  <Typography component="span" sx={{ color: 'var(--rl-muted)', fontWeight: 400, ml: 0.75, fontSize: '0.75rem' }}>
+                    {personView.role}
+                  </Typography>
+                </Typography>
+              </Box>
+            ) : (
+              <TextField
+                size="small"
+                fullWidth
+                autoFocus
+                placeholder="Movie, actor, or director…"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPersonView(null);
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: 'var(--rl-muted)', fontSize: 18 }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searching ? (
+                    <InputAdornment position="end">
+                      <CircularProgress size={16} sx={{ color: 'var(--rl-accent)' }} />
+                    </InputAdornment>
+                  ) : null,
+                }}
+                sx={{
+                  mb: 0.75,
+                  px: 0.5,
+                  ...socialFieldSx,
+                  '& .MuiOutlinedInput-root': {
+                    ...socialFieldSx['& .MuiOutlinedInput-root'],
+                    fontSize: '0.85rem',
+                  },
+                }}
+              />
+            )}
             <Box sx={{ overflowY: 'auto', flex: 1, minHeight: 0, maxHeight: { xs: 'calc(100dvh - 210px)', sm: 380 } }}>
-              {results.map((movie) => {
+              {!personView &&
+                people.map((person) => (
+                  <Box
+                    key={`p-${person.id}`}
+                    component="button"
+                    type="button"
+                    onClick={() => openPerson(person)}
+                    sx={{
+                      display: 'block',
+                      width: '100%',
+                      border: 'none',
+                      background: 'transparent',
+                      p: 0,
+                      m: 0,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      font: 'inherit',
+                    }}
+                  >
+                    <Row
+                      poster={person.profile_path ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : '/placeholder-movie.jpg'}
+                      title={person.name}
+                      meta={person.role}
+                      action={
+                        <Typography sx={{ color: 'var(--rl-accent)', fontSize: '0.7rem', fontWeight: 700, pr: 0.75 }}>
+                          Films
+                        </Typography>
+                      }
+                    />
+                  </Box>
+                ))}
+
+              {(personView ? personView.movies : results).map((movie) => {
                 const id = String(movie.id);
                 const added = isInList(id);
                 const busy = addingId === id;
@@ -490,7 +582,12 @@ const AddMoviesToListDialog = ({ open, onClose, list, onAdded }) => {
                     <Row
                       poster={posterSrc(movie.poster_path)}
                       title={movie.title}
-                      meta={movie.release_date ? String(movie.release_date).slice(0, 4) : undefined}
+                      meta={[
+                        movie.release_date ? String(movie.release_date).slice(0, 4) : null,
+                        movie.credit || null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
                       disabled={added}
                       justAdded={popped && pulseId === id}
                       action={addBtn(id, added, busy)}
@@ -498,20 +595,19 @@ const AddMoviesToListDialog = ({ open, onClose, list, onAdded }) => {
                   </Box>
                 );
               })}
-              {query.trim().length >= 2 && !searching && results.length === 0 && (
+              {!personView && query.trim().length >= 2 && !searching && results.length === 0 && people.length === 0 && (
                 <Typography sx={{ color: 'var(--rl-muted)', textAlign: 'center', py: 3, fontSize: '0.85rem' }}>
-                  No movies found.
+                  No movies or people found.
                 </Typography>
               )}
-              {query.trim().length < 2 && (
+              {!personView && query.trim().length < 2 && (
                 <Typography sx={{ color: 'var(--rl-muted)', textAlign: 'center', py: 3, fontSize: '0.85rem' }}>
-                  Type at least 2 characters.
+                  Search a title, actor, or director.
                 </Typography>
               )}
             </Box>
           </Box>
         )}
-
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1.1, px: 0.5 }}>
           <Button
             onClick={onClose}

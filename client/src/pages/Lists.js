@@ -177,7 +177,7 @@ const Lists = () => {
         {displayed.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 6 }}>
             <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.95rem', mb: 2 }}>
-              {activeTab === 0 ? 'No lists yet — start one.' : 'No public lists yet.'}
+              {activeTab === 0 ? 'No ranking lists yet — start a themed one.' : 'No public lists yet.'}
             </Typography>
             {activeTab === 0 && isAuthenticated && (
               <Button variant="contained" component={Link} to="/lists/create" sx={socialAccentBtn}>
