@@ -88,6 +88,12 @@ const Navbar = () => {
                 <Button color="inherit" startIcon={<StarIcon />} onClick={() => go('/rankings')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', sm: 'inline-flex' } }}>
                   Rankings
                 </Button>
+                <Button color="inherit" startIcon={<ListIcon />} onClick={() => go('/lists')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', sm: 'inline-flex' } }}>
+                  Lists
+                </Button>
+                <Button color="inherit" startIcon={<PeopleIcon />} onClick={() => go('/discover')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', md: 'inline-flex' } }}>
+                  Discover
+                </Button>
                 <Button color="inherit" startIcon={<FeedIcon />} onClick={() => go('/feed')} sx={{ textTransform: 'none', color: 'var(--rl-cream)', display: { xs: 'none', md: 'inline-flex' } }}>
                   Feed
                 </Button>
@@ -103,9 +109,11 @@ const Navbar = () => {
                   onClose={() => setAnchorEl(null)}
                   PaperProps={{ sx: { bgcolor: '#171512', border: '1px solid rgba(244,239,230,0.1)', minWidth: 200 } }}
                 >
+                  <MenuItem onClick={() => go('/rankings')} sx={{ display: { sm: 'none' } }}><ListItemIcon><StarIcon fontSize="small" /></ListItemIcon><ListItemText>Rankings</ListItemText></MenuItem>
+                  <MenuItem onClick={() => go('/lists')} sx={{ display: { sm: 'none' } }}><ListItemIcon><ListIcon fontSize="small" /></ListItemIcon><ListItemText>Lists</ListItemText></MenuItem>
+                  <MenuItem onClick={() => go('/discover')} sx={{ display: { md: 'none' } }}><ListItemIcon><PeopleIcon fontSize="small" /></ListItemIcon><ListItemText>Discover</ListItemText></MenuItem>
+                  <MenuItem onClick={() => go('/feed')} sx={{ display: { md: 'none' } }}><ListItemIcon><FeedIcon fontSize="small" /></ListItemIcon><ListItemText>Feed</ListItemText></MenuItem>
                   <MenuItem onClick={() => go('/watchlist')}><ListItemIcon><BookmarkIcon fontSize="small" /></ListItemIcon><ListItemText>Watchlist</ListItemText></MenuItem>
-                  <MenuItem onClick={() => go('/lists')}><ListItemIcon><ListIcon fontSize="small" /></ListItemIcon><ListItemText>Lists</ListItemText></MenuItem>
-                  <MenuItem onClick={() => go('/discover')}><ListItemIcon><PeopleIcon fontSize="small" /></ListItemIcon><ListItemText>Discover people</ListItemText></MenuItem>
                   <MenuItem onClick={() => go('/following')}><ListItemIcon><FavoriteIcon fontSize="small" /></ListItemIcon><ListItemText>Following</ListItemText></MenuItem>
                   <MenuItem onClick={() => go('/onboarding')}><ListItemIcon><TasteIcon fontSize="small" /></ListItemIcon><ListItemText>Taste setup</ListItemText></MenuItem>
                   {user?._id && (
