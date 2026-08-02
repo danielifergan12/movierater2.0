@@ -429,7 +429,7 @@ const MyRankings = () => {
       />
 
       <Container
-        maxWidth="md"
+        maxWidth="lg"
         sx={{
           py: { xs: 2, sm: 3 },
           px: { xs: 2, sm: 3 },
@@ -511,7 +511,7 @@ const MyRankings = () => {
           </Alert>
         )}
 
-        <CinemaScreen scrollable maxWidth={820} sx={{ flex: 1, minHeight: 0, px: 0 }}>
+        <CinemaScreen scrollable maxWidth={1100} sx={{ flex: 1, minHeight: 0, px: 0 }}>
           {filteredAndSortedRatings.length === 0 ? (
             <Typography sx={{ color: 'var(--rl-muted)', textAlign: 'center', py: 6 }}>
               No movies match your filters.
