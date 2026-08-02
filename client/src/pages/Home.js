@@ -22,6 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
 import LandingHero from '../components/LandingHero';
+import AnimatedMovieBackground from '../components/AnimatedMovieBackground';
 import api from '../config/axios';
 
 const SUGGESTION_COUNT = 12;
@@ -523,12 +524,27 @@ const Home = () => {
     <Box
       sx={{
         height: { xs: 'calc(100dvh - 64px)', sm: 'calc(100dvh - 72px)' },
-        backgroundColor: 'var(--rl-ink)',
+        position: 'relative',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
+        background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
       }}
     >
+      <AnimatedMovieBackground />
+      <Box
+        aria-hidden
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+          pointerEvents: 'none',
+          background: `
+            radial-gradient(ellipse 70% 50% at 50% 0%, rgba(212, 160, 23, 0.12), transparent 55%),
+            linear-gradient(180deg, rgba(12, 11, 10, 0.55) 0%, rgba(12, 11, 10, 0.78) 45%, rgba(12, 11, 10, 0.92) 100%)
+          `,
+        }}
+      />
       <Container
         maxWidth="lg"
         sx={{
@@ -538,21 +554,28 @@ const Home = () => {
           minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
+          position: 'relative',
+          zIndex: 2,
         }}
       >
         <Box sx={{ mb: 1, flexShrink: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-            <Typography
-              sx={{
-                fontFamily: '"Bebas Neue", sans-serif',
-                fontSize: { xs: '1.7rem', sm: '2.1rem' },
-                letterSpacing: '0.04em',
-                color: 'var(--rl-cream)',
-                lineHeight: 1,
-              }}
-            >
-              For you
-            </Typography>
+            <Box>
+              <Typography
+                sx={{
+                  fontFamily: '"Bebas Neue", sans-serif',
+                  fontSize: { xs: '1.7rem', sm: '2.1rem' },
+                  letterSpacing: '0.04em',
+                  color: 'var(--rl-cream)',
+                  lineHeight: 1,
+                }}
+              >
+                For you
+              </Typography>
+              <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.8rem', mt: 0.35 }}>
+                From your rankings{user?.username ? ` · ${user.username}` : ''}
+              </Typography>
+            </Box>
             {rawRatings.length < 5 && (
               <Button
                 component={Link}
@@ -573,7 +596,7 @@ const Home = () => {
             gap: 1,
             mb: 1.25,
             flexShrink: 0,
-            borderBottom: '1px solid rgba(244, 239, 230, 0.1)',
+            borderBottom: '1px solid rgba(244, 239, 230, 0.14)',
           }}
         >
           <Tabs
