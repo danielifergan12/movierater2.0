@@ -2,9 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
 import api from '../config/axios';
 
-const tmdb = (path) => `https://image.tmdb.org/t/p/w1280${path}`;
+const tmdb = (path) => `https://image.tmdb.org/t/p/w780${path}`;
 
-// Large pool of widely known films — famous titles only, not the same 4 on loop
 const FAMOUS_BACKDROPS = [
   tmdb('/62HCnUTziyWcpDaBO2i1DX17ljH.jpg'), // The Dark Knight
   tmdb('/qJ2tW6WMUDux911r6m7haRef0WH.jpg'), // The Dark Knight Rises
@@ -57,68 +56,114 @@ const shuffle = (items) => {
   return next;
 };
 
-const AnimatedMovieBackground = () => {
-  const [backdrops, setBackdrops] = useState(() => shuffle(FAMOUS_BACKDROPS));
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-  const recentRef = useRef([]);
+const preload = (src) =>
+  new Promise((resolve) => {
+    if (!src) {
+      resolve(false);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = src;
+  });
 
+const AnimatedMovieBackground = () => {
+  const poolRef = useRef(shuffle(FAMOUS_BACKDROPS));
+  const recentRef = useRef([]);
+  const [current, setCurrent] = useState(poolRef.current[0]);
+  const [incoming, setIncoming] = useState(null);
+  const [incomingVisible, setIncomingVisible] = useState(false);
+
+  const pickNextUrl = () => {
+    const pool = poolRef.current;
+    if (pool.length < 2) return pool[0];
+    const avoid = new Set([current, incoming, ...recentRef.current].filter(Boolean));
+    let candidates = pool.filter((url) => !avoid.has(url));
+    if (candidates.length === 0) {
+      candidates = pool.filter((url) => url !== current);
+    }
+    const next = candidates[Math.floor(Math.random() * candidates.length)] || pool[0];
+    recentRef.current = [...recentRef.current, next].slice(-8);
+    return next;
+  };
+
+  // Enrich pool with famous API titles (doesn't interrupt current image)
   useEffect(() => {
     let cancelled = false;
-
-    const loadKnownBackdrops = async () => {
+    (async () => {
       try {
         const [trending, popular] = await Promise.all([
           api.get('/api/movies/trending/week').catch(() => ({ data: { results: [] } })),
           api.get('/api/movies/popular').catch(() => ({ data: { results: [] } })),
         ]);
-
-        // Only add currently famous titles (very high vote counts)
         const fromApi = [...(trending.data?.results || []), ...(popular.data?.results || [])]
           .filter((m) => m?.backdrop_path && (m.vote_count || 0) >= 5000)
           .map((m) => tmdb(m.backdrop_path));
-
-        const pool = shuffle([...new Set([...FAMOUS_BACKDROPS, ...fromApi])]);
-        if (!cancelled && pool.length > 0) {
-          setBackdrops(pool);
-          setActiveIndex(Math.floor(Math.random() * pool.length));
-          recentRef.current = [];
+        if (!cancelled) {
+          poolRef.current = shuffle([...new Set([...FAMOUS_BACKDROPS, ...fromApi])]);
         }
-      } catch (error) {
-        console.error('Error fetching hero backdrops:', error);
-      } finally {
-        if (!cancelled) setLoaded(true);
+      } catch (e) {
+        console.error('Error fetching hero backdrops:', e);
       }
-    };
-
-    loadKnownBackdrops();
+    })();
     return () => {
       cancelled = true;
     };
   }, []);
 
+  // Preload first image, then rotate with dual-buffer (current stays until next is ready)
   useEffect(() => {
-    if (backdrops.length < 2) return undefined;
+    let cancelled = false;
+    let timer;
 
-    const pickNext = (current) => {
-      const recent = recentRef.current;
-      const avoid = new Set([current, ...recent]);
-      const candidates = backdrops.map((_, i) => i).filter((i) => !avoid.has(i));
-      const pool =
-        candidates.length > 0
-          ? candidates
-          : backdrops.map((_, i) => i).filter((i) => i !== current);
-      const next = pool[Math.floor(Math.random() * pool.length)] ?? current;
-      const memory = Math.min(12, Math.max(5, Math.floor(backdrops.length / 3)));
-      recentRef.current = [...recent, next].slice(-memory);
-      return next;
+    const advance = async () => {
+      const nextUrl = pickNextUrl();
+      const ok = await preload(nextUrl);
+      if (cancelled || !ok) {
+        timer = setTimeout(advance, 1200);
+        return;
+      }
+
+      setIncoming(nextUrl);
+      // Let the browser paint the incoming img at opacity 0, then fade it in
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          if (cancelled) return;
+          setIncomingVisible(true);
+          // After crossfade, promote incoming → current (no black gap)
+          setTimeout(() => {
+            if (cancelled) return;
+            setCurrent(nextUrl);
+            setIncoming(null);
+            setIncomingVisible(false);
+            timer = setTimeout(advance, 2600);
+          }, 700);
+        });
+      });
     };
 
-    const id = setInterval(() => {
-      setActiveIndex((i) => pickNext(i));
-    }, 3400);
-    return () => clearInterval(id);
-  }, [backdrops]);
+    (async () => {
+      await preload(current);
+      if (!cancelled) timer = setTimeout(advance, 2400);
+    })();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const frameSx = {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    objectPosition: 'center 30%',
+    filter: 'saturate(0.85) contrast(1.05)',
+  };
 
   return (
     <Box
@@ -133,46 +178,44 @@ const AnimatedMovieBackground = () => {
         backgroundColor: '#0c0b0a',
       }}
     >
-      {backdrops.map((src, index) => (
+      {/* Base frame — always fully visible */}
+      <Box
+        component="img"
+        src={current}
+        alt=""
+        sx={{
+          ...frameSx,
+          opacity: 1,
+          transform: 'scale(1.03)',
+          zIndex: 0,
+        }}
+      />
+
+      {/* Incoming frame fades over the base — never leaves a black hole */}
+      {incoming && (
         <Box
-          key={`${src}-${index}`}
           component="img"
-          src={src}
+          src={incoming}
           alt=""
-          loading={index < 4 ? 'eager' : 'lazy'}
-          className={
-            index === activeIndex
-              ? 'landing-backdrop__image is-active'
-              : 'landing-backdrop__image'
-          }
           sx={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            objectPosition: 'center 30%',
-            opacity: index === activeIndex ? 1 : 0,
-            transform: index === activeIndex ? 'scale(1.05)' : 'scale(1)',
-            transition: 'opacity 0.55s ease, transform 3.4s ease-out',
-            filter: 'saturate(0.85) contrast(1.05)',
-          }}
-          onLoad={() => {
-            if (index === activeIndex) setLoaded(true);
+            ...frameSx,
+            opacity: incomingVisible ? 1 : 0,
+            transform: incomingVisible ? 'scale(1.03)' : 'scale(1)',
+            transition: 'opacity 0.7s ease, transform 2.6s ease-out',
+            zIndex: 1,
           }}
         />
-      ))}
+      )}
 
       <Box
         sx={{
           position: 'absolute',
           inset: 0,
+          zIndex: 2,
           background: `
             linear-gradient(90deg, rgba(12, 11, 10, 0.92) 0%, rgba(12, 11, 10, 0.55) 42%, rgba(12, 11, 10, 0.25) 70%, rgba(12, 11, 10, 0.45) 100%),
             linear-gradient(0deg, rgba(12, 11, 10, 0.88) 0%, rgba(12, 11, 10, 0.35) 45%, rgba(12, 11, 10, 0.55) 100%)
           `,
-          opacity: loaded ? 1 : 0.95,
-          transition: 'opacity 0.6s ease',
         }}
       />
     </Box>
