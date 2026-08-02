@@ -820,6 +820,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         favoriteGenres,
         favoriteActors,
         avgReleaseYear,
+        avgVoteAverage,
         prefersRecent,
         prefersClassics,
         prefersCriticallyAcclaimed,
@@ -866,6 +867,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
         const genreMovies = (genreMoviesResponse.data?.results || []).filter(m => m && m.id);
         genreMovies.forEach((movie, index) => {
           if (movie.id && 
+              movie.poster_path &&
               !ratedMovieIds.has(movie.id.toString()) && 
               !excludeIds.has(movie.id.toString()) &&
               movie.vote_average >= minVoteAverage &&
@@ -957,39 +959,56 @@ router.get('/recommendations/personal', auth, async (req, res) => {
       if (!ratedMovie || !ratedMovie.id) continue;
       
       try {
-        // Get similar movies - use different page if forceRefresh (pages 2-5 for variety)
+        // Prefer TMDB recommendations + similar; rotate page on refresh for variety
         const pageToUse = useRandomPage ? Math.floor(Math.random() * 4) + 2 : 1;
-        const similarResponse = await axios.get(
-          `https://api.themoviedb.org/3/movie/${ratedMovie.id}/similar`,
-          {
-            params: {
-              api_key: process.env.TMDB_API_KEY,
-              language: 'en-US',
-              page: pageToUse
-            },
-            timeout: 5000 // 5 second timeout
-          }
-        );
-        
-        const similarMovies = (similarResponse.data?.results || []).filter(m => m && m.id);
-        
-        // Score and add similar movies - use adaptive thresholds
-        similarMovies.forEach((movie, index) => {
-          if (movie.id && 
-              !ratedMovieIds.has(movie.id.toString()) &&
-              !excludeIds.has(movie.id.toString()) &&
-              movie.vote_average >= minVoteAverage &&
-              movie.vote_count >= minVoteCount) {
-            const score = recommendationMap.get(movie.id) || 0;
-            // Higher score for movies similar to higher-ranked movies
-            const positionWeight = (topRatedMovies.length - topRatedMovies.indexOf(ratedMovie)) / topRatedMovies.length;
-            const baseScore = 10 * positionWeight;
-            
-            // Quality bonus
-            const qualityBonus = movie.vote_average >= 8.0 ? 5 : (movie.vote_average >= 7.5 ? 3 : 0);
-            
-            recommendationMap.set(movie.id, score + baseScore + qualityBonus + (5 / (index + 1)));
-          }
+        const [similarResponse, tmdbRecResponse] = await Promise.all([
+          axios.get(
+            `https://api.themoviedb.org/3/movie/${ratedMovie.id}/similar`,
+            {
+              params: {
+                api_key: process.env.TMDB_API_KEY,
+                language: 'en-US',
+                page: pageToUse
+              },
+              timeout: 5000
+            }
+          ).catch(() => null),
+          axios.get(
+            `https://api.themoviedb.org/3/movie/${ratedMovie.id}/recommendations`,
+            {
+              params: {
+                api_key: process.env.TMDB_API_KEY,
+                language: 'en-US',
+                page: 1
+              },
+              timeout: 5000
+            }
+          ).catch(() => null)
+        ]);
+
+        const positionWeight = (topRatedMovies.length - topRatedMovies.indexOf(ratedMovie)) / Math.max(topRatedMovies.length, 1);
+
+        const scoreCandidate = (movie, index, baseMultiplier) => {
+          if (!movie?.id || !movie.poster_path) return;
+          if (ratedMovieIds.has(movie.id.toString()) || excludeIds.has(movie.id.toString())) return;
+          if ((movie.vote_average || 0) < minVoteAverage || (movie.vote_count || 0) < minVoteCount) return;
+
+          const score = recommendationMap.get(movie.id) || 0;
+          const baseScore = baseMultiplier * positionWeight;
+          const qualityBonus = movie.vote_average >= 8.0 ? 6 : (movie.vote_average >= 7.5 ? 3 : 0);
+          const tasteFit = Math.max(0, 4 - Math.abs((movie.vote_average || 0) - (userPreferences.avgVoteAverage || 7.5)));
+          recommendationMap.set(
+            movie.id,
+            score + baseScore + qualityBonus + tasteFit + (5 / (index + 1))
+          );
+        };
+
+        // TMDB recommendations are usually stronger taste matches than "similar"
+        (tmdbRecResponse?.data?.results || []).forEach((movie, index) => {
+          scoreCandidate(movie, index, 18);
+        });
+        (similarResponse?.data?.results || []).forEach((movie, index) => {
+          scoreCandidate(movie, index, 10);
         });
       } catch (error) {
         console.log(`Error fetching similar movies for ${ratedMovie.id}:`, error.message);
@@ -1042,6 +1061,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
                 movie && 
                 movie.id &&
                 movie.job === 'Director' && 
+                movie.poster_path &&
                 movie.vote_average >= minVoteAverage &&
                 movie.vote_count >= minVoteCount &&
                 !ratedMovieIds.has(movie.id.toString())
@@ -1390,7 +1410,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
       
       // Skip if it would exceed diversity limits (unless we don't have enough movies yet)
       if (hasDirectorLimit || hasGenreLimit) {
-        if (diverseMovies.length >= 8) {
+        if (diverseMovies.length >= 12) {
           continue; // Skip this movie, we have enough
         }
         // If we need more movies, allow it but with a small penalty
@@ -1417,7 +1437,9 @@ router.get('/recommendations/personal', auth, async (req, res) => {
     // Re-sort by score after diversity filtering
     diverseMovies.sort((a, b) => b.score - a.score);
     
-    let recommendedMovies = diverseMovies.map(movie => ({
+    let recommendedMovies = diverseMovies
+      .filter((movie) => movie.poster_path)
+      .map(movie => ({
       id: movie.id,
       title: movie.title,
       overview: movie.overview,
@@ -1431,7 +1453,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
     }));
     
     // If we don't have enough movies, fetch more from additional recommendations
-    if (recommendedMovies.length < 8) {
+    if (recommendedMovies.length < 12) {
       // Get more recommendations from the sorted list that weren't in top 50
       const additionalIds = recommendations
         .slice(50, 100)
@@ -1472,6 +1494,7 @@ router.get('/recommendations/personal', auth, async (req, res) => {
               .map(person => person.id)
           }))
           .filter(movie => 
+            movie.poster_path &&
             movie.vote_average >= minVoteAverage &&
             movie.vote_count >= minVoteCount &&
             !excludeIds.has(movie.id.toString())

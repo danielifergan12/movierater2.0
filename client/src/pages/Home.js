@@ -45,6 +45,7 @@ const Home = () => {
   const [watchlistBusyId, setWatchlistBusyId] = useState(null);
   const hasInitialLoad = useRef(false);
   const prevUserIdRef = useRef(null);
+  const fillAttemptRef = useRef(0);
 
   const [, setRouteUpdate] = useState(0);
   useEffect(() => {
@@ -224,6 +225,19 @@ const Home = () => {
 
   const filteredRecommendedMovies = filterCandidates(recommendedMovies);
 
+  const mergeIntoShelf = (current, incoming) => {
+    const present = new Set(current.map((m) => m.id?.toString()));
+    const merged = [...current];
+    for (const movie of incoming || []) {
+      if (merged.length >= SUGGESTION_COUNT) break;
+      const id = movie?.id?.toString();
+      if (!id || present.has(id) || isBlocked(movie)) continue;
+      present.add(id);
+      merged.push(movie);
+    }
+    return merged.slice(0, SUGGESTION_COUNT);
+  };
+
   useEffect(() => {
     if (activeTab !== 1 || isRefreshing) return;
     if (displayMovies.length > 0) return;
@@ -235,15 +249,52 @@ const Home = () => {
     savePersistedMovies(moviesToDisplay);
   }, [filteredRecommendedMovies, activeTab, isRefreshing, loading, displayMovies.length]);
 
-  const topUpShelf = (current) => {
-    const present = new Set(current.map((m) => m.id?.toString()));
-    const extras = filteredRecommendedMovies.filter((m) => !present.has(m.id?.toString()));
-    return [...current, ...extras].slice(0, SUGGESTION_COUNT);
-  };
+  // Keep the shelf full (2x6) whenever it drops below 12
+  useEffect(() => {
+    if (!isAuthenticated || activeTab !== 1) return;
+    if (loading || isRefreshing) return;
+    if (displayMovies.length >= SUGGESTION_COUNT) {
+      fillAttemptRef.current = 0;
+      return;
+    }
+
+    const topped = mergeIntoShelf(displayMovies, filteredRecommendedMovies);
+    if (topped.length > displayMovies.length) {
+      setDisplayMovies(topped);
+      savePersistedMovies(topped);
+      return;
+    }
+
+    if (fillAttemptRef.current >= 2) return;
+    fillAttemptRef.current += 1;
+
+    let cancelled = false;
+    const exclude = [
+      ...displayMovies.map((m) => m.id).filter(Boolean),
+      ...getRecentlyShownMovies(),
+      ...getDismissedIds(),
+    ];
+    getPersonalRecommendations(true, exclude).then((result) => {
+      if (cancelled || !result?.results?.length) return;
+      setDisplayMovies((prev) => {
+        const next = mergeIntoShelf(prev, filterCandidates(result.results));
+        addToRecentlyShown(next.map((m) => m.id).filter(Boolean));
+        savePersistedMovies(next);
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayMovies.length, filteredRecommendedMovies.length, isAuthenticated, activeTab, loading, isRefreshing]);
+
+  const topUpShelf = (current) => mergeIntoShelf(current, filteredRecommendedMovies);
 
   const removeFromShelf = (movieId, { dismiss = false } = {}) => {
     const id = String(movieId);
     if (dismiss) addDismissedId(id);
+    fillAttemptRef.current = 0;
     setDisplayMovies((prev) => {
       const next = topUpShelf(prev.filter((m) => String(m.id) !== id));
       savePersistedMovies(next);
@@ -303,6 +354,7 @@ const Home = () => {
   const handleRefresh = async () => {
     if (isRefreshing || loading) return;
     setIsRefreshing(true);
+    fillAttemptRef.current = 0;
     try {
       const currentIds = (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies)
         .slice(0, SUGGESTION_COUNT)
