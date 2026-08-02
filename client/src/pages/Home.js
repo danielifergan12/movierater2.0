@@ -10,14 +10,23 @@ import {
   Tab,
   IconButton,
   Skeleton,
+  Tooltip,
 } from '@mui/material';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import {
+  Refresh as RefreshIcon,
+  BookmarkBorder as BookmarkIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
 import { useMovies } from '../contexts/MovieContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
 import LandingHero from '../components/LandingHero';
 import api from '../config/axios';
+
+const SUGGESTION_COUNT = 12;
+const STORAGE_KEY = 'homeDisplayMovies';
+const DISMISSED_KEY = 'dismissedSuggestionMovies';
 
 const Home = () => {
   const location = useLocation();
@@ -32,35 +41,27 @@ const Home = () => {
   const [displayMovies, setDisplayMovies] = useState([]);
   const [genres, setGenres] = useState([]);
   const [genresLoading, setGenresLoading] = useState(false);
+  const [watchlistBusyId, setWatchlistBusyId] = useState(null);
   const hasInitialLoad = useRef(false);
   const prevUserIdRef = useRef(null);
-  const STORAGE_KEY = 'homeDisplayMovies';
 
-  // Ensure component responds to route changes for proper navigation
   const [, setRouteUpdate] = useState(0);
   useEffect(() => {
-    setRouteUpdate(prev => prev + 1);
+    setRouteUpdate((prev) => prev + 1);
   }, [location.pathname]);
 
-  // Read tab parameter from URL and set active tab
   useEffect(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam) {
-      const tabValue = parseInt(tabParam);
-      if (tabValue === 1 || tabValue === 2) {
-        setActiveTab(tabValue);
-      }
+      const tabValue = parseInt(tabParam, 10);
+      if (tabValue === 1 || tabValue === 2) setActiveTab(tabValue);
     }
   }, [searchParams]);
 
-  // Helper functions to manage recently shown movies in localStorage
   const getRecentlyShownMovies = () => {
     try {
       const stored = localStorage.getItem('recentlyShownMovies');
-      if (stored) {
-        const data = JSON.parse(stored);
-        return data.slice(-120);
-      }
+      if (stored) return JSON.parse(stored).slice(-120);
     } catch (error) {
       console.error('Error reading recently shown movies:', error);
     }
@@ -69,12 +70,32 @@ const Home = () => {
 
   const addToRecentlyShown = (movieIds) => {
     try {
-      const current = getRecentlyShownMovies();
-      const updated = [...current, ...movieIds];
-      const trimmed = updated.slice(-120);
-      localStorage.setItem('recentlyShownMovies', JSON.stringify(trimmed));
+      const updated = [...getRecentlyShownMovies(), ...movieIds].slice(-120);
+      localStorage.setItem('recentlyShownMovies', JSON.stringify(updated));
     } catch (error) {
       console.error('Error saving recently shown movies:', error);
+    }
+  };
+
+  const getDismissedIds = () => {
+    try {
+      const stored = localStorage.getItem(DISMISSED_KEY);
+      if (stored) {
+        const data = JSON.parse(stored);
+        return new Set((Array.isArray(data) ? data : []).map(String));
+      }
+    } catch (error) {
+      console.error('Error reading dismissed movies:', error);
+    }
+    return new Set();
+  };
+
+  const addDismissedId = (movieId) => {
+    try {
+      const next = [...getDismissedIds(), String(movieId)].slice(-300);
+      localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
+    } catch (error) {
+      console.error('Error saving dismissed movie:', error);
     }
   };
 
@@ -83,9 +104,7 @@ const Home = () => {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const movies = JSON.parse(stored);
-        if (Array.isArray(movies) && movies.length > 0 && movies[0].id) {
-          return movies;
-        }
+        if (Array.isArray(movies) && movies.length > 0 && movies[0].id) return movies;
       }
     } catch (error) {
       console.error('Error loading persisted movies:', error);
@@ -97,13 +116,27 @@ const Home = () => {
     try {
       if (movies && movies.length > 0) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(movies));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
       }
     } catch (error) {
       console.error('Error saving persisted movies:', error);
     }
   };
 
-  // Clear persisted movies when user logs out or changes
+  const ratedMovieIds = new Set(rawRatings.map((r) => r.id?.toString()).filter(Boolean));
+
+  const isBlocked = (movie, dismissed = getDismissedIds()) => {
+    if (!movie?.id) return true;
+    const id = movie.id.toString();
+    return ratedMovieIds.has(id) || dismissed.has(id);
+  };
+
+  const filterCandidates = (movies) => {
+    const dismissed = getDismissedIds();
+    return (movies || []).filter((movie) => !isBlocked(movie, dismissed));
+  };
+
   useEffect(() => {
     const currentUserId = user?._id || null;
     if (prevUserIdRef.current !== null && prevUserIdRef.current !== currentUserId) {
@@ -114,31 +147,25 @@ const Home = () => {
     prevUserIdRef.current = currentUserId;
   }, [user?._id]);
 
-  // Fetch genres list
   useEffect(() => {
     const fetchGenres = async () => {
       setGenresLoading(true);
       try {
         const response = await api.get('/api/movies/genres');
-        if (response && response.data) {
-          let genresList = null;
-          if (response.data.genres && Array.isArray(response.data.genres)) {
-            genresList = response.data.genres;
-          } else if (Array.isArray(response.data)) {
-            genresList = response.data;
-          }
-          if (genresList && genresList.length > 0) {
-            const sorted = [...genresList].sort((a, b) => a.name.localeCompare(b.name));
-            setGenres(sorted);
-          } else {
-            setGenres([]);
-          }
+        let genresList = null;
+        if (response?.data?.genres && Array.isArray(response.data.genres)) {
+          genresList = response.data.genres;
+        } else if (Array.isArray(response?.data)) {
+          genresList = response.data;
+        }
+        if (genresList?.length) {
+          setGenres([...genresList].sort((a, b) => a.name.localeCompare(b.name)));
         } else {
           setGenres([]);
         }
       } catch (error) {
         console.error('Error fetching genres:', error);
-        const fallbackGenres = [
+        setGenres([
           { id: 28, name: 'Action' },
           { id: 35, name: 'Comedy' },
           { id: 18, name: 'Drama' },
@@ -150,9 +177,8 @@ const Home = () => {
           { id: 16, name: 'Animation' },
           { id: 80, name: 'Crime' },
           { id: 14, name: 'Fantasy' },
-          { id: 9648, name: 'Mystery' }
-        ];
-        setGenres(fallbackGenres);
+          { id: 9648, name: 'Mystery' },
+        ]);
       } finally {
         setGenresLoading(false);
       }
@@ -160,68 +186,74 @@ const Home = () => {
     fetchGenres();
   }, []);
 
-  // Load persisted movies on mount, or fetch if none exist (for authenticated users)
   useEffect(() => {
     if (isAuthenticated && activeTab === 1 && !hasInitialLoad.current) {
       hasInitialLoad.current = true;
       const persistedMovies = loadPersistedMovies();
-      if (persistedMovies && persistedMovies.length > 0) {
-        const ratedIds = new Set(rawRatings.map(r => r.id?.toString()).filter(Boolean));
-        const filteredPersisted = persistedMovies.filter(movie => 
-          movie && movie.id && !ratedIds.has(movie.id.toString())
-        );
+      if (persistedMovies?.length) {
+        const filteredPersisted = filterCandidates(persistedMovies);
         if (filteredPersisted.length > 0) {
-          setDisplayMovies(filteredPersisted.slice(0, 18));
+          setDisplayMovies(filteredPersisted.slice(0, SUGGESTION_COUNT));
           return;
         }
       }
       if (displayMovies.length === 0 && recommendedMovies.length === 0 && !loading) {
-        const recentlyShown = getRecentlyShownMovies();
-        getPersonalRecommendations(false, recentlyShown).then((result) => {
-          if (result && result.results && result.results.length > 0) {
-            const newMovieIds = result.results
-              .slice(0, 18)
-              .map(movie => movie.id)
-              .filter(Boolean);
-            const current = getRecentlyShownMovies();
-            const newIds = newMovieIds.filter(id => !current.includes(id.toString()));
-            if (newIds.length > 0) {
-              addToRecentlyShown(newIds);
-            }
+        const exclude = [...getRecentlyShownMovies(), ...getDismissedIds()];
+        getPersonalRecommendations(false, exclude).then((result) => {
+          if (result?.results?.length) {
+            const ids = result.results.slice(0, SUGGESTION_COUNT).map((m) => m.id).filter(Boolean);
+            addToRecentlyShown(ids);
           }
         });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
-  // Refresh recommendations when a movie is rated
+  // Keep shelf free of newly rated movies
   useEffect(() => {
-    if (isAuthenticated && activeTab === 1 && rawRatings.length > 0) {
-      const ratedIds = new Set(rawRatings.map(r => r.id?.toString()).filter(Boolean));
-      const filteredDisplay = displayMovies.filter(movie => 
-        movie && movie.id && !ratedIds.has(movie.id.toString())
-      );
-      if (filteredDisplay.length === 0 && displayMovies.length > 0) {
-        localStorage.removeItem(STORAGE_KEY);
-        setDisplayMovies([]);
-        const timer = setTimeout(() => {
-          getPersonalRecommendations();
-        }, 1000);
-        return () => clearTimeout(timer);
-      } else if (filteredDisplay.length < displayMovies.length) {
-        setDisplayMovies(filteredDisplay);
-        savePersistedMovies(filteredDisplay);
-      }
+    if (!isAuthenticated || activeTab !== 1 || displayMovies.length === 0) return;
+    const next = filterCandidates(displayMovies);
+    if (next.length !== displayMovies.length) {
+      setDisplayMovies(next);
+      savePersistedMovies(next);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawRatings.length, isAuthenticated, activeTab]);
 
+  const filteredRecommendedMovies = filterCandidates(recommendedMovies);
+
+  useEffect(() => {
+    if (activeTab !== 1 || isRefreshing) return;
+    if (displayMovies.length > 0) return;
+    if (filteredRecommendedMovies.length === 0) return;
+    const persistedMovies = loadPersistedMovies();
+    if (persistedMovies?.length) return;
+    const moviesToDisplay = filteredRecommendedMovies.slice(0, SUGGESTION_COUNT);
+    setDisplayMovies(moviesToDisplay);
+    savePersistedMovies(moviesToDisplay);
+  }, [filteredRecommendedMovies, activeTab, isRefreshing, loading, displayMovies.length]);
+
+  const topUpShelf = (current) => {
+    const present = new Set(current.map((m) => m.id?.toString()));
+    const extras = filteredRecommendedMovies.filter((m) => !present.has(m.id?.toString()));
+    return [...current, ...extras].slice(0, SUGGESTION_COUNT);
+  };
+
+  const removeFromShelf = (movieId, { dismiss = false } = {}) => {
+    const id = String(movieId);
+    if (dismiss) addDismissedId(id);
+    setDisplayMovies((prev) => {
+      const next = topUpShelf(prev.filter((m) => String(m.id) !== id));
+      savePersistedMovies(next);
+      return next;
+    });
+  };
+
   const handleRatingComplete = () => {
+    const ratedId = ratingMovie?.id;
     setRatingMovie(null);
-    if (activeTab === 1) {
-      setTimeout(() => {
-        getPersonalRecommendations();
-      }, 500);
-    }
+    if (ratedId != null) removeFromShelf(ratedId);
   };
 
   const handleRateClick = (movie) => {
@@ -232,34 +264,57 @@ const Home = () => {
     setRatingMovie({
       id: movie.id,
       title: movie.title,
-      posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'
+      posterUrl: movie.poster_path
+        ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+        : '/placeholder-movie.jpg',
     });
+  };
+
+  const handleDismiss = (movie) => {
+    removeFromShelf(movie.id, { dismiss: true });
+  };
+
+  const handleWatchlist = async (movie) => {
+    if (!isAuthenticated) {
+      window.location.href = `/login?redirect=${encodeURIComponent('/')}`;
+      return;
+    }
+    const id = movie.id;
+    setWatchlistBusyId(id);
+    try {
+      await api.post('/api/watchlist', {
+        movieId: String(id),
+        tmdbId: id,
+        title: movie.title,
+        posterPath: movie.poster_path || '',
+        releaseDate: movie.release_date || null,
+      });
+    } catch (error) {
+      const message = error?.response?.data?.message || '';
+      if (!message.toLowerCase().includes('already')) {
+        console.error('Error adding to watchlist:', error);
+      }
+    } finally {
+      setWatchlistBusyId(null);
+    }
   };
 
   const handleRefresh = async () => {
     if (isRefreshing || loading) return;
     setIsRefreshing(true);
     try {
-      const currentMovieIds = displayMovies.length > 0 
-        ? displayMovies.slice(0, 18).map(movie => movie.id).filter(Boolean)
-        : filteredRecommendedMovies.slice(0, 18).map(movie => movie.id).filter(Boolean);
-      const recentlyShown = getRecentlyShownMovies();
-      const allExcludeIds = [...currentMovieIds, ...recentlyShown];
-      const result = await getPersonalRecommendations(true, allExcludeIds);
-      if (result && result.results) {
-        const newMovieIds = result.results
-          .slice(0, 18)
-          .map(movie => movie.id)
-          .filter(Boolean);
-        addToRecentlyShown(newMovieIds);
-        const ratedIds = new Set(rawRatings.map(r => r.id?.toString()).filter(Boolean));
-        const newFiltered = result.results.filter(movie => 
-          movie && movie.id && !ratedIds.has(movie.id.toString())
-        );
-        if (newFiltered.length > 0) {
-          const moviesToDisplay = newFiltered.slice(0, 18);
-          setDisplayMovies(moviesToDisplay);
-          savePersistedMovies(moviesToDisplay);
+      const currentIds = (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies)
+        .slice(0, SUGGESTION_COUNT)
+        .map((m) => m.id)
+        .filter(Boolean);
+      const exclude = [...currentIds, ...getRecentlyShownMovies(), ...getDismissedIds()];
+      const result = await getPersonalRecommendations(true, exclude);
+      if (result?.results) {
+        const fresh = filterCandidates(result.results).slice(0, SUGGESTION_COUNT);
+        addToRecentlyShown(fresh.map((m) => m.id).filter(Boolean));
+        if (fresh.length > 0) {
+          setDisplayMovies(fresh);
+          savePersistedMovies(fresh);
         }
       }
       hasInitialLoad.current = true;
@@ -270,51 +325,31 @@ const Home = () => {
     }
   };
 
-  const ratedMovieIds = new Set(rawRatings.map(r => r.id?.toString()).filter(Boolean));
-  const filteredRecommendedMovies = recommendedMovies.filter(movie => 
-    movie && movie.id && !ratedMovieIds.has(movie.id.toString())
-  );
-
-  useEffect(() => {
-    if (activeTab === 1) {
-      if (!isRefreshing && filteredRecommendedMovies.length > 0 && displayMovies.length === 0) {
-        const persistedMovies = loadPersistedMovies();
-        if (!persistedMovies || persistedMovies.length === 0) {
-          const moviesToDisplay = filteredRecommendedMovies.slice(0, 18);
-          setDisplayMovies(moviesToDisplay);
-          savePersistedMovies(moviesToDisplay);
-        }
-      }
-    }
-  }, [filteredRecommendedMovies, activeTab, isRefreshing, loading]);
-
   const MovieCard = ({ movie }) => {
-    const isAlreadyRated = rawRatings.some((r) => r.id?.toString() === movie.id?.toString());
-    const year = movie.release_date ? new Date(movie.release_date).getFullYear() : null;
-    const score = typeof movie.vote_average === 'number' ? movie.vote_average.toFixed(1) : null;
+    const busy = watchlistBusyId === movie.id;
 
     return (
       <Box
         sx={{
           minWidth: 0,
-          transition: 'transform 0.15s ease',
-          '&:hover': {
-            transform: { xs: 'none', sm: 'translateY(-2px)' },
-            '& .poster-frame': { borderColor: 'rgba(212, 160, 23, 0.5)' },
-            '& .rate-btn': { opacity: 1 },
-          },
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          '&:hover .action-btn': { opacity: 1 },
+          '&:hover .poster-frame': { borderColor: 'rgba(212, 160, 23, 0.5)' },
         }}
       >
         <Box
           className="poster-frame"
           sx={{
             position: 'relative',
+            flex: 1,
+            minHeight: 0,
             aspectRatio: '2 / 3',
             borderRadius: 1,
             overflow: 'hidden',
             border: '1px solid rgba(244, 239, 230, 0.12)',
             backgroundColor: 'rgba(244, 239, 230, 0.04)',
-            transition: 'border-color 0.15s ease',
           }}
         >
           <Box
@@ -334,61 +369,82 @@ const Home = () => {
               sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
           </Box>
-          {score && (
-            <Box
+
+          <Tooltip title="Don't show again">
+            <IconButton
+              className="action-btn"
+              size="small"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleDismiss(movie);
+              }}
               sx={{
                 position: 'absolute',
-                top: 5,
-                right: 5,
-                px: 0.5,
-                py: 0.1,
-                borderRadius: 0.5,
-                fontSize: '0.62rem',
-                fontWeight: 700,
-                lineHeight: 1.4,
+                top: 3,
+                right: 3,
+                p: 0.35,
+                opacity: { xs: 1, sm: 0.85 },
                 color: 'var(--rl-cream)',
-                backgroundColor: 'rgba(12, 11, 10, 0.8)',
+                backgroundColor: 'rgba(12,11,10,0.72)',
+                '&:hover': { backgroundColor: 'rgba(12,11,10,0.9)', color: '#ff8a80' },
               }}
             >
-              {score}
-            </Box>
-          )}
+              <CloseIcon sx={{ fontSize: '0.85rem' }} />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Add to watchlist">
+            <IconButton
+              className="action-btn"
+              size="small"
+              disabled={busy}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleWatchlist(movie);
+              }}
+              sx={{
+                position: 'absolute',
+                top: 3,
+                left: 3,
+                p: 0.35,
+                opacity: { xs: 1, sm: 0.85 },
+                color: 'var(--rl-accent)',
+                backgroundColor: 'rgba(12,11,10,0.72)',
+                '&:hover': { backgroundColor: 'rgba(12,11,10,0.9)' },
+              }}
+            >
+              <BookmarkIcon sx={{ fontSize: '0.85rem' }} />
+            </IconButton>
+          </Tooltip>
+
           <Button
-            className="rate-btn"
             size="small"
-            disabled={isAlreadyRated}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (!isAlreadyRated) handleRateClick(movie);
+              handleRateClick(movie);
             }}
             sx={{
               position: 'absolute',
-              left: 6,
-              right: 6,
-              bottom: 6,
+              left: 4,
+              right: 4,
+              bottom: 4,
               minWidth: 0,
-              py: 0.35,
+              py: 0.25,
               px: 0.5,
               textTransform: 'none',
-              fontSize: '0.68rem',
+              fontSize: { xs: '0.58rem', sm: '0.68rem' },
               fontWeight: 700,
               lineHeight: 1.2,
               borderRadius: 0.75,
-              opacity: { xs: isAlreadyRated ? 0.9 : 1, sm: isAlreadyRated ? 0.9 : 0 },
-              transition: 'opacity 0.15s ease',
-              color: isAlreadyRated ? 'rgba(244,239,230,0.7)' : 'var(--rl-ink)',
-              backgroundColor: isAlreadyRated ? 'rgba(12,11,10,0.75)' : 'var(--rl-accent)',
-              '&:hover': {
-                backgroundColor: isAlreadyRated ? 'rgba(12,11,10,0.85)' : 'var(--rl-accent-hover)',
-              },
-              '&.Mui-disabled': {
-                color: 'rgba(244,239,230,0.7)',
-                backgroundColor: 'rgba(12,11,10,0.75)',
-              },
+              color: 'var(--rl-ink)',
+              backgroundColor: 'var(--rl-accent)',
+              '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
             }}
           >
-            {isAlreadyRated ? 'Rated' : 'Rate'}
+            Rate
           </Button>
         </Box>
 
@@ -398,12 +454,12 @@ const Home = () => {
           title={movie.title}
           sx={{
             display: 'block',
-            mt: 0.6,
+            mt: 0.4,
             color: 'var(--rl-cream)',
             textDecoration: 'none',
             fontWeight: 600,
-            fontSize: '0.72rem',
-            lineHeight: 1.25,
+            fontSize: { xs: '0.62rem', sm: '0.7rem' },
+            lineHeight: 1.2,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -412,38 +468,37 @@ const Home = () => {
         >
           {movie.title}
         </Typography>
-        {year && (
-          <Typography sx={{ color: 'rgba(244,239,230,0.4)', fontSize: '0.65rem', lineHeight: 1.2 }}>
-            {year}
-          </Typography>
-        )}
       </Box>
     );
   };
 
   const posterGridSx = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-    gap: { xs: 1, sm: 1.25 },
-    maxWidth: { xs: 320, sm: 360 },
+    gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+    gridTemplateRows: 'repeat(2, minmax(0, 1fr))',
+    gap: { xs: 0.75, sm: 1 },
+    flex: 1,
+    minHeight: 0,
     width: '100%',
+    maxWidth: 780,
+    mx: 'auto',
+    alignContent: 'stretch',
   };
 
   const SuggestionSkeleton = () => (
     <Box sx={posterGridSx}>
-      {Array.from({ length: 18 }).map((_, i) => (
-        <Box key={i}>
-          <Skeleton
-            variant="rectangular"
-            sx={{
-              aspectRatio: '2 / 3',
-              width: '100%',
-              borderRadius: 1,
-              bgcolor: 'rgba(244,239,230,0.06)',
-            }}
-          />
-          <Skeleton width="75%" height={12} sx={{ mt: 0.6, bgcolor: 'rgba(244,239,230,0.06)' }} />
-        </Box>
+      {Array.from({ length: SUGGESTION_COUNT }).map((_, i) => (
+        <Skeleton
+          key={i}
+          variant="rectangular"
+          sx={{
+            width: '100%',
+            height: '100%',
+            minHeight: 0,
+            borderRadius: 1,
+            bgcolor: 'rgba(244,239,230,0.06)',
+          }}
+        />
       ))}
     </Box>
   );
@@ -452,35 +507,40 @@ const Home = () => {
     return <LandingHero />;
   }
 
-  const moviesToShow = (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies).slice(0, 18);
+  const moviesToShow = (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies).slice(
+    0,
+    SUGGESTION_COUNT
+  );
   const showEmpty =
     moviesToShow.length === 0 && !loading && displayMovies.length === 0 && filteredRecommendedMovies.length === 0;
 
   return (
     <Box
       sx={{
-        minHeight: '100vh',
+        height: { xs: 'calc(100dvh - 64px)', sm: 'calc(100dvh - 72px)' },
         backgroundColor: 'var(--rl-ink)',
-        position: 'relative',
+        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
       }}
     >
       <Container
-        maxWidth="md"
+        maxWidth="lg"
         sx={{
-          py: { xs: 2.5, sm: 3 },
-          px: { xs: 2, sm: 3 },
-          position: 'relative',
-          zIndex: 2,
+          py: { xs: 1.25, sm: 1.75 },
+          px: { xs: 1.5, sm: 3 },
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        <Box sx={{ mb: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2, mb: 0.5 }}>
+        <Box sx={{ mb: 1, flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
             <Typography
               sx={{
                 fontFamily: '"Bebas Neue", sans-serif',
-                fontSize: { xs: '2rem', sm: '2.5rem' },
+                fontSize: { xs: '1.7rem', sm: '2.1rem' },
                 letterSpacing: '0.04em',
                 color: 'var(--rl-cream)',
                 lineHeight: 1,
@@ -488,19 +548,16 @@ const Home = () => {
             >
               For you
             </Typography>
+            {rawRatings.length < 5 && (
+              <Button
+                component={Link}
+                to="/onboarding"
+                sx={{ color: 'var(--rl-accent)', textTransform: 'none', px: 0, fontSize: '0.75rem', flexShrink: 0 }}
+              >
+                Rank 5 →
+              </Button>
+            )}
           </Box>
-          <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem' }}>
-            From your rankings{user?.username ? ` · ${user.username}` : ''}
-          </Typography>
-          {rawRatings.length < 5 && (
-            <Button
-              component={Link}
-              to="/onboarding"
-              sx={{ color: 'var(--rl-accent)', textTransform: 'none', px: 0, mt: 0.5, fontSize: '0.8rem' }}
-            >
-              Rank 5 films to sharpen these →
-            </Button>
-          )}
         </Box>
 
         <Box
@@ -509,7 +566,8 @@ const Home = () => {
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 1,
-            mb: 2.5,
+            mb: 1.25,
+            flexShrink: 0,
             borderBottom: '1px solid rgba(244, 239, 230, 0.1)',
           }}
         >
@@ -522,15 +580,15 @@ const Home = () => {
               setSearchParams(next);
             }}
             sx={{
-              minHeight: 40,
+              minHeight: 36,
               '& .MuiTab-root': {
                 color: 'rgba(244, 239, 230, 0.55)',
-                fontSize: '0.9rem',
+                fontSize: '0.85rem',
                 fontWeight: 600,
                 textTransform: 'none',
-                minHeight: 40,
+                minHeight: 36,
                 minWidth: 'auto',
-                px: { xs: 1.25, sm: 2 },
+                px: { xs: 1, sm: 1.5 },
                 '&.Mui-selected': { color: 'var(--rl-cream)' },
               },
               '& .MuiTabs-indicator': {
@@ -549,7 +607,6 @@ const Home = () => {
               size="small"
               sx={{
                 color: 'var(--rl-accent)',
-                mb: 0.5,
                 '&:hover': { backgroundColor: 'rgba(212, 160, 23, 0.1)' },
                 '&.Mui-disabled': { color: 'rgba(244, 239, 230, 0.25)' },
                 ...(isRefreshing && {
@@ -567,130 +624,134 @@ const Home = () => {
           )}
         </Box>
 
-        {activeTab === 2 ? (
-          genresLoading ? (
-            <Box display="flex" justifyContent="center" py={8}>
-              <CircularProgress size={28} sx={{ color: 'var(--rl-accent)' }} />
+        <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {activeTab === 2 ? (
+            <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pb: 1 }}>
+              {genresLoading ? (
+                <Box display="flex" justifyContent="center" py={6}>
+                  <CircularProgress size={28} sx={{ color: 'var(--rl-accent)' }} />
+                </Box>
+              ) : genres.length === 0 ? (
+                <Typography sx={{ color: 'var(--rl-muted)', py: 4, textAlign: 'center' }}>
+                  Unable to load genres. Try refreshing.
+                </Typography>
+              ) : (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {genres.map((genre) => (
+                    <Button
+                      key={genre.id}
+                      onClick={() =>
+                        navigate(`/genre/${genre.id}?name=${encodeURIComponent(genre.name)}`)
+                      }
+                      sx={{
+                        textTransform: 'none',
+                        px: 1.5,
+                        py: 0.7,
+                        borderRadius: 1,
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        color: 'var(--rl-cream)',
+                        border: '1px solid rgba(244, 239, 230, 0.14)',
+                        backgroundColor: 'rgba(244, 239, 230, 0.03)',
+                        '&:hover': {
+                          borderColor: 'rgba(212, 160, 23, 0.5)',
+                          backgroundColor: 'rgba(212, 160, 23, 0.08)',
+                          color: 'var(--rl-accent)',
+                        },
+                      }}
+                    >
+                      {genre.name}
+                    </Button>
+                  ))}
+                </Box>
+              )}
             </Box>
-          ) : genres.length === 0 ? (
-            <Typography sx={{ color: 'var(--rl-muted)', py: 6, textAlign: 'center' }}>
-              Unable to load genres. Try refreshing.
-            </Typography>
+          ) : loading && !isRefreshing && moviesToShow.length === 0 ? (
+            <SuggestionSkeleton />
           ) : (
             <Box
               sx={{
+                flex: 1,
+                minHeight: 0,
+                opacity: isRefreshing ? 0.45 : 1,
+                transition: 'opacity 0.25s ease',
+                position: 'relative',
                 display: 'flex',
-                flexWrap: 'wrap',
-                gap: 1,
+                flexDirection: 'column',
               }}
             >
-              {genres.map((genre) => (
-                <Button
-                  key={genre.id}
-                  onClick={() => navigate(`/genre/${genre.id}?name=${encodeURIComponent(genre.name)}`)}
+              {isRefreshing && (
+                <Box
                   sx={{
-                    textTransform: 'none',
-                    px: 1.75,
-                    py: 0.85,
-                    borderRadius: 1,
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                    color: 'var(--rl-cream)',
-                    border: '1px solid rgba(244, 239, 230, 0.14)',
-                    backgroundColor: 'rgba(244, 239, 230, 0.03)',
-                    '&:hover': {
-                      borderColor: 'rgba(212, 160, 23, 0.5)',
-                      backgroundColor: 'rgba(212, 160, 23, 0.08)',
-                      color: 'var(--rl-accent)',
-                    },
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
-                  {genre.name}
-                </Button>
-              ))}
-            </Box>
-          )
-        ) : loading && !isRefreshing && moviesToShow.length === 0 ? (
-          <SuggestionSkeleton />
-        ) : (
-          <Box
-            sx={{
-              opacity: isRefreshing ? 0.45 : 1,
-              transition: 'opacity 0.25s ease',
-              position: 'relative',
-            }}
-          >
-            {isRefreshing && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  inset: 0,
-                  zIndex: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <CircularProgress size={28} sx={{ color: 'var(--rl-accent)' }} />
-              </Box>
-            )}
+                  <CircularProgress size={28} sx={{ color: 'var(--rl-accent)' }} />
+                </Box>
+              )}
 
-            {showEmpty ? (
-              <Box sx={{ textAlign: 'center', py: { xs: 6, sm: 8 }, maxWidth: 420, mx: 'auto' }}>
-                <Typography
-                  sx={{
-                    fontFamily: '"Bebas Neue", sans-serif',
-                    fontSize: '1.6rem',
-                    letterSpacing: '0.04em',
-                    color: 'var(--rl-cream)',
-                    mb: 1,
-                  }}
-                >
-                  {recommendedMovies.length > 0 ? 'All caught up' : 'Start ranking'}
-                </Typography>
-                <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.9rem', mb: 2.5 }}>
-                  {recommendedMovies.length > 0
-                    ? 'You’ve rated these picks. Refresh for a new set.'
-                    : 'Rate a few films and we’ll suggest similar ones.'}
-                </Typography>
-                {recommendedMovies.length > 0 ? (
-                  <Button
-                    onClick={handleRefresh}
+              {showEmpty ? (
+                <Box sx={{ textAlign: 'center', py: 4, maxWidth: 360, mx: 'auto' }}>
+                  <Typography
                     sx={{
-                      textTransform: 'none',
-                      color: 'var(--rl-ink)',
-                      backgroundColor: 'var(--rl-accent)',
-                      px: 2.5,
-                      '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
+                      fontFamily: '"Bebas Neue", sans-serif',
+                      fontSize: '1.4rem',
+                      letterSpacing: '0.04em',
+                      color: 'var(--rl-cream)',
+                      mb: 1,
                     }}
                   >
-                    Refresh suggestions
-                  </Button>
-                ) : (
-                  <Button
-                    component={Link}
-                    to="/rate"
-                    sx={{
-                      textTransform: 'none',
-                      color: 'var(--rl-ink)',
-                      backgroundColor: 'var(--rl-accent)',
-                      px: 2.5,
-                      '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
-                    }}
-                  >
-                    Rate movies
-                  </Button>
-                )}
-              </Box>
-            ) : (
-              <Box sx={posterGridSx}>
-                {moviesToShow.map((movie) => (
-                  <MovieCard key={movie.id} movie={movie} />
-                ))}
-              </Box>
-            )}
-          </Box>
-        )}
+                    {recommendedMovies.length > 0 ? 'All caught up' : 'Start ranking'}
+                  </Typography>
+                  <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem', mb: 2 }}>
+                    {recommendedMovies.length > 0
+                      ? 'Refresh for a new set of picks.'
+                      : 'Rate a few films and we’ll suggest similar ones.'}
+                  </Typography>
+                  {recommendedMovies.length > 0 ? (
+                    <Button
+                      onClick={handleRefresh}
+                      sx={{
+                        textTransform: 'none',
+                        color: 'var(--rl-ink)',
+                        backgroundColor: 'var(--rl-accent)',
+                        px: 2.5,
+                        '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
+                      }}
+                    >
+                      Refresh suggestions
+                    </Button>
+                  ) : (
+                    <Button
+                      component={Link}
+                      to="/rate"
+                      sx={{
+                        textTransform: 'none',
+                        color: 'var(--rl-ink)',
+                        backgroundColor: 'var(--rl-accent)',
+                        px: 2.5,
+                        '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
+                      }}
+                    >
+                      Rate movies
+                    </Button>
+                  )}
+                </Box>
+              ) : (
+                <Box sx={posterGridSx}>
+                  {moviesToShow.map((movie) => (
+                    <MovieCard key={movie.id} movie={movie} />
+                  ))}
+                </Box>
+              )}
+            </Box>
+          )}
+        </Box>
       </Container>
 
       {ratingMovie && (
