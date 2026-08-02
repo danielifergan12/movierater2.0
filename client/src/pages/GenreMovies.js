@@ -3,19 +3,12 @@ import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom'
 import {
   Container,
   Typography,
-  Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  CardActions,
-  Button,
   Box,
-  Rating,
+  Button,
   CircularProgress,
-  IconButton
+  IconButton,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, Star as StarIcon } from '@mui/icons-material';
-import { useMovies } from '../contexts/MovieContext';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
@@ -26,7 +19,6 @@ const GenreMovies = () => {
   const [searchParams] = useSearchParams();
   const genreName = searchParams.get('name') || 'Genre';
   const navigate = useNavigate();
-  const { getMoviesByGenre } = useMovies();
   const { isAuthenticated } = useAuth();
   const { rawRatings } = useRatings();
   const [movies, setMovies] = useState([]);
@@ -42,14 +34,12 @@ const GenreMovies = () => {
 
   const loadMovies = async (nextPage, replace = false) => {
     if (!genreId) return;
-    
+
     setLoading(true);
     try {
-      // Use the API endpoint that sorts by rating
       const response = await api.get(`/api/movies/genre/${genreId}/highly-rated?page=${nextPage}`);
       const newMovies = response.data.results || [];
-      setMovies(prev => (replace ? newMovies : [...prev, ...newMovies]));
-      // Check if there are more pages available
+      setMovies((prev) => (replace ? newMovies : [...prev, ...newMovies]));
       const totalPages = response.data.total_pages || 0;
       setHasMore(nextPage < totalPages && newMovies.length > 0);
       setPage(nextPage);
@@ -69,279 +59,267 @@ const GenreMovies = () => {
     setRatingMovie({
       id: movie.id,
       title: movie.title,
-      posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'
+      posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg',
+      releaseDate: movie.release_date || null,
+      genres: movie.genre_ids || null,
     });
   };
 
-  const handleRatingComplete = () => {
-    setRatingMovie(null);
-  };
-
   return (
-    <Box sx={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
-      position: 'relative',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.1) 0%, transparent 50%)',
-        pointerEvents: 'none',
-      }
-    }}>
-      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 3, sm: 4 }, gap: 2 }}>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        bgcolor: '#0c0b0a',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(ellipse 70% 45% at 12% 0%, rgba(212,160,23,0.09), transparent 60%), radial-gradient(ellipse 50% 40% at 92% 18%, rgba(244,239,230,0.04), transparent 55%)',
+          pointerEvents: 'none',
+        },
+      }}
+    >
+      <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4.5 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1 }}>
           <IconButton
             onClick={() => navigate('/?tab=2')}
+            size="small"
             sx={{
-              color: '#00d4ff',
-              '&:hover': {
-                backgroundColor: 'rgba(0, 212, 255, 0.1)',
-              },
+              mt: 0.35,
+              color: 'var(--rl-muted)',
+              '&:hover': { color: 'var(--rl-cream)', backgroundColor: 'rgba(244,239,230,0.06)' },
             }}
+            aria-label="Back to genres"
           >
-            <ArrowBackIcon />
+            <ArrowBackIcon fontSize="small" />
           </IconButton>
-          <Typography variant="h2" sx={{
-            background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
-          }}>
-            {genreName} Movies
-          </Typography>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontFamily: '"Bebas Neue", sans-serif',
+                fontSize: { xs: '2rem', sm: '2.5rem' },
+                letterSpacing: '0.04em',
+                color: 'var(--rl-cream)',
+                lineHeight: 1.05,
+              }}
+            >
+              {genreName}
+            </Typography>
+            <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem', mt: 0.5 }}>
+              Highly rated {genreName.toLowerCase()} films
+            </Typography>
+          </Box>
         </Box>
-        <Typography variant="h6" sx={{ 
-          color: 'rgba(255, 255, 255, 0.7)',
-          mb: { xs: 3, sm: 4 },
-          fontSize: { xs: '1rem', sm: '1.25rem' }
-        }}>
-          Popular {genreName} movies
-        </Typography>
 
         {loading && movies.length === 0 ? (
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
-            <CircularProgress />
+            <CircularProgress size={28} sx={{ color: 'var(--rl-accent)' }} />
           </Box>
+        ) : movies.length === 0 ? (
+          <Typography sx={{ color: 'var(--rl-muted)', textAlign: 'center', py: 8 }}>
+            No movies found for this genre.
+          </Typography>
         ) : (
           <>
-            <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: 'repeat(3, minmax(0, 1fr))',
+                  sm: 'repeat(4, minmax(0, 1fr))',
+                  md: 'repeat(5, minmax(0, 1fr))',
+                  lg: 'repeat(6, minmax(0, 1fr))',
+                },
+                gap: { xs: 1, sm: 1.25, md: 1.5 },
+                mt: { xs: 2.5, sm: 3 },
+              }}
+            >
               {movies.map((movie) => {
-                const isAlreadyRated = rawRatings.some(r => r.id?.toString() === movie.id?.toString());
+                const isAlreadyRated = rawRatings.some((r) => r.id?.toString() === movie.id?.toString());
+                const year = movie.release_date ? new Date(movie.release_date).getFullYear() : null;
+
                 return (
-                  <Grid key={movie.id} item xs={12} sm={6} md={4} lg={4}>
-                    <Card sx={{ 
-                      maxWidth: { xs: '100%', sm: 300 },
-                      height: '100%', 
-                      display: 'flex', 
-                      flexDirection: 'column',
-                      background: 'rgba(26, 26, 26, 0.8)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid rgba(0, 212, 255, 0.2)',
-                      borderRadius: { xs: 3, sm: 4 },
-                      overflow: 'hidden',
-                      transition: 'all 0.3s ease',
-                      mb: { xs: 2, sm: 0 },
-                      '&:hover': {
-                        transform: { xs: 'none', sm: 'translateY(-8px)' },
-                        boxShadow: { xs: 'none', sm: '0 20px 40px rgba(0, 212, 255, 0.3)' },
-                        border: { xs: '1px solid rgba(0, 212, 255, 0.2)', sm: '1px solid rgba(0, 212, 255, 0.5)' },
-                      }
-                    }}>
-                      <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-                        <CardMedia
+                  <Box
+                    key={movie.id}
+                    sx={{
+                      minWidth: 0,
+                      '&:hover .action-btn': { opacity: 1 },
+                      '&:hover .poster-frame': { borderColor: 'rgba(212, 160, 23, 0.55)' },
+                      '&:hover .title': { color: 'var(--rl-accent)' },
+                    }}
+                  >
+                    <Box
+                      className="poster-frame"
+                      sx={{
+                        position: 'relative',
+                        aspectRatio: '2 / 3',
+                        borderRadius: 1,
+                        overflow: 'hidden',
+                        border: '1px solid rgba(244, 239, 230, 0.12)',
+                        backgroundColor: 'rgba(244, 239, 230, 0.04)',
+                        boxShadow: '0 8px 20px rgba(0,0,0,0.35)',
+                        transition: 'border-color 0.15s ease, transform 0.15s ease',
+                        '&:hover': {
+                          transform: { xs: 'none', sm: 'translateY(-2px)' },
+                        },
+                      }}
+                    >
+                      <Box
+                        component={Link}
+                        to={`/movie/${movie.id}`}
+                        sx={{ display: 'block', width: '100%', height: '100%' }}
+                      >
+                        <Box
                           component="img"
-                          height={{ xs: 250, sm: 300 }}
-                          image={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'}
-                          alt={movie.title}
-                          sx={{ 
-                            objectFit: 'cover',
-                            transition: 'transform 0.3s ease',
-                            '&:hover': {
-                              transform: { xs: 'none', sm: 'scale(1.05)' },
-                            }
-                          }}
-                        />
-                        <Box sx={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          background: 'linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.8) 100%)',
-                          opacity: 0,
-                          transition: 'opacity 0.3s ease',
-                          '&:hover': {
-                            opacity: { xs: 0, sm: 1 },
+                          src={
+                            movie.poster_path
+                              ? `https://image.tmdb.org/t/p/w342${movie.poster_path}`
+                              : '/placeholder-movie.jpg'
                           }
-                        }} />
+                          alt={movie.title}
+                          loading="lazy"
+                          sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        />
                       </Box>
-                      <CardContent sx={{ flexGrow: 1, p: { xs: 2.5, sm: 3 } }}>
-                        <Typography gutterBottom variant="h6" component="h2" sx={{ 
-                          fontWeight: 600,
-                          color: '#ffffff',
-                          mb: 1.5,
-                          fontSize: { xs: '1.125rem', sm: '1.25rem' },
-                          lineHeight: 1.3
-                        }}>
-                          {movie.title}
-                        </Typography>
-                        <Typography variant="body2" sx={{ 
-                          color: 'rgba(255, 255, 255, 0.6)',
-                          mb: 2,
-                          fontSize: { xs: '0.875rem', sm: '0.9rem' },
-                        }}>
-                          {movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <Rating
-                            value={movie.vote_average / 2}
-                            precision={0.1}
-                            size="small"
-                            readOnly
-                            sx={{
-                              fontSize: { xs: '1.5rem', sm: '1.25rem' },
-                              '& .MuiRating-iconFilled': {
-                                color: '#00d4ff',
-                              },
-                              '& .MuiRating-iconEmpty': {
-                                color: 'rgba(0, 212, 255, 0.3)',
-                              },
-                            }}
-                          />
-                          <Typography variant="body2" sx={{ 
-                            ml: 1,
-                            color: '#00d4ff',
-                            fontWeight: 600,
-                            fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                          }}>
-                            {movie.vote_average?.toFixed(1) || 'N/A'}
-                          </Typography>
-                        </Box>
-                        <Typography variant="body2" sx={{ 
-                          color: 'rgba(255, 255, 255, 0.7)',
-                          lineHeight: 1.5,
-                          display: { xs: 'none', sm: '-webkit-box' },
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                        }}>
-                          {movie.overview}
-                        </Typography>
-                      </CardContent>
-                      <CardActions sx={{ p: { xs: 2.5, sm: 3 }, pt: 0, gap: { xs: 1.5, sm: 1 }, flexDirection: { xs: 'column', sm: 'row' } }}>
-                        {isAuthenticated ? (
-                          isAlreadyRated ? (
-                            <Button
-                              size="medium"
-                              variant="outlined"
-                              startIcon={<StarIcon />}
-                              disabled
-                              fullWidth
-                              sx={{
-                                borderColor: 'rgba(0, 212, 255, 0.3)',
-                                color: 'rgba(0, 212, 255, 0.5)',
-                                fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                                py: { xs: 1.5, sm: 1 },
-                                minHeight: { xs: 48, sm: 36 },
-                                cursor: 'not-allowed',
-                              }}
-                            >
-                              Already Rated
-                            </Button>
-                          ) : (
-                            <Button
-                              size="medium"
-                              variant="outlined"
-                              startIcon={<StarIcon />}
-                              onClick={() => handleRateClick(movie)}
-                              fullWidth
-                              sx={{
-                                borderColor: '#00d4ff',
-                                color: '#00d4ff',
-                                fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                                py: { xs: 1.5, sm: 1 },
-                                minHeight: { xs: 48, sm: 36 },
-                                '&:hover': {
-                                  borderColor: '#66e0ff',
-                                  backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                                },
-                              }}
-                            >
-                              Rate
-                            </Button>
-                          )
-                        ) : (
-                          <Button
-                            size="medium"
-                            variant="outlined"
-                            startIcon={<StarIcon />}
-                            onClick={() => handleRateClick(movie)}
-                            fullWidth
-                            sx={{
-                              borderColor: '#00d4ff',
-                              color: '#00d4ff',
-                              fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                              py: { xs: 1.5, sm: 1 },
-                              minHeight: { xs: 48, sm: 36 },
-                              '&:hover': {
-                                borderColor: '#66e0ff',
-                                backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                              },
-                            }}
-                          >
-                            Sign in to Rate
-                          </Button>
-                        )}
-                        <Button
-                          size="medium"
-                          component={Link}
-                          to={`/movie/${movie.id}`}
-                          variant="contained"
-                          fullWidth
+
+                      {movie.vote_average > 0 && (
+                        <Box
                           sx={{
-                            background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                            borderRadius: 2,
-                            py: { xs: 1.5, sm: 1 },
-                            fontWeight: 600,
-                            fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                            minHeight: { xs: 48, sm: 36 },
+                            position: 'absolute',
+                            top: 5,
+                            left: 5,
+                            px: 0.65,
+                            py: 0.15,
+                            borderRadius: 0.5,
+                            backgroundColor: 'rgba(12,11,10,0.78)',
+                            color: 'var(--rl-accent)',
+                            fontSize: '0.65rem',
+                            fontWeight: 700,
+                            lineHeight: 1.4,
                           }}
                         >
-                          View Details
+                          {movie.vote_average.toFixed(1)}
+                        </Box>
+                      )}
+
+                      {!isAlreadyRated && (
+                        <Button
+                          className="action-btn"
+                          size="small"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleRateClick(movie);
+                          }}
+                          sx={{
+                            position: 'absolute',
+                            left: 5,
+                            right: 5,
+                            bottom: 5,
+                            minWidth: 0,
+                            py: 0.35,
+                            px: 0.5,
+                            textTransform: 'none',
+                            fontSize: { xs: '0.6rem', sm: '0.72rem' },
+                            fontWeight: 700,
+                            lineHeight: 1.2,
+                            borderRadius: 0.75,
+                            color: 'var(--rl-ink)',
+                            backgroundColor: 'var(--rl-accent)',
+                            opacity: { xs: 1, sm: 0 },
+                            transition: 'opacity 0.15s ease',
+                            '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
+                          }}
+                        >
+                          {isAuthenticated ? 'Rate' : 'Sign in'}
                         </Button>
-                      </CardActions>
-                    </Card>
-                  </Grid>
+                      )}
+
+                      {isAlreadyRated && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            right: 5,
+                            bottom: 5,
+                            px: 0.65,
+                            py: 0.2,
+                            borderRadius: 0.5,
+                            backgroundColor: 'rgba(12,11,10,0.78)',
+                            color: 'var(--rl-muted)',
+                            fontSize: '0.62rem',
+                            fontWeight: 600,
+                          }}
+                        >
+                          Ranked
+                        </Box>
+                      )}
+                    </Box>
+
+                    <Typography
+                      className="title"
+                      component={Link}
+                      to={`/movie/${movie.id}`}
+                      title={movie.title}
+                      sx={{
+                        display: 'block',
+                        mt: 0.6,
+                        color: 'var(--rl-cream)',
+                        textDecoration: 'none',
+                        fontWeight: 600,
+                        fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                        lineHeight: 1.25,
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        transition: 'color 0.15s ease',
+                      }}
+                    >
+                      {movie.title}
+                    </Typography>
+                    {year && (
+                      <Typography
+                        sx={{
+                          display: 'block',
+                          color: 'var(--rl-muted)',
+                          fontSize: { xs: '0.58rem', sm: '0.68rem' },
+                          textAlign: 'center',
+                          mt: 0.15,
+                        }}
+                      >
+                        {year}
+                      </Typography>
+                    )}
+                  </Box>
                 );
               })}
-            </Grid>
+            </Box>
 
-            {movies.length > 0 && hasMore && (
+            {hasMore && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: { xs: 3, sm: 4 } }}>
                 <Button
                   variant="outlined"
                   onClick={() => loadMovies(page + 1)}
                   disabled={loading}
                   sx={{
-                    fontSize: { xs: '0.875rem', sm: '1rem' },
-                    px: { xs: 3, sm: 4 },
-                    py: { xs: 1, sm: 1.25 },
-                    borderColor: '#00d4ff',
-                    color: '#00d4ff',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    borderRadius: 1,
+                    borderColor: 'rgba(244, 239, 230, 0.2)',
+                    color: 'var(--rl-cream)',
+                    px: 2.5,
+                    py: 0.85,
+                    fontSize: '0.85rem',
                     '&:hover': {
-                      borderColor: '#66e0ff',
-                      backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                      borderColor: 'rgba(212, 160, 23, 0.5)',
+                      backgroundColor: 'rgba(212, 160, 23, 0.08)',
                     },
                   }}
                 >
-                  {loading ? <CircularProgress size={18} /> : 'Load More'}
+                  {loading ? <CircularProgress size={18} sx={{ color: 'var(--rl-accent)' }} /> : 'Load more'}
                 </Button>
               </Box>
             )}
@@ -354,7 +332,7 @@ const GenreMovies = () => {
           open={!!ratingMovie}
           movie={ratingMovie}
           onClose={() => setRatingMovie(null)}
-          onComplete={handleRatingComplete}
+          onComplete={() => setRatingMovie(null)}
         />
       )}
     </Box>
@@ -362,4 +340,3 @@ const GenreMovies = () => {
 };
 
 export default GenreMovies;
-
