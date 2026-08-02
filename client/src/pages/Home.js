@@ -29,6 +29,118 @@ const SUGGESTION_COUNT = 12;
 const STORAGE_KEY = 'homeDisplayMovies';
 const DISMISSED_KEY = 'dismissedSuggestionMovies';
 
+const CinemaScreen = ({ children }) => (
+  <Box
+    sx={{
+      flex: 1,
+      minHeight: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      px: { xs: 0.25, sm: 1.5 },
+      pb: { xs: 0.5, sm: 1 },
+    }}
+  >
+    <Box
+      sx={{
+        position: 'relative',
+        width: '100%',
+        maxWidth: 940,
+        animation: 'screenRise 0.55s ease both',
+        '@keyframes screenRise': {
+          from: { opacity: 0, transform: 'translateY(10px) scale(0.985)' },
+          to: { opacity: 1, transform: 'translateY(0) scale(1)' },
+        },
+      }}
+    >
+      <Box
+        aria-hidden
+        sx={{
+          position: 'absolute',
+          left: '12%',
+          right: '12%',
+          top: { xs: -28, sm: -40 },
+          height: { xs: 48, sm: 70 },
+          background:
+            'linear-gradient(180deg, rgba(212,160,23,0.16) 0%, rgba(244,239,230,0.04) 55%, transparent 100%)',
+          clipPath: 'polygon(38% 0, 62% 0, 100% 100%, 0 100%)',
+          filter: 'blur(1px)',
+          pointerEvents: 'none',
+          zIndex: 0,
+        }}
+      />
+
+      <Box
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          p: { xs: '7px', sm: '11px' },
+          borderRadius: { xs: '10px', sm: '14px' },
+          background: 'linear-gradient(160deg, #3a342c 0%, #1a1612 38%, #0f0d0b 72%, #2a241c 100%)',
+          border: '1px solid rgba(212, 160, 23, 0.22)',
+          boxShadow: `
+            0 24px 48px rgba(0,0,0,0.55),
+            0 0 0 1px rgba(0,0,0,0.4),
+            inset 0 1px 0 rgba(244,239,230,0.12),
+            inset 0 -1px 0 rgba(0,0,0,0.5)
+          `,
+        }}
+      >
+        <Box
+          sx={{
+            p: '2px',
+            borderRadius: { xs: '7px', sm: '10px' },
+            background:
+              'linear-gradient(180deg, rgba(230,220,200,0.45) 0%, rgba(120,105,80,0.35) 45%, rgba(60,52,40,0.7) 100%)',
+          }}
+        >
+          <Box
+            sx={{
+              position: 'relative',
+              borderRadius: { xs: '5px', sm: '8px' },
+              overflow: 'hidden',
+              p: { xs: 1, sm: 1.5 },
+              background: `
+                radial-gradient(ellipse 90% 70% at 50% 35%, rgba(244,239,230,0.09) 0%, transparent 60%),
+                linear-gradient(180deg, #2a2722 0%, #141210 55%, #0c0b0a 100%)
+              `,
+              boxShadow: 'inset 0 0 60px rgba(0,0,0,0.45), inset 0 0 28px rgba(212,160,23,0.05)',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                inset: 0,
+                pointerEvents: 'none',
+                background:
+                  'linear-gradient(115deg, transparent 40%, rgba(244,239,230,0.04) 50%, transparent 60%)',
+                animation: 'screenSheen 7s ease-in-out infinite',
+              },
+              '@keyframes screenSheen': {
+                '0%, 100%': { opacity: 0.35, transform: 'translateX(-8%)' },
+                '50%': { opacity: 0.7, transform: 'translateX(8%)' },
+              },
+            }}
+          >
+            {children}
+          </Box>
+        </Box>
+      </Box>
+
+      <Box
+        aria-hidden
+        sx={{
+          height: { xs: 5, sm: 7 },
+          mx: { xs: '6%', sm: '10%' },
+          mt: 0.6,
+          borderRadius: '0 0 6px 6px',
+          background: 'linear-gradient(180deg, #4a4034 0%, #1c1814 100%)',
+          boxShadow: '0 6px 14px rgba(0,0,0,0.35)',
+          opacity: 0.95,
+        }}
+      />
+    </Box>
+  </Box>
+);
+
 const Home = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -534,31 +646,30 @@ const Home = () => {
     display: 'grid',
     gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
     gridTemplateRows: 'repeat(2, auto)',
-    columnGap: { xs: 0.75, sm: 1.25 },
-    rowGap: { xs: 1, sm: 1.5 },
+    columnGap: { xs: 0.75, sm: 1.15 },
+    rowGap: { xs: 1, sm: 1.35 },
     width: '100%',
-    maxWidth: { xs: '100%', sm: 900 },
-    mx: 'auto',
-    justifyContent: 'center',
-    alignContent: 'start',
+    position: 'relative',
+    zIndex: 1,
   };
 
   const SuggestionSkeleton = () => (
-    <Box sx={posterGridSx}>
-      {Array.from({ length: SUGGESTION_COUNT }).map((_, i) => (
-        <Skeleton
-          key={i}
-          variant="rectangular"
-          sx={{
-            width: '100%',
-            height: '100%',
-            minHeight: 0,
-            borderRadius: 1,
-            bgcolor: 'rgba(244,239,230,0.06)',
-          }}
-        />
-      ))}
-    </Box>
+    <CinemaScreen>
+      <Box sx={posterGridSx}>
+        {Array.from({ length: SUGGESTION_COUNT }).map((_, i) => (
+          <Skeleton
+            key={i}
+            variant="rectangular"
+            sx={{
+              width: '100%',
+              aspectRatio: '2 / 3',
+              borderRadius: 1,
+              bgcolor: 'rgba(244,239,230,0.08)',
+            }}
+          />
+        ))}
+      </Box>
+    </CinemaScreen>
   );
 
   if (!isAuthenticated) {
@@ -776,69 +887,62 @@ const Home = () => {
               )}
 
               {showEmpty ? (
-                <Box sx={{ textAlign: 'center', py: 4, maxWidth: 360, mx: 'auto' }}>
-                  <Typography
-                    sx={{
-                      fontFamily: '"Bebas Neue", sans-serif',
-                      fontSize: '1.4rem',
-                      letterSpacing: '0.04em',
-                      color: 'var(--rl-cream)',
-                      mb: 1,
-                    }}
-                  >
-                    {recommendedMovies.length > 0 ? 'All caught up' : 'Start ranking'}
-                  </Typography>
-                  <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem', mb: 2 }}>
-                    {recommendedMovies.length > 0
-                      ? 'Refresh for a new set of picks.'
-                      : 'Rate a few films and we’ll suggest similar ones.'}
-                  </Typography>
-                  {recommendedMovies.length > 0 ? (
-                    <Button
-                      onClick={handleRefresh}
+                <CinemaScreen>
+                  <Box sx={{ textAlign: 'center', py: { xs: 3, sm: 4 }, maxWidth: 360, mx: 'auto', position: 'relative', zIndex: 1 }}>
+                    <Typography
                       sx={{
-                        textTransform: 'none',
-                        color: 'var(--rl-ink)',
-                        backgroundColor: 'var(--rl-accent)',
-                        px: 2.5,
-                        '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
+                        fontFamily: '"Bebas Neue", sans-serif',
+                        fontSize: '1.4rem',
+                        letterSpacing: '0.04em',
+                        color: 'var(--rl-cream)',
+                        mb: 1,
                       }}
                     >
-                      Refresh suggestions
-                    </Button>
-                  ) : (
-                    <Button
-                      component={Link}
-                      to="/rate"
-                      sx={{
-                        textTransform: 'none',
-                        color: 'var(--rl-ink)',
-                        backgroundColor: 'var(--rl-accent)',
-                        px: 2.5,
-                        '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
-                      }}
-                    >
-                      Rate movies
-                    </Button>
-                  )}
-                </Box>
+                      {recommendedMovies.length > 0 ? 'All caught up' : 'Start ranking'}
+                    </Typography>
+                    <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem', mb: 2 }}>
+                      {recommendedMovies.length > 0
+                        ? 'Refresh for a new set of picks.'
+                        : 'Rate a few films and we’ll suggest similar ones.'}
+                    </Typography>
+                    {recommendedMovies.length > 0 ? (
+                      <Button
+                        onClick={handleRefresh}
+                        sx={{
+                          textTransform: 'none',
+                          color: 'var(--rl-ink)',
+                          backgroundColor: 'var(--rl-accent)',
+                          px: 2.5,
+                          '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
+                        }}
+                      >
+                        Refresh suggestions
+                      </Button>
+                    ) : (
+                      <Button
+                        component={Link}
+                        to="/rate"
+                        sx={{
+                          textTransform: 'none',
+                          color: 'var(--rl-ink)',
+                          backgroundColor: 'var(--rl-accent)',
+                          px: 2.5,
+                          '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
+                        }}
+                      >
+                        Rate movies
+                      </Button>
+                    )}
+                  </Box>
+                </CinemaScreen>
               ) : (
-                <Box
-                  sx={{
-                    flex: 1,
-                    minHeight: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '100%',
-                  }}
-                >
+                <CinemaScreen>
                   <Box sx={posterGridSx}>
                     {moviesToShow.map((movie) => (
                       <MovieCard key={movie.id} movie={movie} />
                     ))}
                   </Box>
-                </Box>
+                </CinemaScreen>
               )}
             </Box>
           )}
