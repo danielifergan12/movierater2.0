@@ -477,6 +477,7 @@ const Home = () => {
           </Tooltip>
 
           <Button
+            className="action-btn"
             size="small"
             onClick={(e) => {
               e.preventDefault();
@@ -498,6 +499,8 @@ const Home = () => {
               borderRadius: 0.75,
               color: 'var(--rl-ink)',
               backgroundColor: 'var(--rl-accent)',
+              opacity: { xs: 1, sm: 0 },
+              transition: 'opacity 0.15s ease',
               '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
             }}
           >
