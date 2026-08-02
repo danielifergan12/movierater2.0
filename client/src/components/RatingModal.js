@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, Box, Typography, Button, useMediaQuery, useTheme, IconButton } from '@mui/material';
 import { ArrowBack as ArrowBackIcon, Close as CloseIcon } from '@mui/icons-material';
 import { useRatings } from '../hooks/useRatings';
@@ -12,37 +12,44 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [low, setLow] = useState(0);
-  const [high, setHigh] = useState(0);
+  const [high, setHigh] = useState(-1);
   const [mid, setMid] = useState(null);
   const [firstTime, setFirstTime] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isRerating, setIsRerating] = useState(false);
   const [comparisonHistory, setComparisonHistory] = useState([]);
   const [filteredRatings, setFilteredRatings] = useState(null);
+  const sessionKeyRef = useRef(null);
+  const completingRef = useRef(false);
 
-  const saveToHistory = (currentCompareTarget) => {
-    if (mid != null && currentCompareTarget) {
-      setComparisonHistory((prev) => [...prev, { low, high, mid, compareTarget: { ...currentCompareTarget } }]);
-    }
-  };
+  const finish = useCallback(
+    (insertAt, listForBounds) => {
+      if (completingRef.current) return;
+      completingRef.current = true;
+      const max = listForBounds?.length ?? rawRatings.length;
+      const index = Math.max(0, Math.min(insertAt, max));
+      const updated = upsertAtIndex(movie, index);
+      onComplete && onComplete(updated);
+      onClose && onClose();
+    },
+    [movie, onClose, onComplete, rawRatings.length, upsertAtIndex]
+  );
 
-  const restoreFromHistory = () => {
-    if (comparisonHistory.length > 0) {
-      const lastState = comparisonHistory[comparisonHistory.length - 1];
-      setLow(lastState.low);
-      setHigh(lastState.high);
-      setMid(lastState.mid);
-      setComparisonHistory((prev) => prev.slice(0, -1));
-    }
-  };
+  const getCompareList = useCallback(() => {
+    const movieIdStr = String(movie.id);
+    if (isRerating && filteredRatings) return filteredRatings;
+    return rawRatings.filter((r) => String(r.id) !== movieIdStr);
+  }, [filteredRatings, isRerating, movie.id, rawRatings]);
 
   useEffect(() => {
     if (!open) {
+      sessionKeyRef.current = null;
+      completingRef.current = false;
       setIsInitialized(false);
       setFirstTime(false);
       setMid(null);
       setLow(0);
-      setHigh(0);
+      setHigh(-1);
       setIsRerating(false);
       setComparisonHistory([]);
       setFilteredRatings(null);
@@ -56,6 +63,8 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
       return;
     }
 
+    if (!movie?.id) return;
+
     const movieIdStr = String(movie.id);
     const alreadyRatedIndex = rawRatings.findIndex((r) => String(r.id) === movieIdStr);
     const alreadyRated = alreadyRatedIndex !== -1;
@@ -66,281 +75,128 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
     }
 
     let ratingsToUse = rawRatings;
+    if (alreadyRated && allowRerate) {
+      ratingsToUse = rawRatings.filter((r) => String(r.id) !== movieIdStr);
+    }
+
+    const sessionKey = `${movieIdStr}:${allowRerate ? 'rerate' : 'rate'}`;
+    const alreadyInited = sessionKeyRef.current === sessionKey && isInitialized;
+
+    // Don't reset an in-progress comparison when parent re-renders.
+    // Only recover if we incorrectly started as "first time" before ratings hydrated.
+    if (alreadyInited) {
+      if (!(firstTime && ratingsToUse.length > 0)) {
+        return;
+      }
+    }
 
     if (alreadyRated && allowRerate) {
       setIsRerating(true);
-      const updatedRatings = rawRatings.filter((r) => String(r.id) !== movieIdStr);
-      setFilteredRatings(updatedRatings);
-      ratingsToUse = updatedRatings;
+      setFilteredRatings(ratingsToUse);
     } else {
       setIsRerating(false);
       setFilteredRatings(null);
     }
 
-    const currentRatingsLength = ratingsToUse.length;
+    sessionKeyRef.current = sessionKey;
+    completingRef.current = false;
+    setComparisonHistory([]);
+    setMid(null);
 
-    if (currentRatingsLength === 0) {
+    if (ratingsToUse.length === 0) {
       setFirstTime(true);
-      setIsInitialized(true);
-    } else {
-      setFirstTime(false);
       setLow(0);
-      setHigh(currentRatingsLength - 1);
+      setHigh(-1);
       setIsInitialized(true);
+      return;
     }
-  }, [open, rawRatings, movie.id, onClose, allowRerate, isAuthenticated]);
 
+    setFirstTime(false);
+    setLow(0);
+    setHigh(ratingsToUse.length - 1);
+    setIsInitialized(true);
+  }, [open, rawRatings, movie?.id, onClose, allowRerate, isAuthenticated, isInitialized, firstTime]);
+  // Drive binary search / insertion from low/high
   useEffect(() => {
-    if (!open || !isInitialized || firstTime) return;
+    if (!open || !isInitialized || firstTime || completingRef.current) return;
 
-    if (isRerating && !filteredRatings) {
+    const currentRatings = getCompareList();
+    if (currentRatings.length === 0) {
+      finish(0, currentRatings);
+      return;
+    }
+
+    // Search exhausted → insert at `low` (valid range: 0..length)
+    if (low > high) {
+      finish(low, currentRatings);
+      return;
+    }
+
+    const nextMid = Math.floor((low + high) / 2);
+    if (nextMid < 0 || nextMid >= currentRatings.length) {
+      finish(Math.max(0, Math.min(low, currentRatings.length)), currentRatings);
       return;
     }
 
     const movieIdStr = String(movie.id);
-    const currentRatings =
-      isRerating && filteredRatings
-        ? filteredRatings
-        : rawRatings.filter((r) => String(r.id) !== movieIdStr);
-
-    if (currentRatings.length === 0) {
-      const updated = upsertAtIndex(movie, 0);
-      onComplete && onComplete(updated);
-      onClose && onClose();
-      return;
-    }
-
-    const adjustedHigh = Math.min(high, currentRatings.length - 1);
-    const adjustedLow = Math.min(low, currentRatings.length - 1);
-
-    if (adjustedLow > adjustedHigh) {
-      const updated = upsertAtIndex(movie, adjustedLow);
-      onComplete && onComplete(updated);
-      onClose && onClose();
-      return;
-    }
-
-    const nextMid = Math.floor((adjustedLow + adjustedHigh) / 2);
-
-    if (nextMid < 0 || nextMid >= currentRatings.length) {
-      const updated = upsertAtIndex(movie, currentRatings.length);
-      onComplete && onComplete(updated);
-      onClose && onClose();
-      return;
-    }
-
-    let validMid = nextMid;
-    const movieIdStrCheck = String(movie.id);
-    const midRating = currentRatings[validMid];
-    const midRatingIdStr = midRating ? String(midRating.id) : '';
-
-    if (midRatingIdStr === movieIdStrCheck) {
-      let found = false;
-      const maxSearch = Math.max(currentRatings.length, 10);
-
-      for (let i = nextMid + 1; i < currentRatings.length && i < nextMid + maxSearch; i++) {
-        if (String(currentRatings[i]?.id || '') !== movieIdStrCheck) {
-          validMid = i;
-          found = true;
-          break;
-        }
-      }
-
-      if (!found) {
-        for (let i = nextMid - 1; i >= 0 && i > nextMid - maxSearch; i--) {
-          if (String(currentRatings[i]?.id || '') !== movieIdStrCheck) {
-            validMid = i;
-            found = true;
-            break;
-          }
-        }
-      }
-
-      if (!found) {
-        for (let i = 0; i < currentRatings.length; i++) {
-          if (String(currentRatings[i]?.id || '') !== movieIdStrCheck) {
-            validMid = i;
-            found = true;
-            break;
-          }
-        }
-      }
-
-      if (!found) {
-        const updated = upsertAtIndex(movie, nextMid);
-        onComplete && onComplete(updated);
-        onClose && onClose();
-        return;
-      }
-    }
-
-    if (validMid >= 0 && validMid < currentRatings.length) {
-      const finalRating = currentRatings[validMid];
-      if (String(finalRating?.id || '') !== movieIdStrCheck) {
-        setMid(validMid);
+    if (String(currentRatings[nextMid]?.id) === movieIdStr) {
+      // Should not happen after filtering, but recover gracefully
+      const otherIndex = currentRatings.findIndex((r) => String(r.id) !== movieIdStr);
+      if (otherIndex >= 0) {
+        setMid(otherIndex);
       } else {
-        const otherIndex = currentRatings.findIndex((r) => String(r.id) !== movieIdStrCheck);
-        if (otherIndex >= 0) {
-          setMid(otherIndex);
-        } else {
-          const updated = upsertAtIndex(movie, currentRatings.length);
-          onComplete && onComplete(updated);
-          onClose && onClose();
-        }
+        finish(currentRatings.length, currentRatings);
       }
-    } else {
-      const updated = upsertAtIndex(movie, Math.min(nextMid, currentRatings.length));
-      onComplete && onComplete(updated);
-      onClose && onClose();
+      return;
     }
-  }, [low, high, open, isInitialized, rawRatings, filteredRatings, firstTime, movie, upsertAtIndex, onComplete, onClose, isRerating]);
+
+    if (mid !== nextMid) {
+      setMid(nextMid);
+    }
+  }, [low, high, open, isInitialized, firstTime, getCompareList, finish, movie.id, mid]);
 
   const compareTarget = useMemo(() => {
-    if (mid == null) return null;
-    if (isRerating && !filteredRatings) return null;
-
-    const movieIdStr = String(movie.id);
-    const currentRatings =
-      isRerating && filteredRatings
-        ? filteredRatings
-        : rawRatings.filter((r) => String(r.id) !== movieIdStr);
-
+    if (mid == null || firstTime) return null;
+    const currentRatings = getCompareList();
     if (mid < 0 || mid >= currentRatings.length) return null;
-
     const target = currentRatings[mid];
-    if (!target) return null;
-    if (movieIdStr === String(target.id)) return null;
-
+    if (!target || String(target.id) === String(movie.id)) return null;
     return target;
-  }, [mid, rawRatings, filteredRatings, isRerating, movie.id]);
+  }, [mid, firstTime, getCompareList, movie.id]);
 
-  const handlingNullTargetRef = useRef(false);
+  const saveToHistory = () => {
+    if (mid == null || !compareTarget) return;
+    setComparisonHistory((prev) => [...prev, { low, high, mid }]);
+  };
 
-  useEffect(() => {
-    if (!open || !isInitialized || firstTime || mid == null) {
-      handlingNullTargetRef.current = false;
-      return;
-    }
-
-    if (isRerating && !filteredRatings) return;
-
-    if (!compareTarget && !handlingNullTargetRef.current) {
-      handlingNullTargetRef.current = true;
-
-      const movieIdStr = String(movie.id);
-      const currentRatings =
-        isRerating && filteredRatings
-          ? filteredRatings
-          : rawRatings.filter((r) => String(r.id) !== movieIdStr);
-
-      if (currentRatings.length === 0) {
-        const updated = upsertAtIndex(movie, 0);
-        onComplete && onComplete(updated);
-        onClose && onClose();
-        return;
-      }
-
-      const validIndex = currentRatings.findIndex((r) => String(r.id) !== movieIdStr);
-
-      if (validIndex >= 0) {
-        setMid(validIndex);
-        setTimeout(() => {
-          handlingNullTargetRef.current = false;
-        }, 100);
-      } else {
-        const updated = upsertAtIndex(movie, Math.min(mid, currentRatings.length));
-        onComplete && onComplete(updated);
-        onClose && onClose();
-      }
-    } else if (compareTarget) {
-      handlingNullTargetRef.current = false;
-    }
-  }, [compareTarget, open, isInitialized, firstTime, mid, rawRatings, filteredRatings, isRerating, movie, upsertAtIndex, onComplete, onClose]);
+  const restoreFromHistory = () => {
+    if (comparisonHistory.length === 0) return;
+    const last = comparisonHistory[comparisonHistory.length - 1];
+    setLow(last.low);
+    setHigh(last.high);
+    setMid(last.mid);
+    setComparisonHistory((prev) => prev.slice(0, -1));
+  };
 
   const pickNewBetter = () => {
-    if (!compareTarget) {
-      const movieIdStr = String(movie.id);
-      const currentRatings =
-        isRerating && filteredRatings
-          ? filteredRatings
-          : rawRatings.filter((r) => String(r.id) !== movieIdStr);
-      const insertAt = mid != null && mid >= 0 ? mid : 0;
-      const updated = upsertAtIndex(movie, Math.min(insertAt, currentRatings.length));
-      onComplete && onComplete(updated);
-      onClose && onClose();
-      return;
-    }
-
-    const movieIdStr = String(movie.id);
-    if (movieIdStr === String(compareTarget.id)) {
-      const currentRatings =
-        isRerating && filteredRatings
-          ? filteredRatings
-          : rawRatings.filter((r) => String(r.id) !== movieIdStr);
-      if (currentRatings.length === 0) {
-        const updated = upsertAtIndex(movie, 0);
-        onComplete && onComplete(updated);
-        onClose && onClose();
-      } else {
-        const validIndex = currentRatings.findIndex((r) => String(r.id) !== movieIdStr);
-        if (validIndex >= 0) setMid(validIndex);
-      }
-      return;
-    }
-
-    saveToHistory(compareTarget);
+    if (completingRef.current || mid == null) return;
+    saveToHistory();
+    // New movie ranks above mid → search left half
     setHigh(mid - 1);
   };
 
   const pickCompareBetter = () => {
-    if (!compareTarget) {
-      const movieIdStr = String(movie.id);
-      const currentRatings =
-        isRerating && filteredRatings
-          ? filteredRatings
-          : rawRatings.filter((r) => String(r.id) !== movieIdStr);
-      const insertAt = mid != null && mid >= 0 ? mid : 0;
-      const updated = upsertAtIndex(movie, Math.min(insertAt, currentRatings.length));
-      onComplete && onComplete(updated);
-      onClose && onClose();
-      return;
-    }
-
-    const movieIdStr = String(movie.id);
-    if (movieIdStr === String(compareTarget.id)) {
-      const currentRatings =
-        isRerating && filteredRatings
-          ? filteredRatings
-          : rawRatings.filter((r) => String(r.id) !== movieIdStr);
-      if (currentRatings.length === 0) {
-        const updated = upsertAtIndex(movie, 0);
-        onComplete && onComplete(updated);
-        onClose && onClose();
-      } else {
-        const validIndex = currentRatings.findIndex((r) => String(r.id) !== movieIdStr);
-        if (validIndex >= 0) setMid(validIndex);
-      }
-      return;
-    }
-
-    saveToHistory(compareTarget);
+    if (completingRef.current || mid == null) return;
+    saveToHistory();
+    // Compare target ranks above new movie → search right half
     setLow(mid + 1);
   };
 
   const skipDecide = () => {
-    if (low > high) {
-      const updated = upsertAtIndex(movie, low);
-      onComplete && onComplete(updated);
-      onClose && onClose();
-    } else if (mid != null) {
-      const updated = upsertAtIndex(movie, mid);
-      onComplete && onComplete(updated);
-      onClose && onClose();
-    } else {
-      const updated = upsertAtIndex(movie, low);
-      onComplete && onComplete(updated);
-      onClose && onClose();
-    }
+    if (completingRef.current) return;
+    const currentRatings = getCompareList();
+    const insertAt = mid != null ? mid : Math.max(0, low);
+    finish(insertAt, currentRatings);
   };
 
   if (!open || !movie || !isInitialized) {
@@ -349,20 +205,26 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
 
   const MoviePick = ({ title, posterUrl, onPick }) => (
     <Box
-      onClick={onPick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onPick();
-        }
+      component="button"
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onPick();
       }}
       sx={{
         flex: '1 1 0',
         maxWidth: { xs: '46%', sm: 168 },
         cursor: 'pointer',
         outline: 'none',
+        border: 'none',
+        background: 'transparent',
+        p: 0,
+        m: 0,
+        font: 'inherit',
+        color: 'inherit',
+        textAlign: 'center',
+        WebkitTapHighlightColor: 'transparent',
         transition: 'transform 0.15s ease',
         '&:hover .poster': {
           borderColor: 'rgba(212, 160, 23, 0.7)',
@@ -384,29 +246,33 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
           border: '1px solid rgba(244, 239, 230, 0.14)',
           backgroundColor: 'rgba(244, 239, 230, 0.04)',
           transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+          pointerEvents: 'none',
         }}
       >
         <Box
           component="img"
           src={posterUrl || '/placeholder-movie.jpg'}
-          alt={title}
-          sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          alt=""
+          draggable={false}
+          sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
         />
       </Box>
       <Typography
         className="title"
+        component="span"
         sx={{
+          display: '-webkit-box',
           mt: 1,
           textAlign: 'center',
           color: 'var(--rl-cream)',
           fontWeight: 600,
           fontSize: { xs: '0.72rem', sm: '0.82rem' },
           lineHeight: 1.3,
-          display: '-webkit-box',
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
           transition: 'color 0.15s ease',
+          pointerEvents: 'none',
         }}
       >
         {title}
@@ -524,11 +390,7 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
               <Button
                 variant="contained"
-                onClick={() => {
-                  const updated = upsertAtIndex(movie, 0);
-                  onComplete && onComplete(updated);
-                  onClose && onClose();
-                }}
+                onClick={() => finish(0, [])}
                 sx={{
                   textTransform: 'none',
                   fontWeight: 700,
@@ -583,13 +445,14 @@ const RatingModal = ({ movie, open, onClose, onComplete, allowRerate = false }) 
                   letterSpacing: '0.06em',
                   pt: { xs: 6, sm: 8 },
                   flexShrink: 0,
+                  pointerEvents: 'none',
                 }}
               >
                 VS
               </Typography>
               <MoviePick
-                title={compareTarget?.title}
-                posterUrl={compareTarget?.posterUrl}
+                title={compareTarget.title}
+                posterUrl={compareTarget.posterUrl}
                 onPick={pickCompareBetter}
               />
             </Box>
