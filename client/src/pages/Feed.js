@@ -1,29 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
   Typography,
-  Grid,
-  Card,
-  CardContent,
-  CardMedia,
-  Avatar,
   Box,
+  Avatar,
   Chip,
   Rating,
   Button,
   IconButton,
   CircularProgress,
   Tabs,
-  Tab
+  Tab,
 } from '@mui/material';
-import {
-  Favorite,
-  FavoriteBorder,
-  Comment,
-  Share
-} from '@mui/icons-material';
-import api from '../config/axios';
+import { Favorite, FavoriteBorder } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import api from '../config/axios';
+import SocialPageShell, {
+  socialTitleSx,
+  socialSubtitleSx,
+  socialGhostBtn,
+  socialCardSx,
+} from '../components/SocialPageShell';
 
 const Feed = () => {
   const [reviews, setReviews] = useState([]);
@@ -61,23 +57,12 @@ const Feed = () => {
     setLoading(true);
     try {
       let endpoint = '/api/feed/recent';
-      
-      switch (activeTab) {
-        case 0:
-          endpoint = '/api/feed/personal';
-          break;
-        case 1:
-          endpoint = '/api/feed/trending';
-          break;
-        case 2:
-          endpoint = '/api/feed/recent';
-          break;
-        default:
-          endpoint = '/api/feed/recent';
-      }
+      if (activeTab === 0) endpoint = '/api/feed/personal';
+      else if (activeTab === 1) endpoint = '/api/feed/trending';
+      else endpoint = '/api/feed/recent';
 
       const response = await api.get(`${endpoint}?page=${page}&limit=10`);
-      setReviews(response.data.reviews);
+      setReviews(response.data.reviews || []);
     } catch (error) {
       console.error('Error fetching feed:', error);
     } finally {
@@ -85,24 +70,18 @@ const Feed = () => {
     }
   };
 
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
-    setPage(1);
-  };
-
   const handleLike = async (reviewId) => {
     try {
       const response = await api.post(`/api/reviews/${reviewId}/like`);
-      // Update the review in the state
-      setReviews(prevReviews =>
-        prevReviews.map(review =>
+      setReviews((prevReviews) =>
+        prevReviews.map((review) =>
           review._id === reviewId
             ? {
                 ...review,
                 likes: response.data.isLiked
-                  ? [...review.likes, 'current-user']
-                  : review.likes.filter(id => id !== 'current-user'),
-                likeCount: response.data.likeCount
+                  ? [...(review.likes || []), 'current-user']
+                  : (review.likes || []).filter((id) => id !== 'current-user'),
+                likeCount: response.data.likeCount,
               }
             : review
         )
@@ -112,202 +91,283 @@ const Feed = () => {
     }
   };
 
-  const ReviewCard = ({ review }) => (
-    <Card sx={{ mb: 3 }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar
-            src={review.user?.profilePicture}
-            sx={{ mr: 2 }}
-          >
-            {review.user?.username?.charAt(0).toUpperCase()}
-          </Avatar>
-          <Box>
-            <Typography variant="subtitle1" fontWeight="bold">
-              {review.user?.username}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {new Date(review.createdAt).toLocaleDateString()}
-            </Typography>
-          </Box>
-        </Box>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <CardMedia
-            component="img"
-            sx={{ width: 80, height: 120, mr: 2, borderRadius: 1 }}
-            image={review.movie?.posterPath ? `https://image.tmdb.org/t/p/w500${review.movie.posterPath}` : '/placeholder-movie.jpg'}
-            alt={review.movie?.title}
-          />
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h6" gutterBottom>
-              {review.movie?.title}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <Rating value={review.rating} readOnly size="small" />
-              <Typography variant="body2" sx={{ ml: 1 }}>
-                {review.rating}/5
-              </Typography>
-            </Box>
-            {review.mood && (
-              <Chip
-                label={review.mood}
-                size="small"
-                color="primary"
-                sx={{ mr: 1 }}
-              />
-            )}
-            {review.tags?.map(tag => (
-              <Chip
-                key={tag}
-                label={tag}
-                size="small"
-                variant="outlined"
-                sx={{ mr: 1, mt: 1 }}
-              />
-            ))}
-          </Box>
-        </Box>
-
-        {review.reviewText && (
-          <Typography variant="body1" paragraph>
-            {review.reviewText}
-          </Typography>
-        )}
-
-        {review.photos?.length > 0 && (
-          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-            {review.photos.map((photo, index) => (
-              <img
-                key={index}
-                src={photo.url}
-                alt={`Review ${index + 1}`}
-                style={{
-                  width: 100,
-                  height: 100,
-                  objectFit: 'cover',
-                  borderRadius: 8
-                }}
-              />
-            ))}
-          </Box>
-        )}
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <IconButton
-            onClick={() => handleLike(review._id)}
-            color="error"
-          >
-            {review.likes?.includes('current-user') ? (
-              <Favorite />
-            ) : (
-              <FavoriteBorder />
-            )}
-          </IconButton>
-          <Typography variant="body2">
-            {review.likes?.length || 0} likes
-          </Typography>
-          
-          <IconButton>
-            <Comment />
-          </IconButton>
-          <Typography variant="body2">
-            {review.comments?.length || 0} comments
-          </Typography>
-          
-          <IconButton>
-            <Share />
-          </IconButton>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-
-  if (loading) {
-    return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-          <CircularProgress />
-        </Box>
-      </Container>
-    );
-  }
-
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography sx={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: '2.6rem', letterSpacing: '0.04em', color: 'var(--rl-cream)', mb: 1 }}>
-        Feed
-      </Typography>
-      <Typography sx={{ color: 'var(--rl-muted)', mb: 3 }}>
-        What people you follow are ranking and reviewing
-      </Typography>
+    <SocialPageShell maxWidth="sm">
+      <Box sx={{ textAlign: 'center', mb: 3 }}>
+        <Typography sx={socialTitleSx}>Feed</Typography>
+        <Typography sx={socialSubtitleSx}>
+          Rankings and reviews from people you follow
+        </Typography>
+      </Box>
 
       {friendActivity.length > 0 && (
-        <Box sx={{ mb: 4 }}>
-          <Typography sx={{ fontWeight: 700, mb: 1.5, color: 'var(--rl-accent)', fontSize: '0.8rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        <Box sx={{ mb: 3.5 }}>
+          <Typography
+            sx={{
+              fontWeight: 700,
+              mb: 1.25,
+              color: 'var(--rl-accent)',
+              fontSize: '0.72rem',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+            }}
+          >
             Friends just ranked
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1.25,
+              overflowX: 'auto',
+              pb: 1,
+              justifyContent: { xs: 'flex-start', sm: 'center' },
+              '&::-webkit-scrollbar': { height: 4 },
+              '&::-webkit-scrollbar-thumb': { background: 'rgba(244,239,230,0.15)', borderRadius: 2 },
+            }}
+          >
             {friendActivity.map((row) => (
-              <Box key={`${row.userId}-${row.movie?.id}`} sx={{ minWidth: 120 }}>
-                <Link to={`/movie/${row.movie?.id}`} style={{ textDecoration: 'none' }}>
-                  <Avatar
-                    variant="rounded"
-                    src={row.movie?.posterUrl || undefined}
-                    sx={{ width: 80, height: 120, mb: 0.75 }}
+              <Box key={`${row.userId}-${row.movie?.id}`} sx={{ minWidth: 88, maxWidth: 88, textAlign: 'center', flexShrink: 0 }}>
+                <Box
+                  component={Link}
+                  to={`/movie/${row.movie?.id}`}
+                  sx={{
+                    display: 'block',
+                    aspectRatio: '2 / 3',
+                    borderRadius: 0.75,
+                    overflow: 'hidden',
+                    border: '1px solid rgba(244,239,230,0.12)',
+                    mb: 0.6,
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={row.movie?.posterUrl || '/placeholder-movie.jpg'}
+                    alt={row.movie?.title || ''}
+                    sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   />
-                </Link>
-                <Typography component={Link} to={`/profile/${row.userId}`} sx={{ color: 'var(--rl-cream)', fontSize: '0.8rem', textDecoration: 'none', fontWeight: 600, display: 'block' }}>
+                </Box>
+                <Typography
+                  component={Link}
+                  to={`/profile/${row.userId}`}
+                  sx={{
+                    color: 'var(--rl-cream)',
+                    fontSize: '0.7rem',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    display: 'block',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    '&:hover': { color: 'var(--rl-accent)' },
+                  }}
+                >
                   {row.username}
-                </Typography>
-                <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.75rem' }} noWrap>
-                  #{1} {row.movie?.title}
                 </Typography>
               </Box>
             ))}
           </Box>
         </Box>
       )}
-      
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={activeTab} onChange={handleTabChange}>
+
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2.5 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, v) => {
+            setActiveTab(v);
+            setPage(1);
+          }}
+          sx={{
+            minHeight: 36,
+            '& .MuiTab-root': {
+              color: 'var(--rl-muted)',
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              minHeight: 36,
+              px: 1.5,
+              '&.Mui-selected': { color: 'var(--rl-cream)' },
+            },
+            '& .MuiTabs-indicator': { backgroundColor: 'var(--rl-accent)', height: 2 },
+          }}
+        >
           <Tab label="Following" />
           <Tab label="Trending" />
           <Tab label="Recent" />
         </Tabs>
       </Box>
 
-      {reviews.length === 0 ? (
-        <Box textAlign="center" py={4}>
-          <Typography variant="h6" color="text.secondary">
-            No reviews found
+      {loading && reviews.length === 0 ? (
+        <Box display="flex" justifyContent="center" py={8}>
+          <CircularProgress size={28} sx={{ color: 'var(--rl-accent)' }} />
+        </Box>
+      ) : reviews.length === 0 ? (
+        <Box textAlign="center" py={6}>
+          <Typography sx={{ color: 'var(--rl-cream)', fontWeight: 600, mb: 0.5 }}>
+            Nothing here yet
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Start following users or rate some movies to see content here!
+          <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.88rem', mb: 2 }}>
+            Follow people or write a review to fill your feed.
           </Typography>
+          <Button component={Link} to="/discover" variant="outlined" sx={socialGhostBtn}>
+            Discover people
+          </Button>
         </Box>
       ) : (
-        <Grid container spacing={2}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {reviews.map((review) => (
-            <Grid item xs={12} key={review._id}>
-              <ReviewCard review={review} />
-            </Grid>
+            <Box key={review._id} sx={{ ...socialCardSx, p: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5, gap: 1.25 }}>
+                <Avatar
+                  src={review.user?.profilePicture}
+                  component={Link}
+                  to={`/profile/${review.user?._id}`}
+                  sx={{ width: 34, height: 34, bgcolor: 'rgba(244,239,230,0.08)', textDecoration: 'none' }}
+                >
+                  {review.user?.username?.charAt(0).toUpperCase()}
+                </Avatar>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography
+                    component={Link}
+                    to={`/profile/${review.user?._id}`}
+                    sx={{
+                      color: 'var(--rl-cream)',
+                      fontWeight: 600,
+                      fontSize: '0.88rem',
+                      textDecoration: 'none',
+                      '&:hover': { color: 'var(--rl-accent)' },
+                    }}
+                  >
+                    {review.user?.username}
+                  </Typography>
+                  <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.7rem' }}>
+                    {new Date(review.createdAt).toLocaleDateString()}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1.5, mb: review.reviewText ? 1.5 : 1 }}>
+                <Box
+                  component={Link}
+                  to={`/movie/${review.movie?.tmdbId || review.movie?.id}`}
+                  sx={{
+                    width: 56,
+                    flexShrink: 0,
+                    aspectRatio: '2 / 3',
+                    borderRadius: 0.75,
+                    overflow: 'hidden',
+                    border: '1px solid rgba(244,239,230,0.12)',
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={
+                      review.movie?.posterPath
+                        ? `https://image.tmdb.org/t/p/w185${review.movie.posterPath}`
+                        : '/placeholder-movie.jpg'
+                    }
+                    alt={review.movie?.title || ''}
+                    sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                </Box>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography
+                    component={Link}
+                    to={`/movie/${review.movie?.tmdbId || review.movie?.id}`}
+                    sx={{
+                      color: 'var(--rl-cream)',
+                      fontWeight: 600,
+                      fontSize: '0.95rem',
+                      textDecoration: 'none',
+                      display: 'block',
+                      mb: 0.5,
+                      '&:hover': { color: 'var(--rl-accent)' },
+                    }}
+                  >
+                    {review.movie?.title}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.75 }}>
+                    <Rating
+                      value={review.rating}
+                      readOnly
+                      size="small"
+                      sx={{ '& .MuiRating-iconFilled': { color: 'var(--rl-accent)' } }}
+                    />
+                    <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.75rem' }}>
+                      {review.rating}/5
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {review.mood && (
+                      <Chip
+                        label={review.mood}
+                        size="small"
+                        sx={{
+                          height: 22,
+                          fontSize: '0.68rem',
+                          bgcolor: 'rgba(212,160,23,0.1)',
+                          color: 'var(--rl-accent)',
+                        }}
+                      />
+                    )}
+                    {review.tags?.map((tag) => (
+                      <Chip
+                        key={tag}
+                        label={tag}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          height: 22,
+                          fontSize: '0.68rem',
+                          borderColor: 'rgba(244,239,230,0.15)',
+                          color: 'var(--rl-muted)',
+                        }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              </Box>
+
+              {review.reviewText && (
+                <Typography sx={{ color: 'rgba(244,239,230,0.78)', fontSize: '0.88rem', lineHeight: 1.55, mb: 1 }}>
+                  {review.reviewText}
+                </Typography>
+              )}
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <IconButton
+                  size="small"
+                  onClick={() => handleLike(review._id)}
+                  sx={{ color: review.likes?.includes('current-user') ? '#e57373' : 'var(--rl-muted)' }}
+                >
+                  {review.likes?.includes('current-user') ? (
+                    <Favorite fontSize="small" />
+                  ) : (
+                    <FavoriteBorder fontSize="small" />
+                  )}
+                </IconButton>
+                <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.78rem' }}>
+                  {review.likeCount ?? review.likes?.length ?? 0}
+                </Typography>
+              </Box>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       )}
 
       {reviews.length > 0 && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
           <Button
             variant="outlined"
-            onClick={() => setPage(prev => prev + 1)}
+            onClick={() => setPage((prev) => prev + 1)}
             disabled={loading}
+            sx={socialGhostBtn}
           >
-            Load More
+            {loading ? <CircularProgress size={18} sx={{ color: 'var(--rl-accent)' }} /> : 'Load more'}
           </Button>
         </Box>
       )}
-    </Container>
+    </SocialPageShell>
   );
 };
 

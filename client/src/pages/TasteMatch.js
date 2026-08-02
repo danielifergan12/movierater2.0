@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   Box,
-  Container,
   Typography,
   CircularProgress,
   Alert,
@@ -14,6 +13,11 @@ import {
   Button,
 } from '@mui/material';
 import api from '../config/axios';
+import SocialPageShell, {
+  socialTitleSx,
+  socialSubtitleSx,
+  socialGhostBtn,
+} from '../components/SocialPageShell';
 
 const TasteMatch = () => {
   const { userId } = useParams();
@@ -37,38 +41,68 @@ const TasteMatch = () => {
 
   if (loading) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: '#0c0b0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Box>
+      <SocialPageShell>
+        <Box display="flex" justifyContent="center" py={10}>
+          <CircularProgress size={28} sx={{ color: 'var(--rl-accent)' }} />
+        </Box>
+      </SocialPageShell>
     );
   }
 
   if (error || !data) {
     return (
-      <Container maxWidth="sm" sx={{ py: 8 }}>
-        <Alert severity="error">{error || 'Not found'}</Alert>
-      </Container>
+      <SocialPageShell maxWidth="sm">
+        <Alert severity="error" sx={{ bgcolor: 'rgba(229,115,115,0.1)', color: '#ffcdd2' }}>
+          {error || 'Not found'}
+        </Alert>
+      </SocialPageShell>
     );
   }
 
   const Section = ({ title, items }) => (
-    <Box sx={{ mb: 4 }}>
-      <Typography sx={{ color: 'var(--rl-accent)', fontWeight: 700, mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.8rem' }}>
+    <Box sx={{ mb: 3.5 }}>
+      <Typography
+        sx={{
+          color: 'var(--rl-accent)',
+          fontWeight: 700,
+          mb: 1.25,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          fontSize: '0.72rem',
+          textAlign: 'center',
+        }}
+      >
         {title}
       </Typography>
       {items.length === 0 ? (
-        <Typography sx={{ color: 'var(--rl-muted)' }}>Not enough overlap yet.</Typography>
+        <Typography sx={{ color: 'var(--rl-muted)', textAlign: 'center', fontSize: '0.88rem' }}>
+          Not enough overlap yet.
+        </Typography>
       ) : (
         <List sx={{ p: 0 }}>
           {items.map((m) => (
-            <ListItem key={m.id} sx={{ px: 0 }}>
-              <ListItemAvatar>
-                <Avatar variant="rounded" src={m.posterUrl || undefined} component={Link} to={`/movie/${m.id}`} sx={{ width: 44, height: 66 }} />
+            <ListItem key={m.id} sx={{ px: 0.5, py: 0.85, borderRadius: 0.75, '&:hover': { bgcolor: 'rgba(244,239,230,0.04)' } }}>
+              <ListItemAvatar sx={{ minWidth: 56 }}>
+                <Avatar
+                  variant="rounded"
+                  src={m.posterUrl || undefined}
+                  component={Link}
+                  to={`/movie/${m.id}`}
+                  sx={{ width: 40, height: 60, borderRadius: '3px' }}
+                />
               </ListItemAvatar>
               <ListItemText
-                primary={<Typography component={Link} to={`/movie/${m.id}`} sx={{ color: 'var(--rl-cream)', textDecoration: 'none', fontWeight: 600 }}>{m.title}</Typography>}
+                primary={
+                  <Typography
+                    component={Link}
+                    to={`/movie/${m.id}`}
+                    sx={{ color: 'var(--rl-cream)', textDecoration: 'none', fontWeight: 600, fontSize: '0.9rem', '&:hover': { color: 'var(--rl-accent)' } }}
+                  >
+                    {m.title}
+                  </Typography>
+                }
                 secondary={`You #${m.myRank} · Them #${m.theirRank}`}
-                secondaryTypographyProps={{ sx: { color: 'var(--rl-muted)' } }}
+                secondaryTypographyProps={{ sx: { color: 'var(--rl-muted)', fontSize: '0.75rem' } }}
               />
             </ListItem>
           ))}
@@ -78,26 +112,40 @@ const TasteMatch = () => {
   );
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#0c0b0a', pb: 8 }}>
-      <Container maxWidth="md" sx={{ py: { xs: 4, sm: 6 } }}>
-        <Typography sx={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: { xs: '2.4rem', sm: '3rem' }, color: 'var(--rl-cream)', letterSpacing: '0.04em' }}>
-          Taste match
+    <SocialPageShell maxWidth="sm">
+      <Box sx={{ textAlign: 'center', mb: 3 }}>
+        <Typography sx={socialTitleSx}>Taste match</Typography>
+        <Typography sx={socialSubtitleSx}>
+          with{' '}
+          <Link to={`/profile/${data.other.userId}`} style={{ color: 'var(--rl-accent)', textDecoration: 'none' }}>
+            {data.other.username}
+          </Link>
         </Typography>
-        <Typography sx={{ color: 'var(--rl-muted)', mb: 1 }}>
-          with <Link to={`/profile/${data.other.userId}`} style={{ color: 'var(--rl-accent)' }}>{data.other.username}</Link>
+        <Typography
+          sx={{
+            color: 'var(--rl-cream)',
+            fontFamily: '"Bebas Neue", sans-serif',
+            fontSize: '2.2rem',
+            letterSpacing: '0.03em',
+            mt: 1.5,
+          }}
+        >
+          {data.overlapPercent}%
         </Typography>
-        <Typography sx={{ color: 'var(--rl-cream)', fontSize: '2rem', fontWeight: 700, mb: 3 }}>
-          {data.overlapPercent}% overlap · {data.sharedCount} shared films
+        <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem' }}>
+          overlap · {data.sharedCount} shared films
         </Typography>
+      </Box>
 
-        <Section title="You agree" items={data.agree} />
-        <Section title="You disagree" items={data.disagree} />
+      <Section title="You agree" items={data.agree} />
+      <Section title="You disagree" items={data.disagree} />
 
-        <Button component={Link} to={`/profile/${data.other.userId}`} sx={{ color: 'var(--rl-muted)', textTransform: 'none' }}>
+      <Box sx={{ textAlign: 'center' }}>
+        <Button component={Link} to={`/profile/${data.other.userId}`} sx={{ ...socialGhostBtn, border: 'none' }}>
           ← Back to profile
         </Button>
-      </Container>
-    </Box>
+      </Box>
+    </SocialPageShell>
   );
 };
 
