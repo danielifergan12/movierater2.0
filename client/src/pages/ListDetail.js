@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -48,6 +48,7 @@ const dialogPaperSx = {
 
 const ListDetail = () => {
   const { listId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [list, setList] = useState(null);
@@ -61,10 +62,29 @@ const ListDetail = () => {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+  const [flashIds, setFlashIds] = useState(() => new Set());
+  const flashTimers = useRef({});
+  const openedAddRef = useRef(false);
 
   useEffect(() => {
     fetchList();
   }, [listId]);
+
+  useEffect(() => {
+    if (!list || openedAddRef.current) return;
+    const isOwner = isAuthenticated && user && list.user?._id === user._id;
+    if (isOwner && searchParams.get('add') === '1') {
+      openedAddRef.current = true;
+      setAddOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('add');
+      setSearchParams(next, { replace: true });
+    }
+  }, [list, isAuthenticated, user, searchParams, setSearchParams]);
+
+  useEffect(() => () => {
+    Object.values(flashTimers.current).forEach(clearTimeout);
+  }, []);
 
   const fetchList = async () => {
     setLoading(true);
@@ -79,6 +99,19 @@ const ListDetail = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const flashMovie = (id) => {
+    const key = String(id);
+    setFlashIds((prev) => new Set([...prev, key]));
+    if (flashTimers.current[key]) clearTimeout(flashTimers.current[key]);
+    flashTimers.current[key] = setTimeout(() => {
+      setFlashIds((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }, 1200);
   };
 
   const handleDeleteMovie = async (movieId) => {
@@ -146,6 +179,7 @@ const ListDetail = () => {
       ...response.data,
       user: prev.user,
     }));
+    flashMovie(payload.movieId);
     return response.data;
   };
 
@@ -187,7 +221,7 @@ const ListDetail = () => {
           flexDirection: 'column',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.25, flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexShrink: 0 }}>
           <IconButton
             size="small"
             onClick={() => navigate('/lists')}
@@ -232,7 +266,7 @@ const ListDetail = () => {
           )}
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5, flexShrink: 0, flexWrap: 'wrap', pl: { xs: 5, sm: 5.5 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.25, flexShrink: 0, flexWrap: 'wrap', pl: { xs: 5, sm: 5.5 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
             <Avatar src={list.user?.profilePicture} sx={{ width: 22, height: 22, fontSize: '0.7rem' }}>
               {list.user?.username?.charAt(0).toUpperCase()}
@@ -259,16 +293,17 @@ const ListDetail = () => {
         </Box>
 
         {list.description && (
-          <Typography sx={{ ...socialSubtitleSx, mb: 1.5, pl: { xs: 5, sm: 5.5 }, mt: 0, fontSize: '0.82rem' }}>
+          <Typography sx={{ ...socialSubtitleSx, mb: 1.25, pl: { xs: 5, sm: 5.5 }, mt: 0, fontSize: '0.82rem' }}>
             {list.description}
           </Typography>
         )}
 
         <CinemaScreen scrollable maxWidth={820} sx={{ flex: 1, minHeight: 0, px: 0, pb: 0 }}>
           {movies.length > 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.35 }}>
               {movies.map((movie, index) => {
                 const id = movie.movieId || movie.tmdbId;
+                const flashing = flashIds.has(String(id));
                 return (
                   <Box
                     key={id || index}
@@ -277,23 +312,30 @@ const ListDetail = () => {
                       alignItems: 'center',
                       gap: 1.25,
                       px: 0.75,
-                      py: 0.6,
+                      py: 0.55,
                       borderRadius: 1,
-                      border: '1px solid transparent',
-                      transition: 'background-color 0.15s ease, border-color 0.15s ease',
+                      border: '1px solid',
+                      borderColor: flashing ? 'rgba(212,160,23,0.45)' : 'transparent',
+                      backgroundColor: flashing ? 'rgba(212,160,23,0.12)' : 'transparent',
+                      transition: 'background-color 0.35s ease, border-color 0.35s ease',
+                      animation: flashing ? 'rowFlash 1.1s ease' : undefined,
+                      '@keyframes rowFlash': {
+                        '0%': { backgroundColor: 'rgba(212,160,23,0.28)' },
+                        '100%': { backgroundColor: 'rgba(212,160,23,0.08)' },
+                      },
                       '&:hover': {
-                        backgroundColor: 'rgba(244,239,230,0.04)',
-                        borderColor: 'rgba(244,239,230,0.08)',
+                        backgroundColor: flashing ? 'rgba(212,160,23,0.14)' : 'rgba(244,239,230,0.04)',
+                        borderColor: flashing ? 'rgba(212,160,23,0.45)' : 'rgba(244,239,230,0.08)',
                       },
                     }}
                   >
                     <Typography
                       sx={{
-                        width: 28,
+                        width: 26,
                         flexShrink: 0,
                         textAlign: 'right',
                         fontFamily: '"Bebas Neue", sans-serif',
-                        fontSize: '1.05rem',
+                        fontSize: '1rem',
                         letterSpacing: '0.02em',
                         color: 'var(--rl-accent)',
                         lineHeight: 1,
@@ -306,8 +348,8 @@ const ListDetail = () => {
                       component={Link}
                       to={`/movie/${id}`}
                       sx={{
-                        width: 36,
-                        height: 54,
+                        width: 34,
+                        height: 51,
                         flexShrink: 0,
                         borderRadius: '3px',
                         overflow: 'hidden',
@@ -335,7 +377,7 @@ const ListDetail = () => {
                           color: 'var(--rl-cream)',
                           textDecoration: 'none',
                           fontWeight: 600,
-                          fontSize: '0.88rem',
+                          fontSize: '0.86rem',
                           lineHeight: 1.3,
                           display: 'block',
                           overflow: 'hidden',
@@ -346,7 +388,7 @@ const ListDetail = () => {
                       >
                         {movie.title}
                       </Typography>
-                      <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.72rem', mt: 0.15 }}>
+                      <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.7rem', mt: 0.1 }}>
                         {movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : '—'}
                         {movie.note ? ` · ${movie.note}` : ''}
                       </Typography>
@@ -357,12 +399,15 @@ const ListDetail = () => {
                         size="small"
                         onClick={() => handleDeleteMovie(id)}
                         sx={{
-                          color: 'rgba(244,239,230,0.35)',
+                          color: 'rgba(244,239,230,0.3)',
+                          opacity: { xs: 1, sm: 0.55 },
+                          transition: 'opacity 0.15s ease, color 0.15s ease',
+                          '.MuiBox-root:hover &': { opacity: 1 },
                           '&:hover': { color: '#e07050', backgroundColor: 'rgba(224,112,80,0.08)' },
                         }}
                         aria-label={`Remove ${movie.title}`}
                       >
-                        <DeleteIcon sx={{ fontSize: 18 }} />
+                        <DeleteIcon sx={{ fontSize: 17 }} />
                       </IconButton>
                     )}
                   </Box>
@@ -383,7 +428,7 @@ const ListDetail = () => {
                 Empty list
               </Typography>
               <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem', mb: isOwner ? 2 : 0 }}>
-                {isOwner ? 'Add films from search or your rankings.' : 'No movies yet.'}
+                {isOwner ? 'Add films from your rankings or search.' : 'No movies yet.'}
               </Typography>
               {isOwner && (
                 <Button

@@ -4,10 +4,6 @@ import {
   Container,
   Typography,
   Box,
-  Card,
-  CardContent,
-  CardMedia,
-  Grid,
   Button,
   IconButton,
   CircularProgress,
@@ -24,8 +20,6 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Share as ShareIcon,
-  Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../config/axios';
@@ -34,7 +28,6 @@ import {
   socialTitleSx,
   socialAccentBtn,
   socialGhostBtn,
-  socialCardSx,
   socialFieldSx,
 } from '../components/SocialPageShell';
 
@@ -43,6 +36,12 @@ const dialogPaperSx = {
   border: '1px solid rgba(244, 239, 230, 0.12)',
   borderRadius: 1.5,
   boxShadow: '0 24px 64px rgba(0,0,0,0.55)',
+};
+
+const coverUrl = (list) => {
+  if (list.coverImage) return `https://image.tmdb.org/t/p/w185${list.coverImage}`;
+  if (list.movies?.[0]?.posterPath) return `https://image.tmdb.org/t/p/w185${list.movies[0].posterPath}`;
+  return null;
 };
 
 const Lists = () => {
@@ -92,13 +91,8 @@ const Lists = () => {
     }
   };
 
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
-  };
-
   const handleDelete = async () => {
     if (!deleteDialog.list) return;
-
     try {
       await api.delete(`/api/lists/${deleteDialog.list._id}`);
       setLists((prev) => prev.filter((l) => l._id !== deleteDialog.list._id));
@@ -108,7 +102,9 @@ const Lists = () => {
     }
   };
 
-  const handleShare = async (list) => {
+  const handleShare = async (list, e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     try {
       const response = await api.post(`/api/lists/${list._id}/share`);
       const shareUrl = response.data.shareUrl || `${window.location.origin}/list/${response.data.shareCode}`;
@@ -138,9 +134,9 @@ const Lists = () => {
 
   return (
     <Box sx={socialPageShellSx}>
-      <Container maxWidth="lg" sx={{ py: { xs: 3, sm: 4.5 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-          <Typography sx={socialTitleSx}>
+      <Container maxWidth="md" sx={{ py: { xs: 2.5, sm: 3.5 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1.5 }}>
+          <Typography sx={{ ...socialTitleSx, fontSize: { xs: '1.75rem', sm: '2.2rem' } }}>
             {activeTab === 0 ? 'My Lists' : 'Public Lists'}
           </Typography>
           {activeTab === 0 && isAuthenticated && (
@@ -149,225 +145,205 @@ const Lists = () => {
               startIcon={<AddIcon />}
               component={Link}
               to="/lists/create"
-              sx={socialAccentBtn}
+              sx={{ ...socialAccentBtn, py: 0.7 }}
             >
-              Create List
+              New list
             </Button>
           )}
         </Box>
 
-        <Box sx={{ borderBottom: '1px solid rgba(244,239,230,0.12)', mb: 3.5 }}>
+        <Box sx={{ borderBottom: '1px solid rgba(244,239,230,0.12)', mb: 2 }}>
           <Tabs
             value={activeTab}
-            onChange={handleTabChange}
+            onChange={(_, v) => setActiveTab(v)}
             sx={{
-              minHeight: 40,
+              minHeight: 36,
               '& .MuiTab-root': {
                 color: 'var(--rl-muted)',
                 textTransform: 'none',
                 fontWeight: 600,
-                minHeight: 40,
+                minHeight: 36,
+                fontSize: '0.85rem',
                 '&.Mui-selected': { color: 'var(--rl-cream)' },
               },
               '& .MuiTabs-indicator': { backgroundColor: 'var(--rl-accent)' },
             }}
           >
-            <Tab label="My Lists" disabled={!isAuthenticated} />
-            <Tab label="Public Lists" />
+            <Tab label="Mine" disabled={!isAuthenticated} />
+            <Tab label="Public" />
           </Tabs>
         </Box>
 
         {displayed.length === 0 ? (
-          <Box sx={{ ...socialCardSx, p: { xs: 3, sm: 4 }, textAlign: 'center' }}>
-            <Typography sx={{ color: 'var(--rl-cream)', fontFamily: '"Bebas Neue", sans-serif', fontSize: '1.6rem', letterSpacing: '0.04em', mb: 1 }}>
-              {activeTab === 0 ? 'No Lists Yet' : 'No Public Lists'}
-            </Typography>
-            <Typography sx={{ color: 'var(--rl-muted)', mb: 3, fontSize: '0.95rem' }}>
-              {activeTab === 0
-                ? 'Create your first list to organize your favorite movies.'
-                : 'No public lists available yet. Be the first to create one.'}
+          <Box sx={{ textAlign: 'center', py: 6 }}>
+            <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.95rem', mb: 2 }}>
+              {activeTab === 0 ? 'No lists yet — start one.' : 'No public lists yet.'}
             </Typography>
             {activeTab === 0 && isAuthenticated && (
               <Button variant="contained" component={Link} to="/lists/create" sx={socialAccentBtn}>
-                Create Your First List
+                New list
               </Button>
             )}
           </Box>
         ) : (
-          <Grid container spacing={2.5}>
-            {displayed.map((list) => {
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+            {displayed.map((list, i) => {
               const listUserId = typeof list.user === 'object' ? list.user?._id : list.user;
               const isOwner = isAuthenticated && user && listUserId === user._id;
+              const cover = coverUrl(list);
+              const count = list.movies?.length || 0;
+
               return (
-                <Grid item xs={12} sm={6} md={4} key={list._id}>
-                  <Card
+                <Box
+                  key={list._id}
+                  component={Link}
+                  to={`/list/${list._id}`}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    px: 1.25,
+                    py: 1,
+                    textDecoration: 'none',
+                    borderRadius: 1,
+                    border: '1px solid rgba(244,239,230,0.1)',
+                    bgcolor: 'rgba(244,239,230,0.03)',
+                    animation: 'listTileIn 0.4s ease both',
+                    animationDelay: `${Math.min(i, 12) * 0.035}s`,
+                    '@keyframes listTileIn': {
+                      from: { opacity: 0, transform: 'translateY(8px)' },
+                      to: { opacity: 1, transform: 'translateY(0)' },
+                    },
+                    transition: 'border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease',
+                    '&:hover': {
+                      borderColor: 'rgba(212, 160, 23, 0.4)',
+                      bgcolor: 'rgba(244,239,230,0.05)',
+                      transform: 'translateY(-1px)',
+                      '& .list-actions': { opacity: 1 },
+                    },
+                  }}
+                >
+                  <Box
                     sx={{
-                      ...socialCardSx,
-                      height: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
+                      width: 56,
+                      height: 84,
+                      flexShrink: 0,
+                      borderRadius: '4px',
                       overflow: 'hidden',
-                      transition: 'border-color 0.2s ease, transform 0.2s ease',
-                      '&:hover': {
-                        borderColor: 'rgba(212, 160, 23, 0.35)',
-                        transform: 'translateY(-2px)',
-                      },
+                      border: '1px solid rgba(244,239,230,0.12)',
+                      bgcolor: 'rgba(244,239,230,0.06)',
                     }}
                   >
-                    <Box sx={{ position: 'relative' }}>
-                      <CardMedia
-                        component="img"
-                        height="200"
-                        image={
-                          list.coverImage
-                            ? `https://image.tmdb.org/t/p/w500${list.coverImage}`
-                            : list.movies?.[0]?.posterPath
-                              ? `https://image.tmdb.org/t/p/w500${list.movies[0].posterPath}`
-                              : '/placeholder-movie.jpg'
-                        }
-                        alt={list.name}
-                        sx={{ objectFit: 'cover' }}
-                      />
-                      <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 0.75 }}>
-                        {isOwner && (
-                          <>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleShare(list)}
-                              sx={{
-                                backgroundColor: 'rgba(12, 11, 10, 0.75)',
-                                color: 'var(--rl-cream)',
-                                '&:hover': { backgroundColor: 'rgba(12, 11, 10, 0.9)', color: 'var(--rl-accent)' },
-                              }}
-                            >
-                              <ShareIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              onClick={() => setDeleteDialog({ open: true, list })}
-                              sx={{
-                                backgroundColor: 'rgba(12, 11, 10, 0.75)',
-                                color: 'var(--rl-muted)',
-                                '&:hover': { backgroundColor: 'rgba(12, 11, 10, 0.9)', color: '#e07050' },
-                              }}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </>
-                        )}
+                    {cover ? (
+                      <Box component="img" src={cover} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    ) : (
+                      <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.65rem' }}>Empty</Typography>
                       </Box>
+                    )}
+                  </Box>
+
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      sx={{
+                        color: 'var(--rl-cream)',
+                        fontWeight: 600,
+                        fontSize: '0.95rem',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {list.name}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.4, flexWrap: 'wrap' }}>
+                      <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.75rem' }}>
+                        {count} {count === 1 ? 'movie' : 'movies'}
+                      </Typography>
                       <Chip
-                        icon={list.isPublic ? <VisibilityIcon sx={{ fontSize: 14 }} /> : <VisibilityOffIcon sx={{ fontSize: 14 }} />}
                         label={list.isPublic ? 'Public' : 'Private'}
                         size="small"
                         sx={{
-                          position: 'absolute',
-                          top: 8,
-                          left: 8,
-                          backgroundColor: list.isPublic ? 'rgba(212, 160, 23, 0.85)' : 'rgba(12, 11, 10, 0.7)',
-                          color: list.isPublic ? '#0c0b0a' : 'var(--rl-cream)',
+                          height: 18,
+                          fontSize: '0.62rem',
                           fontWeight: 600,
-                          fontSize: '0.7rem',
-                          height: 24,
-                          '& .MuiChip-icon': { color: 'inherit', ml: 0.5 },
+                          backgroundColor: list.isPublic ? 'rgba(212, 160, 23, 0.18)' : 'rgba(244,239,230,0.08)',
+                          color: list.isPublic ? 'var(--rl-accent)' : 'var(--rl-muted)',
                         }}
                       />
-                    </Box>
-                    <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 2 }}>
-                      <Typography
-                        component={Link}
-                        to={`/list/${list._id}`}
-                        sx={{
-                          color: 'var(--rl-cream)',
-                          textDecoration: 'none',
-                          mb: 0.75,
-                          fontWeight: 600,
-                          fontSize: '1.05rem',
-                          '&:hover': { color: 'var(--rl-accent)' },
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {list.name}
-                      </Typography>
-                      {list.description && (
-                        <Typography
-                          sx={{
-                            color: 'var(--rl-muted)',
-                            mb: 1.5,
-                            fontSize: '0.85rem',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          {list.description}
+                      {activeTab === 1 && list.user?.username && (
+                        <Typography sx={{ color: 'rgba(244,239,230,0.45)', fontSize: '0.72rem' }}>
+                          by {list.user.username}
                         </Typography>
                       )}
-                      <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box>
-                          <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.8rem' }}>
-                            {list.movies?.length || 0} {list.movies?.length === 1 ? 'movie' : 'movies'}
-                          </Typography>
-                          {activeTab === 1 && list.user && (
-                            <Typography sx={{ color: 'rgba(244,239,230,0.45)', fontSize: '0.75rem', display: 'block' }}>
-                              by {list.user.username}
-                            </Typography>
-                          )}
-                        </Box>
-                        <Button size="small" component={Link} to={`/list/${list._id}`} sx={{ ...socialGhostBtn, px: 1.5, py: 0.4 }}>
-                          View
-                        </Button>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                    </Box>
+                  </Box>
+
+                  {isOwner && (
+                    <Box
+                      className="list-actions"
+                      sx={{
+                        display: 'flex',
+                        gap: 0.25,
+                        flexShrink: 0,
+                        opacity: { xs: 1, sm: 0 },
+                        transition: 'opacity 0.15s ease',
+                      }}
+                      onClick={(e) => e.preventDefault()}
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleShare(list, e)}
+                        sx={{ color: 'var(--rl-muted)', '&:hover': { color: 'var(--rl-accent)' } }}
+                      >
+                        <ShareIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDeleteDialog({ open: true, list });
+                        }}
+                        sx={{ color: 'var(--rl-muted)', '&:hover': { color: '#e07050' } }}
+                      >
+                        <DeleteIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Box>
+                  )}
+                </Box>
               );
             })}
-          </Grid>
+          </Box>
         )}
 
-        <Dialog
-          open={deleteDialog.open}
-          onClose={() => setDeleteDialog({ open: false, list: null })}
-          PaperProps={{ sx: dialogPaperSx }}
-        >
+        <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, list: null })} PaperProps={{ sx: dialogPaperSx }}>
           <DialogTitle sx={{ color: 'var(--rl-cream)', fontFamily: '"Bebas Neue", sans-serif', letterSpacing: '0.04em' }}>
-            Delete List?
+            Delete list?
           </DialogTitle>
           <DialogContent>
             <Typography sx={{ color: 'var(--rl-muted)' }}>
-              Are you sure you want to delete &ldquo;{deleteDialog.list?.name}&rdquo;? This cannot be undone.
+              Delete &ldquo;{deleteDialog.list?.name}&rdquo;? This cannot be undone.
             </Typography>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={() => setDeleteDialog({ open: false, list: null })} sx={{ ...socialGhostBtn, border: 'none' }}>
               Cancel
             </Button>
-            <Button
-              onClick={handleDelete}
-              variant="contained"
-              sx={{ ...socialAccentBtn, bgcolor: '#c45a3a', '&:hover': { bgcolor: '#d46848' } }}
-            >
+            <Button onClick={handleDelete} variant="contained" sx={{ ...socialAccentBtn, bgcolor: '#c45a3a', '&:hover': { bgcolor: '#d46848' } }}>
               Delete
             </Button>
           </DialogActions>
         </Dialog>
 
-        <Dialog
-          open={shareDialog.open}
-          onClose={() => setShareDialog({ open: false, list: null, shareUrl: '' })}
-          PaperProps={{ sx: dialogPaperSx }}
-        >
+        <Dialog open={shareDialog.open} onClose={() => setShareDialog({ open: false, list: null, shareUrl: '' })} PaperProps={{ sx: dialogPaperSx }}>
           <DialogTitle sx={{ color: 'var(--rl-cream)', fontFamily: '"Bebas Neue", sans-serif', letterSpacing: '0.04em' }}>
-            Share List
+            Share list
           </DialogTitle>
           <DialogContent>
             <TextField
               fullWidth
+              size="small"
               value={shareDialog.shareUrl}
               InputProps={{
                 readOnly: true,
@@ -381,10 +357,7 @@ const Lists = () => {
             />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button
-              onClick={() => setShareDialog({ open: false, list: null, shareUrl: '' })}
-              sx={{ ...socialGhostBtn, border: 'none' }}
-            >
+            <Button onClick={() => setShareDialog({ open: false, list: null, shareUrl: '' })} sx={{ ...socialGhostBtn, border: 'none' }}>
               Close
             </Button>
           </DialogActions>

@@ -52,7 +52,7 @@ const CreateList = () => {
         description: description.trim(),
         isPublic,
       });
-      navigate(`/list/${response.data._id}`);
+      navigate(`/list/${response.data._id}?add=1`);
     } catch (err) {
       console.error('Error creating list:', err);
       setError(err.response?.data?.message || 'Error creating list. Please try again.');
@@ -63,23 +63,27 @@ const CreateList = () => {
 
   return (
     <Box sx={socialPageShellSx}>
-      <Container maxWidth="sm" sx={{ py: { xs: 3, sm: 5 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
-        <Typography sx={{ ...socialTitleSx, mb: 0.5 }}>Create New List</Typography>
-        <Typography sx={{ ...socialSubtitleSx, mb: 3.5 }}>
-          Give it a name — then add films from anywhere in ReelList.
+      <Container maxWidth="xs" sx={{ py: { xs: 3, sm: 4 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
+        <Typography sx={{ ...socialTitleSx, fontSize: { xs: '1.75rem', sm: '2.1rem' }, mb: 0.35 }}>
+          New list
+        </Typography>
+        <Typography sx={{ ...socialSubtitleSx, mb: 2.5 }}>
+          Name it — then pick films right away.
         </Typography>
 
-        <Box sx={{ ...socialCardSx, p: { xs: 2.5, sm: 3.5 } }}>
+        <Box sx={{ ...socialCardSx, p: { xs: 2, sm: 2.5 } }}>
           <Box component="form" onSubmit={handleSubmit}>
             <TextField
               fullWidth
-              label="List Name"
+              size="small"
+              label="Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              autoFocus
               inputProps={{ maxLength: 100 }}
               sx={{
-                mb: 2.5,
+                mb: 2,
                 ...socialFieldSx,
                 '& .MuiInputLabel-root': { color: 'var(--rl-muted)' },
                 '& .MuiInputLabel-root.Mui-focused': { color: 'var(--rl-accent)' },
@@ -88,16 +92,15 @@ const CreateList = () => {
 
             <TextField
               fullWidth
+              size="small"
               multiline
-              rows={4}
-              label="Description (Optional)"
+              rows={2}
+              label="Description (optional)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               inputProps={{ maxLength: 500 }}
-              helperText={`${description.length}/500 characters`}
-              FormHelperTextProps={{ sx: { color: 'var(--rl-muted)' } }}
               sx={{
-                mb: 2.5,
+                mb: 2,
                 ...socialFieldSx,
                 '& .MuiInputLabel-root': { color: 'var(--rl-muted)' },
                 '& .MuiInputLabel-root.Mui-focused': { color: 'var(--rl-accent)' },
@@ -107,6 +110,7 @@ const CreateList = () => {
             <FormControlLabel
               control={
                 <Switch
+                  size="small"
                   checked={isPublic}
                   onChange={(e) => setIsPublic(e.target.checked)}
                   sx={{
@@ -117,20 +121,20 @@ const CreateList = () => {
                   }}
                 />
               }
-              label="Make this list public"
-              sx={{ mb: 2.5, color: 'var(--rl-cream)', ml: 0 }}
+              label={<Typography sx={{ fontSize: '0.85rem' }}>Public</Typography>}
+              sx={{ mb: 2, color: 'var(--rl-cream)', ml: 0 }}
             />
 
             {error && (
-              <Typography sx={{ color: '#e07050', mb: 2, fontSize: '0.9rem' }}>{error}</Typography>
+              <Typography sx={{ color: '#e07050', mb: 1.5, fontSize: '0.85rem' }}>{error}</Typography>
             )}
 
-            <Box sx={{ display: 'flex', gap: 1.5 }}>
-              <Button variant="outlined" onClick={() => navigate('/lists')} sx={socialGhostBtn}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button variant="outlined" onClick={() => navigate('/lists')} sx={{ ...socialGhostBtn, py: 0.65 }}>
                 Cancel
               </Button>
-              <Button type="submit" variant="contained" disabled={loading} sx={{ ...socialAccentBtn, flex: 1 }}>
-                {loading ? <CircularProgress size={22} sx={{ color: 'var(--rl-ink)' }} /> : 'Create List'}
+              <Button type="submit" variant="contained" disabled={loading} sx={{ ...socialAccentBtn, flex: 1, py: 0.75 }}>
+                {loading ? <CircularProgress size={20} sx={{ color: 'var(--rl-ink)' }} /> : 'Create & add movies'}
               </Button>
             </Box>
           </Box>
