@@ -171,7 +171,7 @@ const Home = () => {
           movie && movie.id && !ratedIds.has(movie.id.toString())
         );
         if (filteredPersisted.length > 0) {
-          setDisplayMovies(filteredPersisted.slice(0, 9));
+          setDisplayMovies(filteredPersisted.slice(0, 18));
           return;
         }
       }
@@ -180,7 +180,7 @@ const Home = () => {
         getPersonalRecommendations(false, recentlyShown).then((result) => {
           if (result && result.results && result.results.length > 0) {
             const newMovieIds = result.results
-              .slice(0, 9)
+              .slice(0, 18)
               .map(movie => movie.id)
               .filter(Boolean);
             const current = getRecentlyShownMovies();
@@ -241,14 +241,14 @@ const Home = () => {
     setIsRefreshing(true);
     try {
       const currentMovieIds = displayMovies.length > 0 
-        ? displayMovies.slice(0, 9).map(movie => movie.id).filter(Boolean)
-        : filteredRecommendedMovies.slice(0, 9).map(movie => movie.id).filter(Boolean);
+        ? displayMovies.slice(0, 18).map(movie => movie.id).filter(Boolean)
+        : filteredRecommendedMovies.slice(0, 18).map(movie => movie.id).filter(Boolean);
       const recentlyShown = getRecentlyShownMovies();
       const allExcludeIds = [...currentMovieIds, ...recentlyShown];
       const result = await getPersonalRecommendations(true, allExcludeIds);
       if (result && result.results) {
         const newMovieIds = result.results
-          .slice(0, 9)
+          .slice(0, 18)
           .map(movie => movie.id)
           .filter(Boolean);
         addToRecentlyShown(newMovieIds);
@@ -257,7 +257,7 @@ const Home = () => {
           movie && movie.id && !ratedIds.has(movie.id.toString())
         );
         if (newFiltered.length > 0) {
-          const moviesToDisplay = newFiltered.slice(0, 9);
+          const moviesToDisplay = newFiltered.slice(0, 18);
           setDisplayMovies(moviesToDisplay);
           savePersistedMovies(moviesToDisplay);
         }
@@ -280,7 +280,7 @@ const Home = () => {
       if (!isRefreshing && filteredRecommendedMovies.length > 0 && displayMovies.length === 0) {
         const persistedMovies = loadPersistedMovies();
         if (!persistedMovies || persistedMovies.length === 0) {
-          const moviesToDisplay = filteredRecommendedMovies.slice(0, 9);
+          const moviesToDisplay = filteredRecommendedMovies.slice(0, 18);
           setDisplayMovies(moviesToDisplay);
           savePersistedMovies(moviesToDisplay);
         }
@@ -431,7 +431,7 @@ const Home = () => {
 
   const SuggestionSkeleton = () => (
     <Box sx={posterGridSx}>
-      {Array.from({ length: 9 }).map((_, i) => (
+      {Array.from({ length: 18 }).map((_, i) => (
         <Box key={i}>
           <Skeleton
             variant="rectangular"
@@ -452,7 +452,7 @@ const Home = () => {
     return <LandingHero />;
   }
 
-  const moviesToShow = (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies).slice(0, 9);
+  const moviesToShow = (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies).slice(0, 18);
   const showEmpty =
     moviesToShow.length === 0 && !loading && displayMovies.length === 0 && filteredRecommendedMovies.length === 0;
 
