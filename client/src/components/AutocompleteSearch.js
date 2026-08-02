@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   TextField,
   Box,
@@ -19,7 +20,6 @@ import {
 import {
   Search as SearchIcon,
   Star as StarIcon,
-  ArrowBack as ArrowBackIcon,
   Person as PersonIcon,
 } from '@mui/icons-material';
 import api from '../config/axios';
@@ -28,9 +28,10 @@ import { useRatings } from '../hooks/useRatings';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
- * Main movie search — also finds actors/directors, then drills into their films.
+ * Main movie search — also finds actors/directors and opens their profile.
  */
 const AutocompleteSearch = ({ onMovieSelect, placeholder = 'Search movies, actors, directors…' }) => {
+  const navigate = useNavigate();
   const { rawRatings } = useRatings();
   const { isAuthenticated } = useAuth();
   const [query, setQuery] = useState('');
@@ -40,13 +41,9 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = 'Search movies, actor
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [ratingMovie, setRatingMovie] = useState(null);
-  const [personView, setPersonView] = useState(null); // { id, name, role, movies[] }
-  const [personLoading, setPersonLoading] = useState(false);
   const searchRef = useRef(null);
 
   useEffect(() => {
-    if (personView) return undefined;
-
     const run = async () => {
       if (query.length < 2) {
         setMovies([]);
@@ -71,40 +68,25 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = 'Search movies, actor
 
     const t = setTimeout(run, 280);
     return () => clearTimeout(t);
-  }, [query, personView]);
+  }, [query]);
 
-  const flatItems = personView
-    ? (personView.movies || []).map((m) => ({ type: 'movie', data: m }))
-    : [
-        ...people.map((p) => ({ type: 'person', data: p })),
-        ...movies.map((m) => ({ type: 'movie', data: m })),
-      ];
+  const flatItems = [
+    ...people.map((p) => ({ type: 'person', data: p })),
+    ...movies.map((m) => ({ type: 'movie', data: m })),
+  ];
 
   const handleMovieSelect = (movie) => {
     setQuery(movie.title || '');
     setShowSuggestions(false);
     setSelectedIndex(-1);
-    setPersonView(null);
     onMovieSelect(movie);
   };
 
-  const openPerson = async (person) => {
-    setPersonLoading(true);
-    setShowSuggestions(true);
-    try {
-      const res = await api.get(`/api/movies/person/${person.id}/movies`);
-      setPersonView({
-        id: person.id,
-        name: res.data.person?.name || person.name,
-        role: person.role,
-        movies: (res.data.results || []).slice(0, 20),
-      });
-      setSelectedIndex(-1);
-    } catch (e) {
-      console.error('Person filmography error:', e);
-    } finally {
-      setPersonLoading(false);
-    }
+  const openPerson = (person) => {
+    setShowSuggestions(false);
+    setSelectedIndex(-1);
+    setQuery('');
+    navigate(`/person/${person.id}`);
   };
 
   const handleKeyDown = (event) => {
@@ -121,11 +103,8 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = 'Search movies, actor
       if (item.type === 'person') openPerson(item.data);
       else handleMovieSelect(item.data);
     } else if (event.key === 'Escape') {
-      if (personView) setPersonView(null);
-      else {
-        setShowSuggestions(false);
-        setSelectedIndex(-1);
-      }
+      setShowSuggestions(false);
+      setSelectedIndex(-1);
     }
   };
 
@@ -139,7 +118,7 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = 'Search movies, actor
     return () => document.removeEventListener('mousedown', onDown);
   }, []);
 
-  const showPanel = showSuggestions && (flatItems.length > 0 || personLoading || personView);
+  const showPanel = showSuggestions && flatItems.length > 0;
 
   return (
     <Box ref={searchRef} sx={{ position: 'relative', width: '100%' }}>
@@ -151,13 +130,12 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = 'Search movies, actor
         onChange={(e) => {
           setQuery(e.target.value);
           setSelectedIndex(-1);
-          if (personView) setPersonView(null);
         }}
         onKeyDown={handleKeyDown}
-        onFocus={() => (query.length >= 2 || personView) && setShowSuggestions(true)}
+        onFocus={() => query.length >= 2 && setShowSuggestions(true)}
         InputProps={{
           startAdornment: <SearchIcon sx={{ color: 'var(--rl-muted)', mr: 1, fontSize: 20 }} />,
-          endAdornment: loading || personLoading ? (
+          endAdornment: loading ? (
             <CircularProgress size={18} sx={{ color: 'var(--rl-accent)' }} />
           ) : query.trim().length >= 2 ? (
             <IconButton
@@ -203,102 +181,94 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = 'Search movies, actor
             overflowY: 'auto',
           }}
         >
-          {personView && (
-            <Box
+          {people.length > 0 && (
+            <Typography
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-                px: 1.5,
-                py: 1,
-                borderBottom: '1px solid rgba(244,239,230,0.1)',
-                position: 'sticky',
-                top: 0,
-                bgcolor: 'rgba(12,11,10,0.98)',
-                zIndex: 1,
+                px: 1.75,
+                pt: 1.25,
+                pb: 0.5,
+                color: 'var(--rl-muted)',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
               }}
             >
-              <IconButton size="small" onClick={() => setPersonView(null)} sx={{ color: 'var(--rl-cream)' }}>
-                <ArrowBackIcon fontSize="small" />
-              </IconButton>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ color: 'var(--rl-cream)', fontWeight: 600, fontSize: '0.9rem' }}>
-                  {personView.name}
-                </Typography>
-                <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.72rem' }}>
-                  {personView.role} · films
-                </Typography>
-              </Box>
-            </Box>
-          )}
-
-          {!personView && people.length > 0 && (
-            <Typography sx={{ px: 1.75, pt: 1.25, pb: 0.5, color: 'var(--rl-muted)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
               People
             </Typography>
           )}
 
           <List sx={{ p: 0 }}>
-            {!personView &&
-              people.map((person, index) => (
-                <ListItem key={`p-${person.id}`} disablePadding>
-                  <ListItemButton
-                    selected={selectedIndex === index}
-                    onClick={() => openPerson(person)}
-                    sx={{
-                      py: 1,
-                      px: 1.75,
-                      '&.Mui-selected': { bgcolor: 'rgba(212,160,23,0.1)' },
-                      '&:hover': { bgcolor: 'rgba(244,239,230,0.05)' },
-                    }}
-                  >
-                    <ListItemAvatar sx={{ minWidth: 48 }}>
-                      <Avatar
-                        src={person.profile_path ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : null}
-                        sx={{ width: 36, height: 36, bgcolor: 'rgba(244,239,230,0.08)' }}
-                      >
-                        <PersonIcon sx={{ fontSize: 18, color: 'var(--rl-muted)' }} />
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography sx={{ color: 'var(--rl-cream)', fontWeight: 600, fontSize: '0.88rem' }}>
-                            {person.name}
-                          </Typography>
-                          <Chip
-                            label={person.role}
-                            size="small"
-                            sx={{
-                              height: 18,
-                              fontSize: '0.62rem',
-                              fontWeight: 700,
-                              bgcolor: 'rgba(212,160,23,0.18)',
-                              color: 'var(--rl-accent)',
-                            }}
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        person.known_for?.length ? (
-                          <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.72rem' }}>
-                            {person.known_for.map((k) => k.title).join(' · ')}
-                          </Typography>
-                        ) : null
-                      }
-                    />
-                  </ListItemButton>
-                </ListItem>
-              ))}
+            {people.map((person, index) => (
+              <ListItem key={`p-${person.id}`} disablePadding>
+                <ListItemButton
+                  selected={selectedIndex === index}
+                  onClick={() => openPerson(person)}
+                  sx={{
+                    py: 1,
+                    px: 1.75,
+                    '&.Mui-selected': { bgcolor: 'rgba(212,160,23,0.1)' },
+                    '&:hover': { bgcolor: 'rgba(244,239,230,0.05)' },
+                  }}
+                >
+                  <ListItemAvatar sx={{ minWidth: 48 }}>
+                    <Avatar
+                      src={person.profile_path ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : null}
+                      sx={{ width: 36, height: 36, bgcolor: 'rgba(244,239,230,0.08)' }}
+                    >
+                      <PersonIcon sx={{ fontSize: 18, color: 'var(--rl-muted)' }} />
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography sx={{ color: 'var(--rl-cream)', fontWeight: 600, fontSize: '0.88rem' }}>
+                          {person.name}
+                        </Typography>
+                        <Chip
+                          label={person.role}
+                          size="small"
+                          sx={{
+                            height: 18,
+                            fontSize: '0.62rem',
+                            fontWeight: 700,
+                            bgcolor: 'rgba(212,160,23,0.18)',
+                            color: 'var(--rl-accent)',
+                          }}
+                        />
+                      </Box>
+                    }
+                    secondary={
+                      person.known_for?.length ? (
+                        <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.72rem' }}>
+                          {person.known_for.map((k) => k.title).join(' · ')}
+                        </Typography>
+                      ) : null
+                    }
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
 
-            {!personView && movies.length > 0 && people.length > 0 && (
-              <Typography sx={{ px: 1.75, pt: 1, pb: 0.5, color: 'var(--rl-muted)', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            {movies.length > 0 && people.length > 0 && (
+              <Typography
+                sx={{
+                  px: 1.75,
+                  pt: 1,
+                  pb: 0.5,
+                  color: 'var(--rl-muted)',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                }}
+              >
                 Movies
               </Typography>
             )}
 
-            {(personView ? personView.movies : movies).map((movie, index) => {
-              const flatIndex = personView ? index : people.length + index;
+            {movies.map((movie, index) => {
+              const flatIndex = people.length + index;
               const isAlreadyRated = rawRatings.some((r) => String(r.id) === String(movie.id));
               const year = movie.release_date ? String(movie.release_date).slice(0, 4) : '';
               return (
@@ -329,7 +299,7 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = 'Search movies, actor
                       secondary={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.25, flexWrap: 'wrap' }}>
                           <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.72rem' }}>
-                            {[year, movie.credit, movie.vote_average ? `★ ${Number(movie.vote_average).toFixed(1)}` : null]
+                            {[year, movie.vote_average ? `★ ${Number(movie.vote_average).toFixed(1)}` : null]
                               .filter(Boolean)
                               .join(' · ')}
                           </Typography>
@@ -379,12 +349,6 @@ const AutocompleteSearch = ({ onMovieSelect, placeholder = 'Search movies, actor
               );
             })}
           </List>
-
-          {personLoading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-              <CircularProgress size={22} sx={{ color: 'var(--rl-accent)' }} />
-            </Box>
-          )}
         </Paper>
       </Fade>
 

@@ -391,7 +391,7 @@ const MovieDetail = () => {
                         : {}),
                     }}
                   >
-                    {inWatchlist ? 'Watchlist' : 'Watchlist'}
+                    {inWatchlist ? 'Saved' : 'Watchlist'}
                   </Button>
                   <Button
                     variant="outlined"
@@ -425,7 +425,20 @@ const MovieDetail = () => {
                 }}
               >
                 {cast.map((actor) => (
-                  <Box key={actor.id} sx={{ minWidth: 88, maxWidth: 88, textAlign: 'center', flexShrink: 0 }}>
+                  <Box
+                    key={actor.id}
+                    component={Link}
+                    to={`/person/${actor.id}`}
+                    sx={{
+                      minWidth: 88,
+                      maxWidth: 88,
+                      textAlign: 'center',
+                      flexShrink: 0,
+                      textDecoration: 'none',
+                      '&:hover .cast-name': { color: 'var(--rl-accent)' },
+                      '&:hover .MuiAvatar-root': { borderColor: 'rgba(212,160,23,0.45)' },
+                    }}
+                  >
                     <Avatar
                       src={actor.profile_path ? `https://image.tmdb.org/t/p/w185${actor.profile_path}` : undefined}
                       sx={{
@@ -435,11 +448,13 @@ const MovieDetail = () => {
                         mb: 0.75,
                         border: '1px solid rgba(244,239,230,0.12)',
                         bgcolor: 'rgba(244,239,230,0.06)',
+                        transition: 'border-color 0.15s ease',
                       }}
                     >
                       <PersonIcon sx={{ color: 'var(--rl-muted)' }} />
                     </Avatar>
                     <Typography
+                      className="cast-name"
                       sx={{
                         color: 'var(--rl-cream)',
                         fontWeight: 600,
@@ -449,6 +464,7 @@ const MovieDetail = () => {
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
+                        transition: 'color 0.15s ease',
                       }}
                     >
                       {actor.name}
@@ -476,6 +492,9 @@ const MovieDetail = () => {
                 {crew.map((member) => (
                   <Chip
                     key={`${member.id}-${member.job}`}
+                    component={Link}
+                    to={`/person/${member.id}`}
+                    clickable
                     label={`${member.name} · ${member.job}`}
                     size="small"
                     sx={{
@@ -484,6 +503,12 @@ const MovieDetail = () => {
                       border: '1px solid rgba(244,239,230,0.1)',
                       fontSize: '0.72rem',
                       height: 26,
+                      textDecoration: 'none',
+                      '&:hover': {
+                        bgcolor: 'rgba(212,160,23,0.12)',
+                        color: 'var(--rl-accent)',
+                        borderColor: 'rgba(212,160,23,0.35)',
+                      },
                     }}
                   />
                 ))}

@@ -25,6 +25,7 @@ import AdminUsers from './pages/AdminUsers';
 import Followers from './pages/Followers';
 import Following from './pages/Following';
 import GenreMovies from './pages/GenreMovies';
+import PersonProfile from './pages/PersonProfile';
 import Watchlist from './pages/Watchlist';
 import Lists from './pages/Lists';
 import CreateList from './pages/CreateList';
@@ -210,6 +211,7 @@ function AppContent() {
         <Route path="/profile/:userId/followers" element={<Followers />} />
         <Route path="/profile/:userId/following" element={<Following />} />
         <Route path="/movie/:movieId" element={<MovieDetail />} />
+        <Route path="/person/:personId" element={<PersonProfile />} />
         <Route path="/genre/:genreId" element={<GenreMovies />} />
         <Route path="/admin/users" element={
           <ProtectedRoute>

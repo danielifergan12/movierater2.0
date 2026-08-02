@@ -81,7 +81,7 @@ router.get('/search', async (req, res) => {
   }
 });
 
-// Filmography for an actor/director (used after picking a person in search)
+// Person profile + filmography (actor/director)
 router.get('/person/:personId/movies', async (req, res) => {
   try {
     const personId = parseInt(req.params.personId, 10);
@@ -93,53 +93,75 @@ router.get('/person/:personId/movies', async (req, res) => {
       axios.get(`https://api.themoviedb.org/3/person/${personId}/movie_credits`, {
         params: { api_key: process.env.TMDB_API_KEY, language: 'en-US' },
       }),
-      axios
-        .get(`https://api.themoviedb.org/3/person/${personId}`, {
-          params: { api_key: process.env.TMDB_API_KEY, language: 'en-US' },
-        })
-        .catch(() => ({ data: {} })),
+      axios.get(`https://api.themoviedb.org/3/person/${personId}`, {
+        params: { api_key: process.env.TMDB_API_KEY, language: 'en-US' },
+      }),
     ]);
 
     const cast = creditsRes.data.cast || [];
     const crew = creditsRes.data.crew || [];
-    const directed = crew.filter((c) => c.job === 'Director');
+    const directedRaw = crew.filter((c) => c.job === 'Director');
 
-    const byId = new Map();
-    [...cast, ...directed].forEach((m) => {
-      if (!m?.id) return;
-      const existing = byId.get(m.id);
-      const credit =
-        m.job === 'Director'
-          ? 'Director'
-          : m.character
-            ? `as ${m.character}`
-            : 'Actor';
-      if (!existing || (m.job === 'Director' && existing.credit !== 'Director')) {
-        byId.set(m.id, {
-          id: m.id,
-          title: m.title,
-          poster_path: m.poster_path,
-          release_date: m.release_date,
-          vote_count: m.vote_count || 0,
-          popularity: m.popularity || 0,
-          vote_average: m.vote_average || 0,
-          credit,
-        });
-      }
+    const mapCredit = (m, credit) => ({
+      id: m.id,
+      title: m.title,
+      poster_path: m.poster_path,
+      release_date: m.release_date,
+      vote_count: m.vote_count || 0,
+      popularity: m.popularity || 0,
+      vote_average: m.vote_average || 0,
+      overview: m.overview || null,
+      credit,
+      character: m.character || null,
     });
 
-    const results = [...byId.values()].sort((a, b) => {
+    const byPopularity = (a, b) => {
       if (b.vote_count !== a.vote_count) return (b.vote_count || 0) - (a.vote_count || 0);
       return (b.popularity || 0) - (a.popularity || 0);
+    };
+
+    const acted = cast
+      .filter((m) => m?.id)
+      .map((m) => mapCredit(m, m.character ? `as ${m.character}` : 'Actor'))
+      .sort(byPopularity);
+
+    const directed = directedRaw
+      .filter((m) => m?.id)
+      .map((m) => mapCredit(m, 'Director'))
+      .sort(byPopularity);
+
+    const byId = new Map();
+    [...acted, ...directed].forEach((m) => {
+      const existing = byId.get(m.id);
+      if (!existing || (m.credit === 'Director' && existing.credit !== 'Director')) {
+        byId.set(m.id, m);
+      }
     });
+    const results = [...byId.values()].sort(byPopularity);
+
+    const p = personRes.data || {};
+    const dept = p.known_for_department || '';
+    let role = 'Person';
+    if (dept === 'Directing') role = 'Director';
+    else if (dept === 'Acting') role = 'Actor';
+    else if (dept === 'Writing') role = 'Writer';
 
     res.json({
       person: {
         id: personId,
-        name: personRes.data.name || null,
-        profile_path: personRes.data.profile_path || null,
-        known_for_department: personRes.data.known_for_department || null,
+        name: p.name || null,
+        profile_path: p.profile_path || null,
+        biography: p.biography || '',
+        birthday: p.birthday || null,
+        deathday: p.deathday || null,
+        place_of_birth: p.place_of_birth || null,
+        known_for_department: dept || null,
+        also_known_as: (p.also_known_as || []).slice(0, 5),
+        popularity: p.popularity || 0,
+        role,
       },
+      acted,
+      directed,
       results,
     });
   } catch (error) {
