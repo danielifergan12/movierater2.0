@@ -272,8 +272,9 @@ const AnimatedMovieBackground = () => {
           inset: 0,
           zIndex: 2,
           background: `
-            linear-gradient(90deg, rgba(12, 11, 10, 0.92) 0%, rgba(12, 11, 10, 0.55) 42%, rgba(12, 11, 10, 0.25) 70%, rgba(12, 11, 10, 0.45) 100%),
-            linear-gradient(0deg, rgba(12, 11, 10, 0.88) 0%, rgba(12, 11, 10, 0.35) 45%, rgba(12, 11, 10, 0.55) 100%)
+            linear-gradient(90deg, rgba(12, 11, 10, 0.94) 0%, rgba(12, 11, 10, 0.55) 38%, rgba(12, 11, 10, 0.22) 68%, rgba(12, 11, 10, 0.5) 100%),
+            linear-gradient(0deg, rgba(12, 11, 10, 0.94) 0%, rgba(12, 11, 10, 0.4) 42%, rgba(12, 11, 10, 0.55) 100%),
+            radial-gradient(ellipse 80% 55% at 50% 45%, transparent 0%, rgba(12, 11, 10, 0.35) 100%)
           `,
         }}
       />

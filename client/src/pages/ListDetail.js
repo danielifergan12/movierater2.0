@@ -4,9 +4,6 @@ import {
   Container,
   Typography,
   Box,
-  Card,
-  CardContent,
-  CardMedia,
   Grid,
   Button,
   IconButton,
@@ -18,10 +15,16 @@ import {
   ArrowBack as ArrowBackIcon,
   Share as ShareIcon,
   Delete as DeleteIcon,
-  Edit as EditIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../config/axios';
+import CinemaScreen from '../components/CinemaScreen';
+import {
+  socialPageShellSx,
+  socialTitleSx,
+  socialSubtitleSx,
+  socialGhostBtn,
+} from '../components/SocialPageShell';
 
 const ListDetail = () => {
   const { listId } = useParams();
@@ -29,6 +32,7 @@ const ListDetail = () => {
   const navigate = useNavigate();
   const [list, setList] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchList();
@@ -54,9 +58,9 @@ const ListDetail = () => {
 
     try {
       await api.delete(`/api/lists/${listId}/movies/${movieId}`);
-      setList(prev => ({
+      setList((prev) => ({
         ...prev,
-        movies: prev.movies.filter(m => m.movieId !== movieId && m.tmdbId?.toString() !== movieId)
+        movies: prev.movies.filter((m) => m.movieId !== movieId && m.tmdbId?.toString() !== movieId),
       }));
     } catch (error) {
       console.error('Error removing movie:', error);
@@ -67,8 +71,9 @@ const ListDetail = () => {
     try {
       const response = await api.post(`/api/lists/${listId}/share`);
       const shareUrl = response.data.shareUrl || `${window.location.origin}/list/${response.data.shareCode}`;
-      navigator.clipboard.writeText(shareUrl);
-      // Could show a toast notification here
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error('Error generating share code:', error);
     }
@@ -76,14 +81,8 @@ const ListDetail = () => {
 
   if (loading) {
     return (
-      <Box sx={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        <CircularProgress />
+      <Box sx={{ ...socialPageShellSx, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress sx={{ color: 'var(--rl-accent)' }} />
       </Box>
     );
   }
@@ -95,50 +94,54 @@ const ListDetail = () => {
   const isOwner = isAuthenticated && user && list.user._id === user._id;
 
   return (
-    <Box sx={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
-      position: 'relative',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.1) 0%, transparent 50%)',
-        pointerEvents: 'none',
-      }
-    }}>
-      <Container maxWidth="lg" sx={{ py: { xs: 4, sm: 6, md: 8 }, px: { xs: 2, sm: 3 }, position: 'relative', zIndex: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, gap: 2 }}>
+    <Box
+      sx={{
+        ...socialPageShellSx,
+        minHeight: { xs: 'calc(100dvh - 64px)', sm: 'calc(100dvh - 72px)' },
+        height: { xs: 'calc(100dvh - 64px)', sm: 'calc(100dvh - 72px)' },
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <Container
+        maxWidth="lg"
+        sx={{
+          py: { xs: 2, sm: 3 },
+          px: { xs: 2, sm: 3 },
+          position: 'relative',
+          zIndex: 1,
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2, gap: 1.5, flexShrink: 0 }}>
           <IconButton
             onClick={() => navigate('/lists')}
-            sx={{ color: '#00d4ff' }}
+            sx={{
+              color: 'var(--rl-cream)',
+              mt: 0.5,
+              '&:hover': { color: 'var(--rl-accent)', backgroundColor: 'rgba(244,239,230,0.06)' },
+            }}
           >
             <ArrowBackIcon />
           </IconButton>
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h2" sx={{
-              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' },
-            }}>
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Typography sx={{ ...socialTitleSx, fontSize: { xs: '1.85rem', sm: '2.4rem' } }}>
               {list.name}
             </Typography>
             {list.description && (
-              <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)', mt: 1 }}>
+              <Typography sx={{ ...socialSubtitleSx, mt: 0.75, fontSize: '0.9rem' }}>
                 {list.description}
               </Typography>
             )}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1.5, flexWrap: 'wrap' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Avatar src={list.user?.profilePicture} sx={{ width: 32, height: 32 }}>
+                <Avatar src={list.user?.profilePicture} sx={{ width: 28, height: 28, fontSize: '0.85rem' }}>
                   {list.user?.username?.charAt(0).toUpperCase()}
                 </Avatar>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem' }}>
                   {list.user?.username}
                 </Typography>
               </Box>
@@ -146,155 +149,179 @@ const ListDetail = () => {
                 label={list.isPublic ? 'Public' : 'Private'}
                 size="small"
                 sx={{
-                  backgroundColor: list.isPublic ? 'rgba(0, 212, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                  color: list.isPublic ? '#00d4ff' : 'rgba(255, 255, 255, 0.7)',
+                  backgroundColor: list.isPublic ? 'rgba(212, 160, 23, 0.2)' : 'rgba(244,239,230,0.08)',
+                  color: list.isPublic ? 'var(--rl-accent)' : 'var(--rl-muted)',
+                  fontWeight: 600,
+                  height: 24,
                 }}
               />
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+              <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.85rem' }}>
                 {list.movies?.length || 0} {list.movies?.length === 1 ? 'movie' : 'movies'}
               </Typography>
+              {copied && (
+                <Typography sx={{ color: 'var(--rl-accent)', fontSize: '0.8rem' }}>Link copied</Typography>
+              )}
             </Box>
           </Box>
           {isOwner && (
-            <Box>
-              <IconButton
-                onClick={() => handleShare()}
-                sx={{ color: '#00d4ff' }}
-              >
-                <ShareIcon />
-              </IconButton>
-            </Box>
+            <IconButton
+              onClick={handleShare}
+              sx={{
+                color: 'var(--rl-cream)',
+                '&:hover': { color: 'var(--rl-accent)', backgroundColor: 'rgba(244,239,230,0.06)' },
+              }}
+            >
+              <ShareIcon />
+            </IconButton>
           )}
         </Box>
 
-        {list.movies && list.movies.length > 0 ? (
-          <Grid container spacing={3}>
-            {list.movies.map((movie, index) => (
-              <Grid item xs={6} sm={4} md={3} key={movie.movieId || movie.tmdbId || index}>
-                <Card sx={{
-                  background: 'rgba(26, 26, 26, 0.8)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(0, 212, 255, 0.2)',
-                  borderRadius: 4,
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: '0 8px 24px rgba(0, 212, 255, 0.3)',
-                  }
-                }}>
-                  <Box sx={{ position: 'relative' }}>
-                    <CardMedia
-                      component="img"
-                      height="400"
-                      image={movie.posterPath ? `https://image.tmdb.org/t/p/w500${movie.posterPath}` : '/placeholder-movie.jpg'}
-                      alt={movie.title}
-                      sx={{ objectFit: 'cover' }}
-                    />
-                    {isOwner && (
-                      <IconButton
+        <CinemaScreen scrollable maxWidth={1100} sx={{ flex: 1, minHeight: 0, px: 0, pb: 0 }}>
+          {list.movies && list.movies.length > 0 ? (
+            <Grid container spacing={1.5}>
+              {list.movies.map((movie, index) => (
+                <Grid item xs={6} sm={4} md={3} key={movie.movieId || movie.tmdbId || index}>
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      borderRadius: 1,
+                      overflow: 'hidden',
+                      border: '1px solid rgba(244,239,230,0.1)',
+                      bgcolor: 'rgba(244,239,230,0.03)',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'border-color 0.2s ease',
+                      '&:hover': { borderColor: 'rgba(212, 160, 23, 0.4)' },
+                    }}
+                  >
+                    <Box sx={{ position: 'relative', aspectRatio: '2 / 3' }}>
+                      <Box
+                        component={Link}
+                        to={`/movie/${movie.movieId || movie.tmdbId}`}
+                        sx={{ display: 'block', width: '100%', height: '100%' }}
+                      >
+                        <Box
+                          component="img"
+                          src={
+                            movie.posterPath
+                              ? `https://image.tmdb.org/t/p/w500${movie.posterPath}`
+                              : '/placeholder-movie.jpg'
+                          }
+                          alt={movie.title}
+                          sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        />
+                      </Box>
+                      {isOwner && (
+                        <IconButton
+                          size="small"
+                          sx={{
+                            position: 'absolute',
+                            top: 6,
+                            right: 6,
+                            backgroundColor: 'rgba(12, 11, 10, 0.75)',
+                            color: 'var(--rl-muted)',
+                            '&:hover': {
+                              backgroundColor: 'rgba(12, 11, 10, 0.9)',
+                              color: '#e07050',
+                            },
+                          }}
+                          onClick={() => handleDeleteMovie(movie.movieId || movie.tmdbId)}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                      <Chip
+                        label={`#${index + 1}`}
+                        size="small"
                         sx={{
                           position: 'absolute',
-                          top: 8,
-                          right: 8,
-                          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                          color: '#ff6b35',
-                          '&:hover': {
-                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                          }
+                          top: 6,
+                          left: 6,
+                          backgroundColor: 'rgba(212, 160, 23, 0.9)',
+                          color: '#0c0b0a',
+                          fontWeight: 700,
+                          height: 22,
+                          fontSize: '0.7rem',
                         }}
-                        onClick={() => handleDeleteMovie(movie.movieId || movie.tmdbId)}
+                      />
+                    </Box>
+                    <Box sx={{ p: 1.25, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <Typography
+                        component={Link}
+                        to={`/movie/${movie.movieId || movie.tmdbId}`}
+                        sx={{
+                          color: 'var(--rl-cream)',
+                          textDecoration: 'none',
+                          fontWeight: 600,
+                          fontSize: '0.85rem',
+                          lineHeight: 1.3,
+                          mb: 0.35,
+                          '&:hover': { color: 'var(--rl-accent)' },
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
                       >
-                        <DeleteIcon />
-                      </IconButton>
-                    )}
-                    <Chip
-                      label={`#${index + 1}`}
-                      size="small"
-                      sx={{
-                        position: 'absolute',
-                        top: 8,
-                        left: 8,
-                        backgroundColor: 'rgba(0, 212, 255, 0.8)',
-                        color: '#ffffff',
-                        fontWeight: 600,
-                      }}
-                    />
+                        {movie.title}
+                      </Typography>
+                      {movie.releaseDate && (
+                        <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.75rem', mb: 0.75 }}>
+                          {new Date(movie.releaseDate).getFullYear()}
+                        </Typography>
+                      )}
+                      {movie.note && (
+                        <Typography
+                          sx={{
+                            color: 'var(--rl-muted)',
+                            fontStyle: 'italic',
+                            fontSize: '0.75rem',
+                            mb: 1,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          &ldquo;{movie.note}&rdquo;
+                        </Typography>
+                      )}
+                      <Button
+                        size="small"
+                        component={Link}
+                        to={`/movie/${movie.movieId || movie.tmdbId}`}
+                        sx={{ ...socialGhostBtn, mt: 'auto', alignSelf: 'flex-start', px: 1.25, py: 0.35, fontSize: '0.75rem' }}
+                      >
+                        View
+                      </Button>
+                    </Box>
                   </Box>
-                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                    <Typography
-                      variant="h6"
-                      component={Link}
-                      to={`/movie/${movie.movieId || movie.tmdbId}`}
-                      sx={{
-                        color: '#ffffff',
-                        textDecoration: 'none',
-                        mb: 1,
-                        fontWeight: 600,
-                        '&:hover': { color: '#00d4ff' },
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {movie.title}
-                    </Typography>
-                    {movie.releaseDate && (
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)', mb: 2 }}>
-                        {new Date(movie.releaseDate).getFullYear()}
-                      </Typography>
-                    )}
-                    {movie.note && (
-                      <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontStyle: 'italic', mb: 2 }}>
-                        "{movie.note}"
-                      </Typography>
-                    )}
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      component={Link}
-                      to={`/movie/${movie.movieId || movie.tmdbId}`}
-                      sx={{
-                        mt: 'auto',
-                        borderColor: '#00d4ff',
-                        color: '#00d4ff',
-                        '&:hover': {
-                          borderColor: '#66e0ff',
-                          backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                        },
-                      }}
-                    >
-                      View Movie
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        ) : (
-          <Card sx={{
-            background: 'rgba(26, 26, 26, 0.8)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(0, 212, 255, 0.2)',
-            borderRadius: 4,
-            p: 4,
-            textAlign: 'center'
-          }}>
-            <Typography variant="h5" sx={{ color: '#ffffff', mb: 2 }}>
-              This list is empty
-            </Typography>
-            <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-              {isOwner ? 'Start adding movies to your list!' : 'This list doesn\'t have any movies yet.'}
-            </Typography>
-          </Card>
-        )}
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 6, px: 2 }}>
+              <Typography
+                sx={{
+                  color: 'var(--rl-cream)',
+                  fontFamily: '"Bebas Neue", sans-serif',
+                  fontSize: '1.5rem',
+                  letterSpacing: '0.04em',
+                  mb: 1,
+                }}
+              >
+                This list is empty
+              </Typography>
+              <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.9rem' }}>
+                {isOwner ? 'Start adding movies to your list.' : "This list doesn't have any movies yet."}
+              </Typography>
+            </Box>
+          )}
+        </CinemaScreen>
       </Container>
     </Box>
   );
 };
 
 export default ListDetail;
-

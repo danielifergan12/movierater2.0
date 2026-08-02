@@ -17,8 +17,33 @@ const LandingHero = () => {
         pb: { xs: 8, sm: 10, md: 12 },
         pt: { xs: 6, sm: 8 },
         maxWidth: 920,
+        // Auditorium letterbox: soft top/bottom bars so the hero reads as a house, not a flat page
+        '&::before': {
+          content: '""',
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          top: 0,
+          height: { xs: 28, sm: 36 },
+          zIndex: 0,
+          pointerEvents: 'none',
+          background: 'linear-gradient(180deg, rgba(12,11,10,0.75) 0%, transparent 100%)',
+        },
+        '&::after': {
+          content: '""',
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: { xs: '22%', sm: '26%' },
+          zIndex: 0,
+          pointerEvents: 'none',
+          background:
+            'linear-gradient(0deg, rgba(12,11,10,0.88) 0%, rgba(12,11,10,0.35) 60%, transparent 100%)',
+        },
       }}
     >
+      <Box sx={{ position: 'relative', zIndex: 1 }}>
       <Typography
         component="p"
         className="landing-hero__brand"
@@ -120,6 +145,7 @@ const LandingHero = () => {
         >
           Sign in
         </Button>
+      </Box>
       </Box>
     </Box>
   );
