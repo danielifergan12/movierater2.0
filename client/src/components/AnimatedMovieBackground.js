@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box } from '@mui/material';
 import api from '../config/axios';
 
@@ -6,27 +6,54 @@ const FALLBACK_BACKDROPS = [
   'https://image.tmdb.org/t/p/w1280/8ZTVqvKDQ8emSGUEMjsS4yHAwrp.jpg',
   'https://image.tmdb.org/t/p/w1280/suaEOtk1N1sgg2MTM7oZd2cfVp3.jpg',
   'https://image.tmdb.org/t/p/w1280/9BUvAuEgjPIbOcZD4VaUymGm5P5.jpg',
+  'https://image.tmdb.org/t/p/w1280/5YZbUmjbMa3KiaT5FCvjYgXEUO.jpg',
+  'https://image.tmdb.org/t/p/w1280/sR0SpCrXamlIwDaEKzX8Y7zR3l.jpg',
 ];
 
+const shuffle = (items) => {
+  const next = [...items];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+  return next;
+};
+
+const collectBackdropUrls = (results = []) =>
+  results
+    .filter((m) => m?.backdrop_path)
+    .map((m) => `https://image.tmdb.org/t/p/w1280${m.backdrop_path}`);
+
 const AnimatedMovieBackground = () => {
-  const [backdrops, setBackdrops] = useState(FALLBACK_BACKDROPS);
+  const [backdrops, setBackdrops] = useState(() => shuffle(FALLBACK_BACKDROPS));
   const [activeIndex, setActiveIndex] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const recentRef = useRef([]);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadBackdrops = async () => {
       try {
-        const response = await api.get('/api/movies/trending/week');
-        const results = response.data?.results || [];
-        const urls = results
-          .filter((m) => m.backdrop_path)
-          .slice(0, 5)
-          .map((m) => `https://image.tmdb.org/t/p/w1280${m.backdrop_path}`);
+        const [trending, popular, page2] = await Promise.all([
+          api.get('/api/movies/trending/week').catch(() => ({ data: { results: [] } })),
+          api.get('/api/movies/popular').catch(() => ({ data: { results: [] } })),
+          api.get('/api/movies/popular?page=2').catch(() => ({ data: { results: [] } })),
+        ]);
 
-        if (!cancelled && urls.length > 0) {
-          setBackdrops(urls);
+        const urls = [
+          ...collectBackdropUrls(trending.data?.results),
+          ...collectBackdropUrls(popular.data?.results),
+          ...collectBackdropUrls(page2.data?.results),
+        ];
+
+        // Dedupe while preserving variety
+        const unique = [...new Set(urls)];
+        if (!cancelled && unique.length > 0) {
+          const mixed = shuffle(unique).slice(0, 24);
+          setBackdrops(mixed);
+          setActiveIndex(Math.floor(Math.random() * mixed.length));
+          recentRef.current = [];
         }
       } catch (error) {
         console.error('Error fetching hero backdrops:', error);
@@ -43,9 +70,22 @@ const AnimatedMovieBackground = () => {
 
   useEffect(() => {
     if (backdrops.length < 2) return undefined;
+
+    const pickNext = (current) => {
+      const recent = recentRef.current;
+      const avoid = new Set([current, ...recent]);
+      const candidates = backdrops
+        .map((_, i) => i)
+        .filter((i) => !avoid.has(i));
+      const pool = candidates.length > 0 ? candidates : backdrops.map((_, i) => i).filter((i) => i !== current);
+      const next = pool[Math.floor(Math.random() * pool.length)] ?? current;
+      recentRef.current = [...recent, next].slice(-Math.min(8, Math.max(3, Math.floor(backdrops.length / 3))));
+      return next;
+    };
+
     const id = setInterval(() => {
-      setActiveIndex((i) => (i + 1) % backdrops.length);
-    }, 2800);
+      setActiveIndex((i) => pickNext(i));
+    }, 3200);
     return () => clearInterval(id);
   }, [backdrops]);
 
@@ -64,10 +104,11 @@ const AnimatedMovieBackground = () => {
     >
       {backdrops.map((src, index) => (
         <Box
-          key={src}
+          key={`${src}-${index}`}
           component="img"
           src={src}
           alt=""
+          loading={index < 3 ? 'eager' : 'lazy'}
           className={
             index === activeIndex
               ? 'landing-backdrop__image is-active'
@@ -82,16 +123,15 @@ const AnimatedMovieBackground = () => {
             objectPosition: 'center 30%',
             opacity: index === activeIndex ? 1 : 0,
             transform: index === activeIndex ? 'scale(1.05)' : 'scale(1)',
-            transition: 'opacity 0.45s ease, transform 2.8s ease-out',
+            transition: 'opacity 0.55s ease, transform 3.2s ease-out',
             filter: 'saturate(0.85) contrast(1.05)',
           }}
           onLoad={() => {
-            if (index === 0) setLoaded(true);
+            if (index === activeIndex) setLoaded(true);
           }}
         />
       ))}
 
-      {/* Readability wash — edge-to-edge plane, not a floating card */}
       <Box
         sx={{
           position: 'absolute',
