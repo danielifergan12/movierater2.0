@@ -53,6 +53,7 @@ const ListDetail = () => {
   const navigate = useNavigate();
   const [list, setList] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [copied, setCopied] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -88,14 +89,23 @@ const ListDetail = () => {
 
   const fetchList = async () => {
     setLoading(true);
+    setFetchError('');
     try {
       const response = await api.get(`/api/lists/${listId}`);
       setList(response.data);
     } catch (error) {
       console.error('Error fetching list:', error);
-      if (error.response?.status === 404) {
+      const status = error.response?.status;
+      if (status === 404) {
         navigate('/lists');
+        return;
       }
+      setList(null);
+      setFetchError(
+        status === 403
+          ? 'This list is private.'
+          : (error.response?.data?.message || 'Could not load this list.')
+      );
     } finally {
       setLoading(false);
     }
@@ -115,7 +125,7 @@ const ListDetail = () => {
   };
 
   const handleDeleteMovie = async (movieId) => {
-    if (!isAuthenticated || !user || list.user._id !== user._id) return;
+    if (!isAuthenticated || !user || String(list.user?._id) !== String(user._id)) return;
 
     try {
       await api.delete(`/api/lists/${listId}/movies/${movieId}`);
@@ -192,10 +202,28 @@ const ListDetail = () => {
   }
 
   if (!list) {
-    return null;
+    return (
+      <Box sx={{ ...socialPageShellSx, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Container maxWidth="sm" sx={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <Typography sx={{ ...socialTitleSx, fontSize: '1.6rem', mb: 1 }}>
+            {fetchError || 'List not found'}
+          </Typography>
+          <Typography sx={{ ...socialSubtitleSx, mb: 2.5 }}>
+            Head back to your lists and try again.
+          </Typography>
+          <Button
+            onClick={() => navigate('/lists')}
+            startIcon={<ArrowBackIcon />}
+            sx={socialAccentBtn}
+          >
+            Back to lists
+          </Button>
+        </Container>
+      </Box>
+    );
   }
 
-  const isOwner = isAuthenticated && user && list.user._id === user._id;
+  const isOwner = isAuthenticated && user && String(list.user?._id) === String(user._id);
   const movies = list.movies || [];
 
   return (

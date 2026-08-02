@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const List = require('../models/List');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const optionalAuth = require('../middleware/optionalAuth');
 const crypto = require('crypto');
 
 const router = express.Router();
@@ -77,8 +78,8 @@ router.get('/public', async (req, res) => {
   }
 });
 
-// Get list by ID
-router.get('/:listId', async (req, res) => {
+// Get list by ID (optional auth so owners can view their private lists)
+router.get('/:listId', optionalAuth, async (req, res) => {
   try {
     const list = await List.findById(req.params.listId)
       .populate('user', 'username profilePicture');
@@ -88,7 +89,9 @@ router.get('/:listId', async (req, res) => {
     }
 
     // Check if user can view this list
-    if (!list.isPublic && (!req.userId || list.user._id.toString() !== req.userId)) {
+    const ownerId = list.user?._id?.toString?.() || list.user?.toString?.();
+    const viewerId = req.userId?.toString?.();
+    if (!list.isPublic && (!viewerId || ownerId !== viewerId)) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -171,6 +174,7 @@ router.put('/:listId', auth, [
     if (tags !== undefined) list.tags = tags;
 
     await list.save();
+    await list.populate('user', 'username profilePicture');
     res.json(list);
   } catch (error) {
     console.error('Update list error:', error);
