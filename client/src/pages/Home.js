@@ -332,24 +332,28 @@ const Home = () => {
       <Box
         sx={{
           minWidth: 0,
-          height: '100%',
+          width: '100%',
           display: 'flex',
           flexDirection: 'column',
           '&:hover .action-btn': { opacity: 1 },
-          '&:hover .poster-frame': { borderColor: 'rgba(212, 160, 23, 0.5)' },
+          '&:hover .poster-frame': { borderColor: 'rgba(212, 160, 23, 0.55)' },
         }}
       >
         <Box
           className="poster-frame"
           sx={{
             position: 'relative',
-            flex: 1,
-            minHeight: 0,
+            width: '100%',
             aspectRatio: '2 / 3',
-            borderRadius: 1,
+            borderRadius: 1.25,
             overflow: 'hidden',
-            border: '1px solid rgba(244, 239, 230, 0.12)',
+            border: '1px solid rgba(244, 239, 230, 0.14)',
             backgroundColor: 'rgba(244, 239, 230, 0.04)',
+            boxShadow: '0 8px 20px rgba(0,0,0,0.35)',
+            transition: 'border-color 0.15s ease, transform 0.15s ease',
+            '&:hover': {
+              transform: { xs: 'none', sm: 'translateY(-2px)' },
+            },
           }}
         >
           <Box
@@ -381,16 +385,16 @@ const Home = () => {
               }}
               sx={{
                 position: 'absolute',
-                top: 3,
-                right: 3,
-                p: 0.35,
-                opacity: { xs: 1, sm: 0.85 },
+                top: 4,
+                right: 4,
+                p: 0.4,
+                opacity: { xs: 1, sm: 0.9 },
                 color: 'var(--rl-cream)',
-                backgroundColor: 'rgba(12,11,10,0.72)',
-                '&:hover': { backgroundColor: 'rgba(12,11,10,0.9)', color: '#ff8a80' },
+                backgroundColor: 'rgba(12,11,10,0.75)',
+                '&:hover': { backgroundColor: 'rgba(12,11,10,0.92)', color: '#ff8a80' },
               }}
             >
-              <CloseIcon sx={{ fontSize: '0.85rem' }} />
+              <CloseIcon sx={{ fontSize: '0.9rem' }} />
             </IconButton>
           </Tooltip>
 
@@ -406,16 +410,16 @@ const Home = () => {
               }}
               sx={{
                 position: 'absolute',
-                top: 3,
-                left: 3,
-                p: 0.35,
-                opacity: { xs: 1, sm: 0.85 },
+                top: 4,
+                left: 4,
+                p: 0.4,
+                opacity: { xs: 1, sm: 0.9 },
                 color: 'var(--rl-accent)',
-                backgroundColor: 'rgba(12,11,10,0.72)',
-                '&:hover': { backgroundColor: 'rgba(12,11,10,0.9)' },
+                backgroundColor: 'rgba(12,11,10,0.75)',
+                '&:hover': { backgroundColor: 'rgba(12,11,10,0.92)' },
               }}
             >
-              <BookmarkIcon sx={{ fontSize: '0.85rem' }} />
+              <BookmarkIcon sx={{ fontSize: '0.9rem' }} />
             </IconButton>
           </Tooltip>
 
@@ -428,14 +432,14 @@ const Home = () => {
             }}
             sx={{
               position: 'absolute',
-              left: 4,
-              right: 4,
-              bottom: 4,
+              left: 5,
+              right: 5,
+              bottom: 5,
               minWidth: 0,
-              py: 0.25,
+              py: 0.35,
               px: 0.5,
               textTransform: 'none',
-              fontSize: { xs: '0.58rem', sm: '0.68rem' },
+              fontSize: { xs: '0.6rem', sm: '0.72rem' },
               fontWeight: 700,
               lineHeight: 1.2,
               borderRadius: 0.75,
@@ -454,12 +458,13 @@ const Home = () => {
           title={movie.title}
           sx={{
             display: 'block',
-            mt: 0.4,
+            mt: 0.55,
             color: 'var(--rl-cream)',
             textDecoration: 'none',
             fontWeight: 600,
-            fontSize: { xs: '0.62rem', sm: '0.7rem' },
-            lineHeight: 1.2,
+            fontSize: { xs: '0.62rem', sm: '0.75rem' },
+            lineHeight: 1.25,
+            textAlign: 'center',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -475,14 +480,14 @@ const Home = () => {
   const posterGridSx = {
     display: 'grid',
     gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
-    gridTemplateRows: 'repeat(2, minmax(0, 1fr))',
-    gap: { xs: 0.75, sm: 1 },
-    flex: 1,
-    minHeight: 0,
+    gridTemplateRows: 'repeat(2, auto)',
+    columnGap: { xs: 0.75, sm: 1.25 },
+    rowGap: { xs: 1, sm: 1.5 },
     width: '100%',
-    maxWidth: 780,
+    maxWidth: { xs: '100%', sm: 900 },
     mx: 'auto',
-    alignContent: 'stretch',
+    justifyContent: 'center',
+    alignContent: 'start',
   };
 
   const SuggestionSkeleton = () => (
@@ -743,10 +748,21 @@ const Home = () => {
                   )}
                 </Box>
               ) : (
-                <Box sx={posterGridSx}>
-                  {moviesToShow.map((movie) => (
-                    <MovieCard key={movie.id} movie={movie} />
-                  ))}
+                <Box
+                  sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                  }}
+                >
+                  <Box sx={posterGridSx}>
+                    {moviesToShow.map((movie) => (
+                      <MovieCard key={movie.id} movie={movie} />
+                    ))}
+                  </Box>
                 </Box>
               )}
             </Box>
