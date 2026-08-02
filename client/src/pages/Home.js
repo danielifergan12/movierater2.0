@@ -22,7 +22,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
 import RatingModal from '../components/RatingModal';
 import LandingHero from '../components/LandingHero';
-import AnimatedMovieBackground from '../components/AnimatedMovieBackground';
 import api from '../config/axios';
 
 const SUGGESTION_COUNT = 12;
@@ -691,21 +690,39 @@ const Home = () => {
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)',
+        background: '#0c0b0a',
       }}
     >
-      <AnimatedMovieBackground />
+      {/* Ambient glow backdrop */}
       <Box
         aria-hidden
         sx={{
           position: 'absolute',
           inset: 0,
-          zIndex: 1,
+          zIndex: 0,
           pointerEvents: 'none',
           background: `
-            radial-gradient(ellipse 70% 50% at 50% 0%, rgba(212, 160, 23, 0.12), transparent 55%),
-            linear-gradient(180deg, rgba(12, 11, 10, 0.55) 0%, rgba(12, 11, 10, 0.78) 45%, rgba(12, 11, 10, 0.92) 100%)
+            radial-gradient(ellipse 55% 45% at 50% 42%, rgba(212, 160, 23, 0.22) 0%, transparent 62%),
+            radial-gradient(ellipse 40% 35% at 18% 20%, rgba(244, 239, 230, 0.06) 0%, transparent 55%),
+            radial-gradient(ellipse 35% 30% at 82% 75%, rgba(212, 160, 23, 0.1) 0%, transparent 60%),
+            linear-gradient(180deg, #12100e 0%, #0c0b0a 55%, #090807 100%)
           `,
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            left: '50%',
+            top: '38%',
+            width: '70%',
+            height: '55%',
+            transform: 'translate(-50%, -50%)',
+            background: 'radial-gradient(circle, rgba(212,160,23,0.18) 0%, transparent 70%)',
+            filter: 'blur(28px)',
+            animation: 'glowPulse 6s ease-in-out infinite',
+          },
+          '@keyframes glowPulse': {
+            '0%, 100%': { opacity: 0.55, transform: 'translate(-50%, -50%) scale(1)' },
+            '50%': { opacity: 0.95, transform: 'translate(-50%, -50%) scale(1.08)' },
+          },
         }}
       />
       <Container
