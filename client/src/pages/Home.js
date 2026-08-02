@@ -4,20 +4,15 @@ import {
   Container,
   Typography,
   Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  CardActions,
   Button,
   Box,
-  Rating,
   CircularProgress,
   Tabs,
   Tab,
   IconButton,
-  Chip
+  Skeleton,
 } from '@mui/material';
-import { Refresh as RefreshIcon, Star as StarIcon, Movie as MovieIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon } from '@mui/icons-material';
 import { useMovies } from '../contexts/MovieContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useRatings } from '../hooks/useRatings';
@@ -29,14 +24,13 @@ const Home = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { trendingMovies, recommendedMovies, getTrendingMovies, getPersonalRecommendations, loading } = useMovies();
+  const { recommendedMovies, getPersonalRecommendations, loading } = useMovies();
   const { isAuthenticated, user } = useAuth();
   const { rawRatings } = useRatings();
   const [activeTab, setActiveTab] = useState(1);
   const [ratingMovie, setRatingMovie] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [displayMovies, setDisplayMovies] = useState([]);
-  const [totalRankings, setTotalRankings] = useState(0);
   const [genres, setGenres] = useState([]);
   const [genresLoading, setGenresLoading] = useState(false);
   const hasInitialLoad = useRef(false);
@@ -120,19 +114,6 @@ const Home = () => {
     }
     prevUserIdRef.current = currentUserId;
   }, [user?._id]);
-
-  // Fetch total rankings count
-  useEffect(() => {
-    const fetchTotalRankings = async () => {
-      try {
-        const response = await api.get('/api/users/stats/total-rankings');
-        setTotalRankings(response.data.totalRankings || 0);
-      } catch (error) {
-        console.error('Error fetching total rankings:', error);
-      }
-    };
-    fetchTotalRankings();
-  }, []);
 
   // Fetch genres list
   useEffect(() => {
@@ -308,456 +289,415 @@ const Home = () => {
     }
   }, [filteredRecommendedMovies, activeTab, isRefreshing, loading]);
 
-  const MovieCard = ({ movie }) => (
-    <Card sx={{ 
-      maxWidth: { xs: '100%', sm: 300 }, 
-      height: '100%', 
-      display: 'flex', 
-      flexDirection: 'column',
-      background: 'rgba(26, 26, 26, 0.8)',
-      backdropFilter: 'blur(20px)',
-      border: '1px solid rgba(0, 212, 255, 0.2)',
-      borderRadius: { xs: 3, sm: 4 },
-      overflow: 'hidden',
-      transition: 'all 0.3s ease',
-      mb: { xs: 2, sm: 0 },
-      '&:hover': {
-        transform: { xs: 'none', sm: 'translateY(-8px)' },
-        boxShadow: { xs: 'none', sm: '0 20px 40px rgba(0, 212, 255, 0.3)' },
-        border: { xs: '1px solid rgba(0, 212, 255, 0.2)', sm: '1px solid rgba(0, 212, 255, 0.5)' },
-      }
-    }}>
-      <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-        <CardMedia
-          component="img"
-          height={{ xs: 300, sm: 400 }}
-          image={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'}
-          alt={movie.title}
-          sx={{ 
-            objectFit: 'cover',
-            transition: 'transform 0.3s ease',
-            '&:hover': {
-              transform: { xs: 'none', sm: 'scale(1.05)' },
-            }
-          }}
-        />
-        <Box sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.8) 100%)',
-          opacity: 0,
-          transition: 'opacity 0.3s ease',
+  const MovieCard = ({ movie }) => {
+    const isAlreadyRated = rawRatings.some((r) => r.id?.toString() === movie.id?.toString());
+    const year = movie.release_date ? new Date(movie.release_date).getFullYear() : null;
+    const score = typeof movie.vote_average === 'number' ? movie.vote_average.toFixed(1) : null;
+
+    return (
+      <Box
+        sx={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'transform 0.2s ease',
           '&:hover': {
-            opacity: { xs: 0, sm: 1 },
-          }
-        }} />
-      </Box>
-      <CardContent sx={{ flexGrow: 1, p: { xs: 2.5, sm: 3 } }}>
-        <Typography gutterBottom variant="h6" component="h2" sx={{ 
-          fontWeight: 600,
-          color: '#ffffff',
-          mb: 1.5,
-          fontSize: { xs: '1.125rem', sm: '1.25rem' },
-          lineHeight: 1.3
-        }}>
-          {movie.title}
-        </Typography>
-        <Typography variant="body2" sx={{ 
-          color: 'rgba(255, 255, 255, 0.6)',
-          mb: 2,
-          fontSize: { xs: '0.875rem', sm: '0.9rem' },
-        }}>
-          {new Date(movie.release_date).getFullYear()}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Rating
-            value={movie.vote_average / 2}
-            precision={0.1}
-            size="small"
-            readOnly
-            sx={{
-              fontSize: { xs: '1.5rem', sm: '1.25rem' },
-              '& .MuiRating-iconFilled': {
-                color: '#00d4ff',
-              },
-              '& .MuiRating-iconEmpty': {
-                color: 'rgba(0, 212, 255, 0.3)',
-              },
-            }}
-          />
-          <Typography variant="body2" sx={{ 
-            ml: 1,
-            color: '#00d4ff',
-            fontWeight: 600,
-            fontSize: { xs: '0.875rem', sm: '0.875rem' },
-          }}>
-            {movie.vote_average.toFixed(1)}
-          </Typography>
-        </Box>
-        <Typography variant="body2" sx={{ 
-          color: 'rgba(255, 255, 255, 0.7)',
-          lineHeight: 1.5,
-          display: { xs: 'none', sm: '-webkit-box' },
-          WebkitLineClamp: 3,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-          fontSize: { xs: '0.875rem', sm: '0.875rem' },
-        }}>
-          {movie.overview}
-        </Typography>
-      </CardContent>
-      <CardActions sx={{ p: { xs: 2.5, sm: 3 }, pt: 0, gap: { xs: 1.5, sm: 1 }, flexDirection: { xs: 'column', sm: 'row' } }}>
-        {activeTab === 1 && (() => {
-          const isAlreadyRated = rawRatings.some(r => r.id?.toString() === movie.id?.toString());
-          if (!isAuthenticated) {
-            return (
-              <Button
-                size="medium"
-                variant="outlined"
-                startIcon={<StarIcon />}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleRateClick(movie);
-                }}
-                fullWidth
-                sx={{
-                  borderColor: '#00d4ff',
-                  color: '#00d4ff',
-                  fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                  py: { xs: 1.5, sm: 1 },
-                  minHeight: { xs: 48, sm: 36 },
-                  '&:hover': {
-                    borderColor: '#66e0ff',
-                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                  },
-                }}
-              >
-                Sign in to Rate
-              </Button>
-            );
-          }
-          return isAlreadyRated ? (
-            <Button
-              size="medium"
-              variant="outlined"
-              startIcon={<StarIcon />}
-              disabled
-              fullWidth
-              sx={{
-                borderColor: 'rgba(0, 212, 255, 0.3)',
-                color: 'rgba(0, 212, 255, 0.5)',
-                fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                py: { xs: 1.5, sm: 1 },
-                minHeight: { xs: 48, sm: 36 },
-                cursor: 'not-allowed',
-              }}
-            >
-              Already Rated
-            </Button>
-          ) : (
-            <Button
-              size="medium"
-              variant="outlined"
-              startIcon={<StarIcon />}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setRatingMovie({
-                  id: movie.id,
-                  title: movie.title,
-                  posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder-movie.jpg'
-                });
-              }}
-              fullWidth
-              sx={{
-                borderColor: '#00d4ff',
-                color: '#00d4ff',
-                fontSize: { xs: '0.875rem', sm: '0.875rem' },
-                py: { xs: 1.5, sm: 1 },
-                minHeight: { xs: 48, sm: 36 },
-                '&:hover': {
-                  borderColor: '#66e0ff',
-                  backgroundColor: 'rgba(0, 212, 255, 0.1)',
-                },
-              }}
-            >
-              Rate
-            </Button>
-          );
-        })()}
-        <Button
-          size="medium"
+            transform: { xs: 'none', sm: 'translateY(-4px)' },
+            '& .poster-frame': {
+              borderColor: 'rgba(212, 160, 23, 0.45)',
+            },
+            '& .poster-fade': {
+              opacity: 1,
+            },
+            '& .rate-btn': {
+              opacity: 1,
+            },
+          },
+        }}
+      >
+        <Box
+          className="poster-frame"
           component={Link}
           to={`/movie/${movie.id}`}
-          variant="contained"
-          fullWidth
           sx={{
-            background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-            borderRadius: 2,
-            py: { xs: 1.5, sm: 1 },
-            fontWeight: 600,
-            fontSize: { xs: '0.875rem', sm: '0.875rem' },
-            minHeight: { xs: 48, sm: 36 },
+            position: 'relative',
+            display: 'block',
+            aspectRatio: '2 / 3',
+            borderRadius: 1.5,
+            overflow: 'hidden',
+            border: '1px solid rgba(244, 239, 230, 0.12)',
+            backgroundColor: 'rgba(244, 239, 230, 0.04)',
+            textDecoration: 'none',
+            transition: 'border-color 0.2s ease',
           }}
         >
-          View Details
-        </Button>
-      </CardActions>
-    </Card>
+          <Box
+            component="img"
+            src={
+              movie.poster_path
+                ? `https://image.tmdb.org/t/p/w342${movie.poster_path}`
+                : '/placeholder-movie.jpg'
+            }
+            alt={movie.title}
+            loading="lazy"
+            sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+          {score && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                px: 0.7,
+                py: 0.2,
+                borderRadius: 0.75,
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                color: 'var(--rl-cream)',
+                backgroundColor: 'rgba(12, 11, 10, 0.82)',
+                border: '1px solid rgba(244, 239, 230, 0.18)',
+              }}
+            >
+              {score}
+            </Box>
+          )}
+          <Box
+            className="poster-fade"
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(180deg, transparent 55%, rgba(12,11,10,0.75) 100%)',
+              opacity: 0,
+              transition: 'opacity 0.2s ease',
+              pointerEvents: 'none',
+            }}
+          />
+        </Box>
+
+        <Box sx={{ pt: 1.1, px: 0.15, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+          <Typography
+            component={Link}
+            to={`/movie/${movie.id}`}
+            sx={{
+              color: 'var(--rl-cream)',
+              textDecoration: 'none',
+              fontWeight: 600,
+              fontSize: { xs: '0.82rem', sm: '0.9rem' },
+              lineHeight: 1.3,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              '&:hover': { color: 'var(--rl-accent)' },
+            }}
+          >
+            {movie.title}
+          </Typography>
+          {year && (
+            <Typography sx={{ color: 'rgba(244,239,230,0.45)', fontSize: '0.72rem', mt: 0.25 }}>
+              {year}
+            </Typography>
+          )}
+
+          <Button
+            className="rate-btn"
+            size="small"
+            disabled={isAlreadyRated}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!isAlreadyRated) handleRateClick(movie);
+            }}
+            sx={{
+              mt: 'auto',
+              pt: 1,
+              alignSelf: 'flex-start',
+              minWidth: 0,
+              px: 0,
+              textTransform: 'none',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              color: isAlreadyRated ? 'rgba(244,239,230,0.35)' : 'var(--rl-accent)',
+              opacity: { xs: 1, sm: isAlreadyRated ? 1 : 0.85 },
+              transition: 'opacity 0.2s ease',
+              '&:hover': {
+                backgroundColor: 'transparent',
+                color: isAlreadyRated ? 'rgba(244,239,230,0.35)' : 'var(--rl-accent-hover)',
+              },
+              '&.Mui-disabled': { color: 'rgba(244,239,230,0.35)' },
+            }}
+          >
+            {isAlreadyRated ? 'Rated' : 'Rate →'}
+          </Button>
+        </Box>
+      </Box>
+    );
+  };
+
+  const SuggestionSkeleton = () => (
+    <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <Grid item xs={6} sm={4} md={3} key={i}>
+          <Skeleton
+            variant="rectangular"
+            sx={{
+              aspectRatio: '2 / 3',
+              width: '100%',
+              borderRadius: 1.5,
+              bgcolor: 'rgba(244,239,230,0.06)',
+            }}
+          />
+          <Skeleton width="80%" sx={{ mt: 1, bgcolor: 'rgba(244,239,230,0.06)' }} />
+          <Skeleton width="40%" sx={{ bgcolor: 'rgba(244,239,230,0.04)' }} />
+        </Grid>
+      ))}
+    </Grid>
   );
 
   if (!isAuthenticated) {
     return <LandingHero />;
   }
 
+  const moviesToShow = (displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies).slice(0, 8);
+  const showEmpty =
+    moviesToShow.length === 0 && !loading && displayMovies.length === 0 && filteredRecommendedMovies.length === 0;
+
   return (
-    <Box sx={{ 
-      minHeight: '100vh',
-      background: '#0c0b0a',
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
-      <Container 
-        maxWidth="lg" 
-        sx={{ 
-          py: { xs: 3, sm: 5 }, 
-          px: { xs: 2, sm: 3 }, 
-          position: 'relative', 
+    <Box
+      sx={{
+        minHeight: '100vh',
+        backgroundColor: 'var(--rl-ink)',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <Container
+        maxWidth="lg"
+        sx={{
+          py: { xs: 3, sm: 4 },
+          px: { xs: 2, sm: 3 },
+          position: 'relative',
           zIndex: 2,
-          display: 'flex',
-          flexDirection: 'column',
         }}
       >
-        <Box sx={{ mb: { xs: 3, sm: 4 } }}>
-          <Typography sx={{
-            fontFamily: '"Bebas Neue", sans-serif',
-            fontSize: { xs: '2.4rem', sm: '3.2rem' },
-            letterSpacing: '0.04em',
-            color: 'var(--rl-cream)',
-            lineHeight: 1,
-            mb: 1,
-          }}>
+        <Box sx={{ mb: { xs: 2.5, sm: 3 } }}>
+          <Typography
+            sx={{
+              fontFamily: '"Bebas Neue", sans-serif',
+              fontSize: { xs: '2.4rem', sm: '3.2rem' },
+              letterSpacing: '0.04em',
+              color: 'var(--rl-cream)',
+              lineHeight: 1,
+              mb: 0.75,
+            }}
+          >
             For you
           </Typography>
-          <Typography sx={{ color: 'var(--rl-muted)', mb: 1, maxWidth: 520 }}>
-            Suggestions from your rankings{user?.username ? `, ${user.username}` : ''}.
+          <Typography sx={{ color: 'var(--rl-muted)', maxWidth: 480, fontSize: '0.95rem' }}>
+            Picks based on your rankings{user?.username ? `, ${user.username}` : ''}.
           </Typography>
           {rawRatings.length < 5 && (
-            <Button component={Link} to="/onboarding" sx={{ color: 'var(--rl-accent)', textTransform: 'none', px: 0 }}>
-              Finish ranking 5 films to improve these →
+            <Button
+              component={Link}
+              to="/onboarding"
+              sx={{ color: 'var(--rl-accent)', textTransform: 'none', px: 0, mt: 0.75, fontSize: '0.875rem' }}
+            >
+              Rank 5 films to sharpen these →
             </Button>
           )}
-          {totalRankings > 0 && (
-            <Typography sx={{ color: 'rgba(244,239,230,0.45)', fontSize: '0.85rem', mt: 1 }}>
-              {totalRankings.toLocaleString()} community rankings
-            </Typography>
+        </Box>
+
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 1,
+            mb: 2.5,
+            borderBottom: '1px solid rgba(244, 239, 230, 0.1)',
+          }}
+        >
+          <Tabs
+            value={activeTab}
+            onChange={(e, newValue) => {
+              setActiveTab(newValue);
+              const next = new URLSearchParams(searchParams);
+              next.set('tab', newValue.toString());
+              setSearchParams(next);
+            }}
+            sx={{
+              minHeight: 40,
+              '& .MuiTab-root': {
+                color: 'rgba(244, 239, 230, 0.55)',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                textTransform: 'none',
+                minHeight: 40,
+                minWidth: 'auto',
+                px: { xs: 1.25, sm: 2 },
+                '&.Mui-selected': { color: 'var(--rl-cream)' },
+              },
+              '& .MuiTabs-indicator': {
+                backgroundColor: 'var(--rl-accent)',
+                height: 2,
+              },
+            }}
+          >
+            <Tab label="Suggested" value={1} />
+            <Tab label="Genres" value={2} />
+          </Tabs>
+          {activeTab === 1 && (
+            <IconButton
+              onClick={handleRefresh}
+              disabled={loading || isRefreshing}
+              size="small"
+              sx={{
+                color: 'var(--rl-accent)',
+                mb: 0.5,
+                '&:hover': { backgroundColor: 'rgba(212, 160, 23, 0.1)' },
+                '&.Mui-disabled': { color: 'rgba(244, 239, 230, 0.25)' },
+                ...(isRefreshing && {
+                  animation: 'spin 1s linear infinite',
+                  '@keyframes spin': {
+                    '0%': { transform: 'rotate(0deg)' },
+                    '100%': { transform: 'rotate(360deg)' },
+                  },
+                }),
+              }}
+              title="Refresh suggestions"
+            >
+              <RefreshIcon fontSize="small" />
+            </IconButton>
           )}
         </Box>
 
-        <Box sx={{ 
-          mb: 3,
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0,
-        }}>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', mb: 3, gap: 2 }}>
-              <Tabs
-                value={activeTab}
-                onChange={(e, newValue) => {
-                  setActiveTab(newValue);
-                  const newSearchParams = new URLSearchParams(searchParams);
-                  newSearchParams.set('tab', newValue.toString());
-                  setSearchParams(newSearchParams);
-                }}
-                variant="scrollable"
-                scrollButtons="auto"
-                sx={{
-                  '& .MuiTab-root': {
-                    color: 'rgba(244, 239, 230, 0.65)',
-                    fontSize: { xs: '0.875rem', sm: '1rem' },
-                    fontWeight: 600,
+        {activeTab === 2 ? (
+          genresLoading ? (
+            <Box display="flex" justifyContent="center" py={8}>
+              <CircularProgress size={28} sx={{ color: 'var(--rl-accent)' }} />
+            </Box>
+          ) : genres.length === 0 ? (
+            <Typography sx={{ color: 'var(--rl-muted)', py: 6, textAlign: 'center' }}>
+              Unable to load genres. Try refreshing.
+            </Typography>
+          ) : (
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 1,
+              }}
+            >
+              {genres.map((genre) => (
+                <Button
+                  key={genre.id}
+                  onClick={() => navigate(`/genre/${genre.id}?name=${encodeURIComponent(genre.name)}`)}
+                  sx={{
                     textTransform: 'none',
-                    minWidth: { xs: 120, sm: 180 },
-                    px: { xs: 2, sm: 3 },
-                    '&.Mui-selected': {
+                    px: 1.75,
+                    py: 0.85,
+                    borderRadius: 1,
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    color: 'var(--rl-cream)',
+                    border: '1px solid rgba(244, 239, 230, 0.14)',
+                    backgroundColor: 'rgba(244, 239, 230, 0.03)',
+                    '&:hover': {
+                      borderColor: 'rgba(212, 160, 23, 0.5)',
+                      backgroundColor: 'rgba(212, 160, 23, 0.08)',
                       color: 'var(--rl-accent)',
                     },
-                  },
-                  '& .MuiTabs-indicator': {
-                    backgroundColor: 'var(--rl-accent)',
-                    height: 2,
-                  },
-                }}
-              >
-                <Tab label="Suggested for You" value={1} />
-                <Tab label="Find by Genre" value={2} />
-              </Tabs>
-              {activeTab === 1 && (
-                <IconButton
-                  onClick={handleRefresh}
-                  disabled={loading || isRefreshing}
-                  sx={{
-                    color: 'var(--rl-accent)',
-                    '&:hover': {
-                      backgroundColor: 'rgba(212, 160, 23, 0.1)',
-                    },
-                    '&.Mui-disabled': {
-                      color: 'rgba(244, 239, 230, 0.3)',
-                    },
-                    ...(isRefreshing && {
-                      animation: 'spin 1s linear infinite',
-                      '@keyframes spin': {
-                        '0%': { transform: 'rotate(0deg)' },
-                        '100%': { transform: 'rotate(360deg)' },
-                      },
-                    }),
                   }}
-                  title="Refresh recommendations"
                 >
-                  <RefreshIcon />
-                </IconButton>
-              )}
+                  {genre.name}
+                </Button>
+              ))}
             </Box>
-
-          {activeTab === 2 ? (
-            <Box>
-              {genresLoading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
-                  <CircularProgress />
-                </Box>
-              ) : genres.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
-                  <Typography variant="h6" sx={{ 
-                    color: 'rgba(255, 255, 255, 0.7)', 
-                    mb: 2,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}>
-                    No genres available
-                  </Typography>
-                  <Typography variant="body2" sx={{ 
-                    color: 'rgba(255, 255, 255, 0.5)',
-                    fontSize: { xs: '0.875rem', sm: '1rem' }
-                  }}>
-                    Unable to load genres. Please try refreshing the page.
-                  </Typography>
-                </Box>
-              ) : (
-                <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
-                  {genres.map((genre) => (
-                    <Grid item xs={6} sm={6} md={4} lg={3} key={genre.id}>
-                      <Card
-                        sx={{
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          background: 'rgba(26, 26, 26, 0.8)',
-                          backdropFilter: 'blur(20px)',
-                          border: '1px solid rgba(0, 212, 255, 0.2)',
-                          borderRadius: { xs: 3, sm: 4 },
-                          maxWidth: { xs: '100%', sm: 300 },
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minHeight: { xs: 80, sm: 100 },
-                          '&:hover': {
-                            transform: { xs: 'none', sm: 'translateY(-8px)' },
-                            boxShadow: { xs: 'none', sm: '0 20px 40px rgba(0, 212, 255, 0.3)' },
-                            border: { xs: '1px solid rgba(0, 212, 255, 0.2)', sm: '1px solid rgba(0, 212, 255, 0.5)' },
-                          },
-                        }}
-                        onClick={() => navigate(`/genre/${genre.id}?name=${encodeURIComponent(genre.name)}`)}
-                      >
-                        <CardContent sx={{ textAlign: 'center', p: { xs: 2, sm: 2.5 }, width: '100%' }}>
-                          <Typography
-                            variant="h6"
-                            sx={{
-                              fontWeight: 600,
-                              fontSize: { xs: '1rem', sm: '1.125rem' },
-                              background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-                              backgroundClip: 'text',
-                              WebkitBackgroundClip: 'text',
-                              WebkitTextFillColor: 'transparent',
-                            }}
-                          >
-                            {genre.name}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              )}
-            </Box>
-          ) : (
-            loading && !isRefreshing && displayMovies.length === 0 && filteredRecommendedMovies.length === 0 ? (
-              <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
-                <CircularProgress />
-              </Box>
-            ) : (
+          )
+        ) : loading && !isRefreshing && moviesToShow.length === 0 ? (
+          <SuggestionSkeleton />
+        ) : (
+          <Box
+            sx={{
+              opacity: isRefreshing ? 0.45 : 1,
+              transition: 'opacity 0.25s ease',
+              position: 'relative',
+            }}
+          >
+            {isRefreshing && (
               <Box
                 sx={{
-                  opacity: isRefreshing ? 0.5 : 1,
-                  transition: 'opacity 0.3s ease-in-out',
-                  position: 'relative',
+                  position: 'absolute',
+                  inset: 0,
+                  zIndex: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                {isRefreshing && (
-                  <Box
+                <CircularProgress size={28} sx={{ color: 'var(--rl-accent)' }} />
+              </Box>
+            )}
+
+            {showEmpty ? (
+              <Box sx={{ textAlign: 'center', py: { xs: 6, sm: 8 }, maxWidth: 420, mx: 'auto' }}>
+                <Typography
+                  sx={{
+                    fontFamily: '"Bebas Neue", sans-serif',
+                    fontSize: '1.6rem',
+                    letterSpacing: '0.04em',
+                    color: 'var(--rl-cream)',
+                    mb: 1,
+                  }}
+                >
+                  {recommendedMovies.length > 0 ? 'All caught up' : 'Start ranking'}
+                </Typography>
+                <Typography sx={{ color: 'var(--rl-muted)', fontSize: '0.9rem', mb: 2.5 }}>
+                  {recommendedMovies.length > 0
+                    ? 'You’ve rated these picks. Refresh for a new set.'
+                    : 'Rate a few films and we’ll suggest similar ones.'}
+                </Typography>
+                {recommendedMovies.length > 0 ? (
+                  <Button
+                    onClick={handleRefresh}
                     sx={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      zIndex: 10,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      textTransform: 'none',
+                      color: 'var(--rl-ink)',
+                      backgroundColor: 'var(--rl-accent)',
+                      px: 2.5,
+                      '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
                     }}
                   >
-                    <CircularProgress size={40} />
-                  </Box>
+                    Refresh suggestions
+                  </Button>
+                ) : (
+                  <Button
+                    component={Link}
+                    to="/rate"
+                    sx={{
+                      textTransform: 'none',
+                      color: 'var(--rl-ink)',
+                      backgroundColor: 'var(--rl-accent)',
+                      px: 2.5,
+                      '&:hover': { backgroundColor: 'var(--rl-accent-hover)' },
+                    }}
+                  >
+                    Rate movies
+                  </Button>
                 )}
-                <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
-                  {(displayMovies.length > 0 ? displayMovies : filteredRecommendedMovies)
-                    .slice(0, 8)
-                    .map((movie) => (
-                      <Grid item xs={6} sm={6} md={4} lg={3} key={movie.id}>
-                        <MovieCard movie={movie} />
-                      </Grid>
-                    ))}
-                  {displayMovies.length === 0 && filteredRecommendedMovies.length === 0 && !loading && (
-                    <Box sx={{ textAlign: 'center', py: 8, width: '100%', px: { xs: 2, sm: 0 } }}>
-                      <Typography variant="h6" sx={{ 
-                        color: 'rgba(255, 255, 255, 0.7)', 
-                        mb: 2,
-                        fontSize: { xs: '1rem', sm: '1.25rem' }
-                      }}>
-                        {recommendedMovies.length > 0 
-                          ? "You've rated all the recommended movies! Click refresh to get new suggestions."
-                          : "Rate some movies to get personalized recommendations!"
-                        }
-                      </Typography>
-                      <Typography variant="body2" sx={{ 
-                        color: 'rgba(255, 255, 255, 0.5)',
-                        fontSize: { xs: '0.875rem', sm: '1rem' }
-                      }}>
-                        {recommendedMovies.length > 0
-                          ? "Keep rating movies to discover more great films!"
-                          : "Start rating movies and we'll suggest similar ones you might enjoy."
-                        }
-                      </Typography>
-                    </Box>
-                  )}
-                </Grid>
               </Box>
-            )
-          )}
-        </Box>
+            ) : (
+              <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+                {moviesToShow.map((movie) => (
+                  <Grid item xs={6} sm={4} md={3} key={movie.id}>
+                    <MovieCard movie={movie} />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Box>
+        )}
       </Container>
 
       {ratingMovie && (
